@@ -32,3 +32,6 @@ tempAssetGen/
 CLAUDE.md
 AGENTS.md
 .claude/
+agent/
+.agents/
+skills-lock.json
