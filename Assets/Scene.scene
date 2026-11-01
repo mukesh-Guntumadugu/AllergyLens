@@ -1317,7 +1317,8 @@
   ScriptInputsDefault:
     restaurantId: true
     barPaddingCm: true
-    barAlpha: true
+    displayBandMin: true
+    displayBandMax: true
     safeColor: true
     flagColor: true
     unverifiedColor: true
@@ -1330,7 +1331,8 @@
     "":
       restaurantId: star-of-india
       barPaddingCm: 0.200000
-      barAlpha: 0.600000
+      displayBandMin: 0.230000
+      displayBandMax: 0.770000
       safeColor: !<Vec3> {x: 0.550000, y: 0.950000, z: 0.600000}
       flagColor: !<Vec3> {x: 0.980000, y: 0.450000, z: 0.450000}
       unverifiedColor: !<Vec3> {x: 1.000000, y: 0.800000, z: 0.300000}
@@ -1549,12 +1551,12 @@
   Enabled: true
   ScriptAsset: !<reference> cecc5bf7-f2d9-484b-9f20-a0761fcfca38
   ScriptInputsDefault:
-    autoRun: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      autoRun: false
+      autoRun: true
   ScriptTypes:
     "":
       {}
@@ -1651,6 +1653,7 @@
   ScriptInputsDefault:
     title: true
     doneLabel: true
+    moodQuestion: true
     panelWidthCm: true
     textDistanceCm: true
   ScriptTypesDefault:
@@ -1659,6 +1662,7 @@
     "":
       title: Your profile
       doneLabel: Done
+      moodQuestion: "What are you in the mood for?"
       panelWidthCm: !<float> 30.000000
       textDistanceCm: !<float> 80.000000
   ScriptTypes:
@@ -2597,8 +2601,10 @@
   ScriptInputsDefault:
     showProfileAtStart: true
     defaultProfile: true
+    defaultMood: true
     detailGapCm: true
     sfxVolume: true
+    voiceEnabled: true
     debugSimulateMarker: true
     menusUrl: true
   ScriptTypesDefault:
@@ -2611,8 +2617,10 @@
       markersRoot: !<reference.SceneObject> d4d72d8d-7a7e-4db6-930e-358c6d92ebea
       showProfileAtStart: true
       defaultProfile: ""
+      defaultMood: everything
       detailGapCm: 1.500000
       sfxVolume: 0.800000
+      voiceEnabled: true
       debugSimulateMarker: false
       menusUrl: ""
   ScriptTypes:

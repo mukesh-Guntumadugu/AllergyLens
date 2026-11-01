@@ -4737,6 +4737,13 @@
           "name": "AllergyLensMain",
           "enabled": true,
           "properties": {
+            "voiceEnabled": {
+              "isScriptInput": true,
+              "value": true,
+              "type": "bool",
+              "uiInfo": "{\"hint\":\"Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way.\"}",
+              "defaultValue": "true"
+            },
             "showProfileAtStart": {
               "isScriptInput": true,
               "value": true,
@@ -4762,11 +4769,33 @@
               "type": "AssignableType_2",
               "uiInfo": "{\"hint\":\"Small world-locked Profile button that reopens the panel.\"}"
             },
+            "defaultProfile": {
+              "isScriptInput": true,
+              "value": "",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Comma-separated allergen ids (e.g. \\\"peanut,milk\\\") applied at start — with showProfileAtStart off this gives a hands-free demo.\"}"
+            },
             "menusUrl": {
               "isScriptInput": true,
               "value": "",
               "type": "string",
               "uiInfo": "{\"hint\":\"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used.\"}"
+            },
+            "defaultMood": {
+              "isScriptInput": true,
+              "value": "everything",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Mood applied at start: everything | chicken | red_meat | seafood | vegetarian | dessert.\"}",
+              "defaultValue": "everything"
+            },
+            "markersRoot": {
+              "isScriptInput": true,
+              "value": {
+                "UUID": "d4d72d8d-7a7e-4db6-930e-358c6d92ebea",
+                "name": "Markers"
+              },
+              "type": "SceneObject",
+              "uiInfo": "{\"hint\":\"Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI).\"}"
             },
             "dishDetail": {
               "isScriptInput": true,
@@ -4784,21 +4813,6 @@
               "uiInfo": "{\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}",
               "defaultValue": "1"
             },
-            "defaultProfile": {
-              "isScriptInput": true,
-              "value": "",
-              "type": "string",
-              "uiInfo": "{\"hint\":\"Comma-separated allergen ids (e.g. \\\"peanut,milk\\\") applied at start — with showProfileAtStart off this gives a hands-free demo.\"}"
-            },
-            "markersRoot": {
-              "isScriptInput": true,
-              "value": {
-                "UUID": "d4d72d8d-7a7e-4db6-930e-358c6d92ebea",
-                "name": "Markers"
-              },
-              "type": "SceneObject",
-              "uiInfo": "{\"hint\":\"Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI).\"}"
-            },
             "sfxVolume": {
               "isScriptInput": true,
               "value": 0.800000011920929,
@@ -4814,15 +4828,17 @@
             },
             "scriptAsset": "@asset:Scripts/AllergyLensMain.ts",
             "inputNames.0": "debugSimulateMarker",
-            "inputNames.1": "defaultProfile",
-            "inputNames.2": "detailGapCm",
-            "inputNames.3": "dishDetail",
-            "inputNames.4": "markersRoot",
-            "inputNames.5": "menusUrl",
-            "inputNames.6": "profileButton",
-            "inputNames.7": "profilePanel",
-            "inputNames.8": "sfxVolume",
-            "inputNames.9": "showProfileAtStart",
+            "inputNames.1": "defaultMood",
+            "inputNames.2": "defaultProfile",
+            "inputNames.3": "detailGapCm",
+            "inputNames.4": "dishDetail",
+            "inputNames.5": "markersRoot",
+            "inputNames.6": "menusUrl",
+            "inputNames.7": "profileButton",
+            "inputNames.8": "profilePanel",
+            "inputNames.9": "sfxVolume",
+            "inputNames.10": "showProfileAtStart",
+            "inputNames.11": "voiceEnabled",
             "name": "AllergyLensMain",
             "enabled": true,
             "sceneObject": "@sceneObject:AllergyLens",
@@ -4910,6 +4926,13 @@
               "uiInfo": "{\"hint\":\"Panel width in cm (brief default 30). Height follows the toggle count.\", \"widget\":\"slider\", \"min\":20, \"max\":50, \"step\":1}",
               "defaultValue": "30"
             },
+            "moodQuestion": {
+              "isScriptInput": true,
+              "value": "What are you in the mood for?",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Question above the mood chips.\"}",
+              "defaultValue": "What are you in the mood for?"
+            },
             "doneLabel": {
               "isScriptInput": true,
               "value": "Done",
@@ -4919,9 +4942,10 @@
             },
             "scriptAsset": "@asset:Scripts/AllergyLensProfileUI.ts",
             "inputNames.0": "doneLabel",
-            "inputNames.1": "panelWidthCm",
-            "inputNames.2": "textDistanceCm",
-            "inputNames.3": "title",
+            "inputNames.1": "moodQuestion",
+            "inputNames.2": "panelWidthCm",
+            "inputNames.3": "textDistanceCm",
+            "inputNames.4": "title",
             "name": "AllergyLensProfileUI",
             "enabled": true,
             "sceneObject": "@sceneObject:ProfilePanel",
@@ -5141,40 +5165,19 @@
               "uiInfo": "{\"hint\":\"Restaurant id from the data (must have a menuImage). The marker on this object is that page.\"}",
               "defaultValue": "star-of-india"
             },
+            "lostHideDelaySec": {
+              "isScriptInput": true,
+              "value": 1,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Seconds to keep the marks after the marker is lost before they fade out (fade takes ~0.4 s).\", \"widget\":\"slider\", \"min\":0, \"max\":5, \"step\":0.1}",
+              "defaultValue": "0.6"
+            },
             "flagColor": {
               "isScriptInput": true,
               "value": "{x: 0.98, y: 0.45, z: 0.45}",
               "type": "vec3",
               "uiInfo": "{\"hint\":\"Bar tint for dishes that contain something from the profile.\", \"widget\":\"color\"}",
               "defaultValue": "{0.98, 0.45, 0.45}"
-            },
-            "lostHideDelaySec": {
-              "isScriptInput": true,
-              "value": 1,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Seconds to keep the overlay after the marker is lost before hiding it.\", \"widget\":\"slider\", \"min\":0, \"max\":5, \"step\":0.1}",
-              "defaultValue": "1"
-            },
-            "barAlpha": {
-              "isScriptInput": true,
-              "value": 0.6000000238418579,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Opacity of the highlight bars over the paper.\", \"widget\":\"slider\", \"min\":0.1, \"max\":1, \"step\":0.05}",
-              "defaultValue": "0.6"
-            },
-            "badgeWidthCm": {
-              "isScriptInput": true,
-              "value": 15,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Badge chip width in cm. Keep it inside the glasses' display band (~55% of the page width).\", \"widget\":\"slider\", \"min\":8, \"max\":30, \"step\":0.5}",
-              "defaultValue": "15"
-            },
-            "barPaddingCm": {
-              "isScriptInput": true,
-              "value": 0.20000000298023224,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Padding (cm) added around each printed line's OCR box; bars are otherwise exactly the line's width and height.\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.05}",
-              "defaultValue": "0.2"
             },
             "badgeEdgeOffsetCm": {
               "isScriptInput": true,
@@ -5183,16 +5186,45 @@
               "uiInfo": "{\"hint\":\"Badge chip centre relative to the page's top edge, in cm: negative = inside the page's top margin (default), positive = floating above the edge.\", \"widget\":\"slider\", \"min\":-4, \"max\":4, \"step\":0.1}",
               "defaultValue": "-0.9"
             },
+            "displayBandMin": {
+              "isScriptInput": true,
+              "value": 0.23000000417232513,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Left edge of the glasses' display band as a fraction of the camera frame (Phase 1 measurement: 0.23).\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.01}",
+              "defaultValue": "0.23"
+            },
+            "barPaddingCm": {
+              "isScriptInput": true,
+              "value": 0.20000000298023224,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Padding (cm) added around each printed line's OCR box; bars are otherwise exactly the line's width and height.\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.05}",
+              "defaultValue": "0.2"
+            },
+            "displayBandMax": {
+              "isScriptInput": true,
+              "value": 0.7699999809265137,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Right edge of the glasses' display band as a fraction of the camera frame (Phase 1 measurement: 0.77).\", \"widget\":\"slider\", \"min\":0.5, \"max\":1, \"step\":0.01}",
+              "defaultValue": "0.77"
+            },
+            "badgeWidthCm": {
+              "isScriptInput": true,
+              "value": 15,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Badge chip width in cm. Keep it inside the glasses' display band (~55% of the page width).\", \"widget\":\"slider\", \"min\":8, \"max\":30, \"step\":0.5}",
+              "defaultValue": "15"
+            },
             "scriptAsset": "@asset:Scripts/AllergyLensMenuOverlayUI.ts",
             "inputNames.0": "badgeEdgeOffsetCm",
             "inputNames.1": "badgeWidthCm",
-            "inputNames.2": "barAlpha",
-            "inputNames.3": "barPaddingCm",
-            "inputNames.4": "flagColor",
-            "inputNames.5": "lostHideDelaySec",
-            "inputNames.6": "restaurantId",
-            "inputNames.7": "safeColor",
-            "inputNames.8": "unverifiedColor",
+            "inputNames.2": "barPaddingCm",
+            "inputNames.3": "displayBandMax",
+            "inputNames.4": "displayBandMin",
+            "inputNames.5": "flagColor",
+            "inputNames.6": "lostHideDelaySec",
+            "inputNames.7": "restaurantId",
+            "inputNames.8": "safeColor",
+            "inputNames.9": "unverifiedColor",
             "name": "AllergyLensMenuOverlayUI",
             "enabled": true,
             "sceneObject": "@sceneObject:MenuMarker",
@@ -5278,7 +5310,7 @@
           "properties": {
             "autoRun": {
               "isScriptInput": true,
-              "value": false,
+              "value": true,
               "type": "bool",
               "uiInfo": "{\"hint\":\"Run all LEAF scenarios automatically when the Lens starts (testing only).\"}"
             },

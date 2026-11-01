@@ -30,8 +30,9 @@
   ScriptInputsHidden:
     badgeEdgeOffsetCm: false
     badgeWidthCm: false
-    barAlpha: false
     barPaddingCm: false
+    displayBandMax: false
+    displayBandMin: false
     flagColor: false
     lostHideDelaySec: false
     restaurantId: false
@@ -48,7 +49,8 @@
   DefaultScriptInputs:
     - restaurantId: star-of-india
       barPaddingCm: 0.200000
-      barAlpha: 0.600000
+      displayBandMin: 0.230000
+      displayBandMax: 0.770000
       safeColor: !<Vec3> {x: 0.550000, y: 0.950000, z: 0.600000}
       flagColor: !<Vec3> {x: 0.980000, y: 0.450000, z: 0.450000}
       unverifiedColor: !<Vec3> {x: 1.000000, y: 0.800000, z: 0.300000}
@@ -65,11 +67,12 @@
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input string restaurantId = "star-of-india" {"hint":"Restaurant id from the data (must have a menuImage). The marker on this object is that page."}'
     - "// @input float barPaddingCm = 0.2 {\"hint\":\"Padding (cm) added around each printed line's OCR box; bars are otherwise exactly the line's width and height.\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.05}"
-    - '// @input float barAlpha = 0.6 {"hint":"Opacity of the highlight bars over the paper.", "widget":"slider", "min":0.1, "max":1, "step":0.05}'
+    - "// @input float displayBandMin = 0.23 {\"hint\":\"Left edge of the glasses' display band as a fraction of the camera frame (Phase 1 measurement: 0.23).\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.01}"
+    - "// @input float displayBandMax = 0.77 {\"hint\":\"Right edge of the glasses' display band as a fraction of the camera frame (Phase 1 measurement: 0.77).\", \"widget\":\"slider\", \"min\":0.5, \"max\":1, \"step\":0.01}"
     - '// @input vec3 safeColor = "{0.55, 0.95, 0.6}" {"hint":"Bar tint for safe dishes.", "widget":"color"}'
     - '// @input vec3 flagColor = "{0.98, 0.45, 0.45}" {"hint":"Bar tint for dishes that contain something from the profile.", "widget":"color"}'
     - '// @input vec3 unverifiedColor = "{1.0, 0.8, 0.3}" {"hint":"Bar tint for dishes whose ingredients are not published.", "widget":"color"}'
-    - '// @input float lostHideDelaySec = 1 {"hint":"Seconds to keep the overlay after the marker is lost before hiding it.", "widget":"slider", "min":0, "max":5, "step":0.1}'
+    - '// @input float lostHideDelaySec = 0.6 {"hint":"Seconds to keep the marks after the marker is lost before they fade out (fade takes ~0.4 s).", "widget":"slider", "min":0, "max":5, "step":0.1}'
     - "// @input float badgeEdgeOffsetCm = -0.9 {\"hint\":\"Badge chip centre relative to the page's top edge, in cm: negative = inside the page's top margin (default), positive = floating above the edge.\", \"widget\":\"slider\", \"min\":-4, \"max\":4, \"step\":0.1}"
     - "// @input float badgeWidthCm = 15 {\"hint\":\"Badge chip width in cm. Keep it inside the glasses' display band (~55% of the page width).\", \"widget\":\"slider\", \"min\":8, \"max\":30, \"step\":0.5}"
     - '// @ui {"widget":"group_end"}'

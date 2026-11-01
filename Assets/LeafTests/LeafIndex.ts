@@ -5,6 +5,10 @@ import {AllergyLensLeafScenario2StarPeanutMilk} from "./AllergyLensLeafScenario2
 import {AllergyLensLeafScenario3ChoiceRule} from "./AllergyLensLeafScenario3ChoiceRule"
 import {AllergyLensLeafScenario4DetailOnPinch} from "./AllergyLensLeafScenario4DetailOnPinch"
 import {AllergyLensLeafScenario5MarkerLost} from "./AllergyLensLeafScenario5MarkerLost"
+import {AllergyLensLeafScenario6MoodVegetarian} from "./AllergyLensLeafScenario6MoodVegetarian"
+import {AllergyLensLeafScenario7MoodChicken} from "./AllergyLensLeafScenario7MoodChicken"
+import {AllergyLensLeafScenario8EverythingLight} from "./AllergyLensLeafScenario8EverythingLight"
+import {AllergyLensLeafScenario9VoiceMatch} from "./AllergyLensLeafScenario9VoiceMatch"
 
 @component
 export class LeafIndex extends BaseScriptComponent {
@@ -15,5 +19,9 @@ export class LeafIndex extends BaseScriptComponent {
     {id: "allergylens-3-choice-rule", typename: AllergyLensLeafScenario3ChoiceRule.getTypeName()},
     {id: "allergylens-4-detail-on-pinch", typename: AllergyLensLeafScenario4DetailOnPinch.getTypeName()},
     {id: "allergylens-5-marker-lost", typename: AllergyLensLeafScenario5MarkerLost.getTypeName()},
+    {id: "allergylens-6-mood-vegetarian", typename: AllergyLensLeafScenario6MoodVegetarian.getTypeName()},
+    {id: "allergylens-7-mood-chicken", typename: AllergyLensLeafScenario7MoodChicken.getTypeName()},
+    {id: "allergylens-8-everything-light", typename: AllergyLensLeafScenario8EverythingLight.getTypeName()},
+    {id: "allergylens-9-voice-match", typename: AllergyLensLeafScenario9VoiceMatch.getTypeName()},
   ]
 }

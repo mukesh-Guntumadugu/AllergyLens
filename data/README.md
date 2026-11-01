@@ -6,10 +6,12 @@ them; `node tools/build-data.js` validates them and generates
 
 ```
 data/allergens.json   allergen knowledge base: allergen -> aliases
-data/dishes.json      dish knowledge base: dish name -> typical ingredients
-data/menus.json       restaurants -> dishes -> ingredients (+ optional rating)
+data/dishes.json      dish knowledge base: dish name -> typical ingredients, shares, substitutes
+data/menus.json       restaurants -> dishes -> ingredients, layout on the menu image (+ rating)
+data/menus/<id>/      menu photos (tracking markers) and raw OCR output per restaurant
+data/products.json    packaged grocery products from Open Food Facts (pipeline 2)
 tools/build-data.js   validate + join + generate Assets/Data/AllergyData.ts
-tools/scrape/         helpers for the scraping machine (menu photo classifier)
+tools/scrape/         the two scraping pipelines (see tools/scrape/README.md)
 ```
 
 ## dishes.json

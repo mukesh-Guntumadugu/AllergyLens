@@ -12,7 +12,7 @@ import {GridLayout} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid
 import {GridItem} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid/GridItem"
 import {FlexAlign, FlexJustify} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Flex/FlexTypes"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
-import {AllergenDef, GROUP_LABELS, GROUP_ORDER, allergensInGroup} from "./AllergyLensMenuData"
+import {AllergenDef, GROUP_LABELS, GROUP_ORDER, MOODS, Mood, allergensInGroup} from "./AllergyLensMenuData"
 import * as UI from "./AllergyLensSharedUI"
 
 const ICON_DONE = requireAsset("../Icons/check.png") as Texture
@@ -21,6 +21,8 @@ export interface ProfileToggleEvent {
   id: string
   on: boolean
 }
+
+const MOOD_COLS = 3
 
 const PAD = 1.2
 const GAP = 0.4
@@ -46,6 +48,10 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   doneLabel: string = "Done"
 
   @input
+  @hint("Question above the mood chips.")
+  moodQuestion: string = "What are you in the mood for?"
+
+  @input
   @hint("Panel width in cm (brief default 30). Height follows the toggle count.")
   @widget(new SliderWidget(20, 50, 1))
   panelWidthCm: number = 30
@@ -58,8 +64,22 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
   private buttons = new Map<string, Button>()
   private pendingStates = new Map<string, boolean>()
+  private moodButtons = new Map<Mood, Button>()
+  private _mood: Mood = "everything"
+  private applyingMood = false
   private _onToggle = new Event<ProfileToggleEvent>()
+  private _onMood = new Event<Mood>()
   private _onDone = new Event<void>()
+
+  /** The user picked a mood chip. */
+  get onMood(): PublicApi<Mood> {
+    return this._onMood.publicApi()
+  }
+
+  /** Currently selected mood ("everything" = no filter). */
+  get mood(): Mood {
+    return this._mood
+  }
 
   /** A toggle flipped: {id, on}. */
   get onToggle(): PublicApi<ProfileToggleEvent> {
@@ -79,8 +99,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
     // Height from the data: header + per group (label + grid) + Done + gaps.
     const groups = GROUP_ORDER.map((g) => ({group: g, items: allergensInGroup(g)})).filter((g) => g.items.length > 0)
-    let H = PAD * 2 + HEADER_H + DONE_H
-    let itemCount = 2
+    const moodRows = Math.ceil(MOODS.length / MOOD_COLS)
+    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H
+    let itemCount = 2 + 1 + moodRows
     for (const g of groups) {
       const rows = Math.ceil(g.items.length / COLS)
       H += GROUP_LABEL_H + rows * TOGGLE_H + (rows - 1) * GAP
@@ -123,6 +144,13 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       })
     }
 
+    // Mood — one question, single-select chips (3 per row).
+    UI.addColumnText(col, this.moodQuestion, "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
+    for (let r = 0; r < MOODS.length; r += MOOD_COLS) {
+      const row = UI.flexRow(col, innerW, TOGGLE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      for (const m of MOODS.slice(r, r + MOOD_COLS)) this.addMoodChip(row, m.id, m.label, btnW, TOGGLE_H)
+    }
+
     // Done — centered, with a check icon.
     const doneRow = UI.flexRow(col, innerW, DONE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
     UI.flexChild(doneRow, {w: DONE_W, h: DONE_H}, (so) => {
@@ -149,7 +177,44 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     return this.buttons.get(id)?.isOn ?? false
   }
 
+  /** Select a mood chip (works before the chips exist, e.g. from defaultMood). */
+  setMood(mood: Mood): void {
+    this.selectMood(mood, false)
+  }
+
   // ── Private ────────────────────────────────────────────────────────────
+  private addMoodChip(row: SceneObject, mood: Mood, label: string, w: number, h: number): void {
+    UI.flexChild(row, {w, h}, (so) => {
+      so.name = `Mood-${mood}`
+      const btn = so.createComponent(Button.getTypeName()) as Button
+      btn.size = new vec3(w, h, 1)
+      btn.setIsToggleable(true)
+      btn.isOn = mood === this._mood
+      btn.onValueChange.add((v: number) => {
+        if (this.applyingMood) return
+        if (v === 1) this.selectMood(mood, true)
+        else if (mood === this._mood) {
+          // Single-select: the current chip cannot be switched off, only replaced.
+          this.applyingMood = true
+          btn.isOn = true
+          this.applyingMood = false
+        }
+      })
+      UI.addButtonLabel(so, label, w - 0.6, this.textDistanceCm, "Button")
+      this.moodButtons.set(mood, btn)
+    })
+  }
+
+  private selectMood(mood: Mood, fromUser: boolean): void {
+    this._mood = mood
+    this.applyingMood = true
+    this.moodButtons.forEach((b, id) => {
+      b.isOn = id === mood
+    })
+    this.applyingMood = false
+    if (fromUser) this._onMood.invoke(mood)
+  }
+
   private buildToggle(so: SceneObject, item: AllergenDef, w: number, h: number): void {
     const btn = so.createComponent(Button.getTypeName()) as Button
     btn.size = new vec3(w, h, 1)

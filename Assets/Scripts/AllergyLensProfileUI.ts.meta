@@ -29,6 +29,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     doneLabel: false
+    moodQuestion: false
     panelWidthCm: false
     textDistanceCm: false
     title: false
@@ -43,6 +44,7 @@
   DefaultScriptInputs:
     - title: Your profile
       doneLabel: Done
+      moodQuestion: "What are you in the mood for?"
       panelWidthCm: !<float> 30.000000
       textDistanceCm: !<float> 80.000000
   ScriptTypes:
@@ -55,6 +57,7 @@
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input string title = "Your profile" {"hint":"Header text at the top of the panel."}'
     - '// @input string doneLabel = "Done" {"hint":"Label on the Done button."}'
+    - '// @input string moodQuestion = "What are you in the mood for?" {"hint":"Question above the mood chips."}'
     - '// @input float panelWidthCm = 30 {"hint":"Panel width in cm (brief default 30). Height follows the toggle count.", "widget":"slider", "min":20, "max":50, "step":1}'
     - '// @input float textDistanceCm = 80 {"hint":"Viewing distance (cm) used to scale text; the panel sits ~80 cm from the user.", "widget":"slider", "min":40, "max":110, "step":5}'
     - '// @ui {"widget":"group_end"}'

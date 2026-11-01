@@ -14,10 +14,11 @@
 import {AllergyLensProfileUI} from "./AllergyLensProfileUI"
 import {AllergyLensProfileButtonUI} from "./AllergyLensProfileButtonUI"
 import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
-import {AllergyLensMenuOverlayUI} from "./AllergyLensMenuOverlayUI"
+import {AllergyLensMenuOverlayUI, DishMark, MarkStyle} from "./AllergyLensMenuOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
-import {ALLERGENS, RestaurantDef, getRestaurant, setRestaurants, validateMenus} from "./AllergyLensMenuData"
+import {ALLERGENS, MOODS, Mood, RestaurantDef, dishCategory, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
 import {checkMenu, describeChoice, DishResult, Profile, rateRestaurant} from "./AllergyLensChecker"
+import {VoiceListener, matchDishByVoice} from "./AllergyLensVoice"
 
 @component
 export class AllergyLensMain extends BaseScriptComponent {
@@ -54,6 +55,10 @@ export class AllergyLensMain extends BaseScriptComponent {
   defaultProfile: string = ""
 
   @input
+  @hint("Mood applied at start: everything | chicken | red_meat | seafood | vegetarian | dessert.")
+  defaultMood: string = "everything"
+
+  @input
   @hint("Gap (cm) between a bar's end and the detail card placed beside it.")
   @widget(new SliderWidget(0, 10, 0.5))
   detailGapCm: number = 1.0
@@ -62,6 +67,14 @@ export class AllergyLensMain extends BaseScriptComponent {
   @hint("Volume for the click / scan / pop cues (0 = silent).")
   @widget(new SliderWidget(0, 1, 0.05))
   sfxVolume: number = 0.8
+
+  @input
+  @hint("Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way.")
+  voiceEnabled: boolean = true
+
+  @input
+  @hint("Start the ASR session inside the Lens Studio preview too. Off by default: starting ASR in the preview crashed Lens Studio 5.23.2 during testing; on the device it runs normally.")
+  voiceInPreview: boolean = false
 
   @input
   @hint("Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera).")
@@ -73,11 +86,14 @@ export class AllergyLensMain extends BaseScriptComponent {
   @ui.group_end
 
   private profile = new Profile()
+  private mood: Mood = "everything"
   private overlays: AllergyLensMenuOverlayUI[] = []
   private results = new Map<string, DishResult[]>()
   private openDish: {restaurantId: string; dishId: string} | null = null
   private audio: AllergyLensAudio | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
+  private voice: VoiceListener | null = null
+  private safeCardTimer: DelayedCallbackEvent | null = null
 
   onAwake(): void {
     if (!this.profilePanel || !this.profileButton || !this.dishDetail || !this.markersRoot) {
@@ -99,6 +115,12 @@ export class AllergyLensMain extends BaseScriptComponent {
       print(`AllergyLens: profile ${e.id} = ${e.on ? "on" : "off"}`)
       this.recheckActive()
     })
+    this.profilePanel.onMood.add((m) => {
+      this.mood = m
+      this.audio?.playClick()
+      print(`AllergyLens: mood ${m}`)
+      this.recheckActive()
+    })
     this.profilePanel.onDone.add(() => this.onProfileDone())
     this.profileButton.onProfile.add(() => this.openProfile())
     this.dishDetail.onClose.add(() => this.closeDetail())
@@ -115,6 +137,14 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
 
     this.applyDefaultProfile()
+    this.applyDefaultMood()
+    if (this.voiceEnabled) {
+      const inEditor = global.deviceInfoSystem.isEditor()
+      if (inEditor && !this.voiceInPreview) print("AllergyLens: voice selection is off in the Lens Studio preview (set voiceInPreview to try it); pinch works")
+      else this.voice = new VoiceListener((text) => this.onVoice(text))
+    }
+    this.safeCardTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+    this.safeCardTimer.bind(() => this.closeDetail())
     this.buttonShowTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.buttonShowTimer.bind(() => {
       if (!this.anyMarkerActive()) this.profileButton.getSceneObject().enabled = true
@@ -138,13 +168,13 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   // ── Debug / test hooks ─────────────────────────────────────────────────
   /** Drive the real marker-found path for a restaurant id (page parked 60 cm ahead). */
-  simulateMarker(restaurantId: string): boolean {
+  simulateMarker(restaurantId: string, offsetXcm: number = 0): boolean {
     const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
     if (!overlay) {
       print(`AllergyLens: simulateMarker — no overlay for "${restaurantId}"`)
       return false
     }
-    return overlay.simulateFound()
+    return overlay.simulateFound(offsetXcm)
   }
 
   simulateMarkerLost(): void {
@@ -173,6 +203,16 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.profile.set(id, true)
       this.profilePanel.setToggle(id, true)
     }
+  }
+
+  private applyDefaultMood(): void {
+    const id = this.defaultMood.trim() as Mood
+    if (!MOODS.some((m) => m.id === id)) {
+      if (id.length > 0) print(`AllergyLens: defaultMood "${id}" unknown; using everything`)
+      return
+    }
+    this.mood = id
+    this.profilePanel.setMood(id)
   }
 
   private onProfileDone(): void {
@@ -208,12 +248,42 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     this.profileButton.getSceneObject().enabled = false
     this.runCheck(restaurantId)
+    this.voice?.start()
   }
 
   private onMarkerLost(restaurantId: string): void {
     print(`AllergyLens: menu lost — ${restaurantId}`)
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
-    if (!this.anyMarkerActive()) this.buttonShowTimer?.reset(1.0)
+    if (!this.anyMarkerActive()) {
+      this.buttonShowTimer?.reset(1.0)
+      this.voice?.stop()
+    }
+  }
+
+  // ── Voice ──────────────────────────────────────────────────────────────
+  /** A final transcript while a menu is in view: match it to a dish and act like a pinch. */
+  private onVoice(text: string): void {
+    const overlay = this.overlays.find((o) => o.isActive)
+    const restaurant = overlay ? getRestaurant(overlay.restaurantId) : undefined
+    if (!overlay || !restaurant) return
+    const dish = matchDishByVoice(text, restaurant.dishes)
+    if (!dish) {
+      print(`AllergyLens: voice "${text}" — no dish on this menu`)
+      return
+    }
+    print(`AllergyLens: voice "${text}" → ${dish.id}`)
+    const results = this.results.get(restaurant.id) ?? []
+    const result = results.find((r) => r.dishId === dish.id)
+    if (result && result.verdict === "safe") {
+      this.safeCardTimer?.cancel()
+      this.openDish = {restaurantId: restaurant.id, dishId: dish.id}
+      this.placeDetailBesideBar(overlay, dish.id)
+      this.dishDetail.showDetail({dishName: `${dish.name} — safe for you`, headline: "Nothing from your profile.", body: result.source === "typical" ? "Based on a typical recipe; confirm with the restaurant." : "Enjoy."})
+      this.audio?.playPop()
+      this.safeCardTimer?.reset(3.0)
+      return
+    }
+    this.onBarPinched(restaurant.id, dish.id)
   }
 
   private recheckActive(): void {
@@ -226,11 +296,45 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (!overlay || !restaurant) return
     const results = checkMenu(restaurant.dishes, this.profile)
     this.results.set(restaurantId, results)
-    overlay.setDishStates(results.map((r) => ({dishId: r.dishId, verdict: r.verdict})))
+
+    // Highlight rules: Everything → light marks on every line; a category → only that
+    // category's dishes, with safe ones as "order this" star lines.
+    const everything = this.mood === "everything"
+    const marks: DishMark[] = []
+    let safeInCategory = 0
+    for (const r of results) {
+      const dish = restaurant.dishes.find((d) => d.id === r.dishId)
+      const inCategory = !everything && !!dish && dishCategory(dish) === this.mood
+      let style: MarkStyle = "none"
+      if (everything) {
+        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "dot-safe" : "none"
+      } else if (inCategory) {
+        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "star-safe" : "none"
+        if (r.verdict === "safe") safeInCategory++
+      }
+      marks.push({dishId: r.dishId, style, inCategory})
+    }
+    overlay.setMarks(marks, everything ? null : moodLabel(this.mood))
+
     const badge = rateRestaurant(restaurant, this.profile)
-    overlay.setBadge(badge.level, `${restaurant.name} · ${badge.text}`)
+    const stars = restaurant.rating ? ` · ★${restaurant.rating.stars.toFixed(1)}` : ""
+    const complaints = restaurant.rating?.allergyComplaints ?? 0
+    const reviewsLong = complaints > 0 ? ` · ${complaints} review${complaints === 1 ? "" : "s"} mention${complaints === 1 ? "s" : ""} allergies` : ""
+    const reviewsShort = complaints > 0 ? ` · ${complaints} allergy review${complaints === 1 ? "" : "s"}` : ""
+    const core = everything
+      ? `${badge.safeCount} of ${badge.total} safe`
+      : `${safeInCategory} ${moodLabel(this.mood).toLowerCase()} dish${safeInCategory === 1 ? "" : "es"} safe for you`
+    // Fit the chip: full wording first, then compact reviews, then drop the restaurant name.
+    const capacity = overlay.badgeCapacityChars
+    const candidates = [
+      `${restaurant.name} · ${core}${stars}${reviewsLong}`,
+      `${restaurant.name} · ${core}${stars}${reviewsShort}`,
+      `${core}${stars}${reviewsShort}`,
+    ]
+    const badgeText = candidates.find((c) => c.length <= capacity) ?? candidates[candidates.length - 1]
+    overlay.setBadge(badge.level, badgeText)
     const by = (v: string) => results.filter((r) => r.verdict === v).length
-    print(`AllergyLens: check ${restaurantId} — contains ${by("contains")}, unverified ${by("unverified")}, safe ${by("safe")}; badge ${badge.level}`)
+    print(`AllergyLens: check ${restaurantId} (${this.mood}) — contains ${by("contains")}, unverified ${by("unverified")}, safe ${by("safe")}; marked ${marks.filter((m) => m.style !== "none").length}; badge ${badge.level}`)
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
   }
 
@@ -259,6 +363,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   private closeDetail(): void {
+    this.safeCardTimer?.cancel()
     if (this.openDish) print(`AllergyLens: detail closed for ${this.openDish.dishId}`)
     this.openDish = null
     this.dishDetail.hideDetail()

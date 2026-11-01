@@ -28,7 +28,7 @@ export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
       id: "test-butter-chicken", name: "Butter Chicken", icon: null,
       ingredients: ["chicken", "butter", "cream", "tomato", "cashews"], ingredientsSource: "restaurant",
       removable: [], shares: {chicken: 50, butter: 10, cream: 20, tomato: 16, cashews: 4}, substitutes: {},
-      layout: null,
+      layout: null, category: "chicken",
     }
     const t2 = describeChoice(butterChicken, checkDish(butterChicken, nuts), star, [])
     const s2 = `${t2.headline} ${t2.body}`
@@ -44,18 +44,30 @@ export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
       id: "test-peanut-dal", name: "Peanut Dal", icon: null,
       ingredients: ["lentils", "peanuts", "onion"], ingredientsSource: "restaurant",
       removable: [], shares: {lentils: 60, peanuts: 30, onion: 10}, substitutes: {peanuts: null},
-      layout: {x: 0.01, y: 0.6, w: 0.08, h: 0.015},
+      layout: {x: 0.01, y: 0.6, w: 0.08, h: 0.015}, category: "vegetarian",
     }
     const menuWithDal: RestaurantDef = {...star, dishes: star.dishes.concat([peanutDal])}
     const dalResults = checkMenu(menuWithDal.dishes, peanut)
     const t3 = describeChoice(peanutDal, checkDish(peanutDal, peanut), menuWithDal, dalResults)
     const s3 = `${t3.headline} ${t3.body}`
     expect(s3.includes("about 30% of this dish"), s3).toBe(true)
-    expect(s3.includes("Better pick: Paneer Shai Kurma"), s3).toBe(true)
+    // Expected neighbour, computed independently: safe, has a layout, same column (|dx| < 0.3)
+    // preferred, then smallest |dy| from y = 0.60.
+    const safeIds = new Set(dalResults.filter((r) => r.verdict === "safe").map((r) => r.dishId))
+    let best: DishDef | null = null
+    let bestKey = Infinity
+    for (const d of star.dishes) {
+      if (!d.layout || !safeIds.has(d.id)) continue
+      const key = (Math.abs(d.layout.x - 0.01) < 0.3 ? 0 : 10) + Math.abs(d.layout.y - 0.6)
+      if (key < bestKey) { bestKey = key; best = d }
+    }
+    expect(best !== null, "a safe neighbour exists").toBe(true)
+    expect(s3.includes(`Better pick: ${best!.name}`), `${s3} (expected ${best!.name})`).toBe(true)
 
-    // 4. Unverified wording.
-    const curry = star.dishes.find((d) => d.id === "curry")!
-    const t4 = describeChoice(curry, checkDish(curry, milk), star, kurmaResults)
+    // 4. Unverified wording — any dish whose ingredients are not published in this data build.
+    const unpublished = star.dishes.find((d) => d.ingredientsSource === "none")!
+    expect(!!unpublished, "data has an unpublished dish").toBe(true)
+    const t4 = describeChoice(unpublished, checkDish(unpublished, milk), star, kurmaResults)
     expect(t4.headline, t4.headline).toBe("Ingredients not published.")
     expect(t4.body.includes("Ask the restaurant"), t4.body).toBe(true)
   }

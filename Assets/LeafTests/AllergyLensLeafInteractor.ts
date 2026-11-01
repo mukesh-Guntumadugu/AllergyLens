@@ -55,10 +55,26 @@ export function isEffectivelyEnabled(so: SceneObject): boolean {
 }
 
 interface MainApi {
-  simulateMarker(id: string): boolean
+  simulateMarker(id: string, offsetXcm?: number): boolean
   simulateMarkerLost(): void
   setCameraTracking(enabled: boolean): void
   markerActive: boolean
+}
+
+interface OverlayApi {
+  badgeLevel: string
+  badgeTextValue: string
+  arrowVisible: boolean
+  arrowLabel: string
+}
+
+export function overlayScript(): OverlayApi {
+  const marker = requireByName("MenuMarker")
+  for (const c of marker.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
+    const api = c as unknown as OverlayApi
+    if (typeof api.badgeLevel === "string") return api
+  }
+  throw new Error("MenuMarker has no overlay API")
 }
 
 export function mainScript(): MainApi {
@@ -73,8 +89,15 @@ export function mainScript(): MainApi {
 export interface BarState {
   exists: boolean
   shown: boolean
+  full: boolean
+  underline: boolean
+  dot: boolean
+  star: boolean
+  /** tint of whichever mark is shown (dot, else underline, else full) */
   color: vec4 | null
 }
+
+export type MoodId = "everything" | "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert"
 
 export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   async tap(name: string): Promise<void> {
@@ -133,17 +156,34 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     await this.tap("DoneButton")
   }
 
-  /** Open profile, set exactly `profileIds`, Done. */
-  async prepareProfile(profileIds: string[]): Promise<void> {
+  getMood(): string {
+    const panel = requireByName("ProfilePanel")
+    for (const c of panel.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
+      const anyC = c as unknown as {mood?: string}
+      if (typeof anyC.mood === "string") return anyC.mood
+    }
+    throw new Error("ProfilePanel has no mood API")
+  }
+
+  /** Pick a mood chip (single-select). Panel must be open. */
+  async setMood(mood: MoodId): Promise<void> {
+    if (this.getMood() === mood) return
+    await this.tap(`Mood-${mood}`)
+    if (this.getMood() !== mood) throw new Error(`Mood-${mood} did not select`)
+  }
+
+  /** Open profile, set exactly `profileIds` and the mood, Done. */
+  async prepareProfile(profileIds: string[], mood: MoodId = "everything"): Promise<void> {
     await this.ensureProfileOpen()
     await this.setProfile(profileIds)
+    await this.setMood(mood)
     await this.done()
   }
 
-  async simulateMarker(id: string): Promise<void> {
+  async simulateMarker(id: string, offsetXcm: number = 0): Promise<void> {
     mainScript().setCameraTracking(false)
-    if (!mainScript().simulateMarker(id)) throw new Error(`simulateMarker(${id}) returned false`)
-    await sleep(600)
+    if (!mainScript().simulateMarker(id, offsetXcm)) throw new Error(`simulateMarker(${id}) returned false`)
+    await sleep(900) // marks fade in over ~0.4 s; the arrow check runs every 0.2 s
   }
 
   async simulateMarkerLost(): Promise<void> {
@@ -152,42 +192,95 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
 
   bar(dishId: string): BarState {
     const root = findByName(`Bar-${dishId}`)
-    if (!root) return {exists: false, shown: false, color: null}
-    let color: vec4 | null = null
-    for (let i = 0; i < root.getChildrenCount(); i++) {
-      const img = root.getChild(i).getComponent("Component.Image") as Image | null
-      if (img) color = img.mainMaterial.mainPass.baseColor
+    const none: BarState = {exists: false, shown: false, full: false, underline: false, dot: false, star: false, color: null}
+    if (!root) return none
+    const child = (name: string): SceneObject | null => {
+      for (let i = 0; i < root.getChildrenCount(); i++) if (root.getChild(i).name === name) return root.getChild(i)
+      return null
     }
-    return {exists: true, shown: isEffectivelyEnabled(root), color}
+    const vis = (name: string): boolean => {
+      const c = child(name)
+      return !!c && c.enabled
+    }
+    const colorOf = (name: string): vec4 | null => {
+      const c = child(name)
+      const img = c ? (c.getComponent("Component.Image") as Image | null) : null
+      return img ? img.mainMaterial.mainPass.baseColor : null
+    }
+    const shown = isEffectivelyEnabled(root)
+    const dot = vis("Dot"), underline = vis("Underline"), full = vis("Full"), star = vis("Star")
+    const color = dot ? colorOf("Dot") : underline ? colorOf("Underline") : full ? colorOf("Full") : star ? colorOf("Star") : null
+    return {exists: true, shown, full, underline, dot, star, color}
   }
 
-  private expectTint(dishId: string, name: string, test: (c: vec4) => boolean): void {
+  private expectTint(dishId: string, name: string, test: (c: vec4) => boolean): BarState {
     const b = this.bar(dishId)
     if (!b.exists) throw new Error(`Bar-${dishId}: no bar`)
-    if (!b.shown || !b.color) throw new Error(`Bar-${dishId}: expected a ${name} bar, none shown`)
+    if (!b.shown || !b.color) throw new Error(`Bar-${dishId}: expected a ${name} mark, none shown`)
     if (!test(b.color)) throw new Error(`Bar-${dishId}: expected ${name}, got ${b.color}`)
+    return b
   }
 
-  expectGreen(dishId: string): void {
-    this.expectTint(dishId, "green", (c) => c.y > c.x && c.w > 0)
+  private static isGreen(c: vec4): boolean {
+    return c.y > c.x && c.w > 0
   }
 
+  private static isRed(c: vec4): boolean {
+    return c.x > c.y && c.y < 0.6 && c.w > 0
+  }
+
+  private static isAmber(c: vec4): boolean {
+    return c.x >= c.y && c.y >= 0.7 && c.z < c.y && c.w > 0
+  }
+
+  /** Everything mode: safe → green dot only. */
+  expectGreenDot(dishId: string): void {
+    const b = this.expectTint(dishId, "green", AllergyLensLeafInteractor.isGreen)
+    if (!b.dot || b.full || b.underline || b.star) throw new Error(`Bar-${dishId}: expected a green dot only, got ${JSON.stringify(b)}`)
+  }
+
+  /** Category mode: safe + in category → soft green full line + star. */
+  expectGreenStar(dishId: string): void {
+    const b = this.expectTint(dishId, "green", AllergyLensLeafInteractor.isGreen)
+    if (!b.full || !b.star || b.underline || b.dot) throw new Error(`Bar-${dishId}: expected green full line + star, got ${JSON.stringify(b)}`)
+  }
+
+  /** contains → thin red underline + red dot, never a full line. */
   expectRed(dishId: string): void {
-    this.expectTint(dishId, "red", (c) => c.x > c.y && c.y < 0.6 && c.w > 0)
+    const b = this.expectTint(dishId, "red", AllergyLensLeafInteractor.isRed)
+    if (!b.underline || !b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected red underline + dot, got ${JSON.stringify(b)}`)
   }
 
+  /** unverified → amber dot only. */
   expectAmber(dishId: string): void {
-    this.expectTint(dishId, "amber", (c) => c.x >= c.y && c.y >= 0.7 && c.z < c.y && c.w > 0)
+    const b = this.expectTint(dishId, "amber", AllergyLensLeafInteractor.isAmber)
+    if (!b.dot || b.full || b.underline || b.star) throw new Error(`Bar-${dishId}: expected an amber dot only, got ${JSON.stringify(b)}`)
+  }
+
+  expectUnmarked(dishId: string): void {
+    const b = this.bar(dishId)
+    if (!b.exists) throw new Error(`Bar-${dishId}: no bar`)
+    if (b.shown) throw new Error(`Bar-${dishId}: expected no mark, but it is shown ${JSON.stringify(b)}`)
+  }
+
+  /** Every bar on the page must satisfy `test` (used for "no full-width quads"). */
+  forEachShownBar(test: (dishId: string, b: BarState) => void): void {
+    for (const d of STAR.dishes) {
+      if (!d.layout) continue
+      const b = this.bar(d.id)
+      if (b.shown) test(d.id, b)
+    }
   }
 
   /** Badge as the overlay on MenuMarker reports it. */
   badge(): {level: string; text: string} {
-    const marker = requireByName("MenuMarker")
-    for (const c of marker.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
-      const anyC = c as unknown as {badgeLevel?: string; badgeTextValue?: string}
-      if (typeof anyC.badgeLevel === "string") return {level: anyC.badgeLevel, text: anyC.badgeTextValue ?? ""}
-    }
-    throw new Error("MenuMarker has no overlay badge API")
+    const o = overlayScript()
+    return {level: o.badgeLevel, text: o.badgeTextValue}
+  }
+
+  arrow(): {visible: boolean; label: string} {
+    const o = overlayScript()
+    return {visible: o.arrowVisible, label: o.arrowLabel}
   }
 
   detailTexts(): string[] {

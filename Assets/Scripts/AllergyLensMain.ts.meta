@@ -29,6 +29,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     debugSimulateMarker: false
+    defaultMood: false
     defaultProfile: false
     detailGapCm: false
     dishDetail: false
@@ -38,6 +39,7 @@
     profilePanel: false
     sfxVolume: false
     showProfileAtStart: false
+    voiceEnabled: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -53,8 +55,10 @@
       markersRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
       defaultProfile: ""
+      defaultMood: everything
       detailGapCm: 1.500000
       sfxVolume: 0.800000
+      voiceEnabled: true
       debugSimulateMarker: false
       menusUrl: ""
   ScriptTypes:
@@ -75,8 +79,10 @@
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts (ignored when defaultProfile is set)."}'
     - '// @input string defaultProfile {"hint":"Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo."}'
+    - '// @input string defaultMood = "everything" {"hint":"Mood applied at start: everything | chicken | red_meat | seafood | vegetarian | dessert."}'
     - "// @input float detailGapCm = 1 {\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}"
     - '// @input float sfxVolume = 0.8 {"hint":"Volume for the click / scan / pop cues (0 = silent).", "widget":"slider", "min":0, "max":1, "step":0.05}'
+    - '// @input bool voiceEnabled = true {"hint":"Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way."}'
     - '// @input bool debugSimulateMarker {"hint":"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
     - '// @ui {"widget":"group_end"}'

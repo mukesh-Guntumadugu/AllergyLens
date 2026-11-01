@@ -153,6 +153,17 @@ const restaurants = menus.restaurants.map((r) => {
   };
 });
 
+// --- packaged products (pipeline 2, optional) ------------------------------
+const productsPath = path.join(root, "data", "products.json");
+const products = fs.existsSync(productsPath) ? read("data/products.json") : { version: 0, attribution: "", products: [] };
+const seenCodes = new Set();
+for (const p of products.products) {
+  if (!p.barcode || seenCodes.has(p.barcode)) errors.push(`product barcode missing or duplicated: ${p.barcode}`);
+  seenCodes.add(p.barcode);
+  if (!p.name) errors.push(`product ${p.barcode} has no name`);
+  if (p.ingredients !== null && !Array.isArray(p.ingredients)) errors.push(`product ${p.barcode}: ingredients must be a list or null`);
+}
+
 if (errors.length) {
   console.error("data validation failed:\n  " + errors.join("\n  "));
   process.exit(1);
@@ -238,11 +249,31 @@ export interface RestaurantDef {
   dishes: DishDef[]
 }
 
-export const DATA_VERSION = ${JSON.stringify(`${allergens.version}.${dishKb.version}.${menus.version}`)}
+/** A packaged grocery product (pipeline 2, Open Food Facts). Checked with the
+ *  same alias matching as dishes; "allergens" / "traces" are the label's own
+ *  declarations and win over ingredient matching when present. */
+export interface ProductDef {
+  barcode: string
+  name: string
+  brand: string | null
+  ingredients: string[] | null
+  allergens: string[]
+  traces: string[]
+  nutrition: { sugar_g: number | null; trans_fat_g: number | null; saturated_fat_g: number | null; sodium_mg: number | null; kcal: number | null }
+  fitness: { highSugar: boolean; transFat: boolean; highSodium: boolean }
+  image: string | null
+  source: { type: string; url: string | null; collected: string }
+}
+
+export const DATA_VERSION = ${JSON.stringify(`${allergens.version}.${dishKb.version}.${menus.version}.${products.version}`)}
+
+export const PRODUCTS_ATTRIBUTION = ${JSON.stringify(products.attribution || "")}
 
 export const ALLERGENS: AllergenDef[] = ${JSON.stringify(allergens.allergens, null, 2)}
 
 export const RESTAURANTS: RestaurantDef[] = ${JSON.stringify(restaurants, null, 2)}
+
+export const PRODUCTS: ProductDef[] = ${JSON.stringify(products.products, null, 2)}
 `;
 
 const outDir = path.join(root, "Assets", "Data");
@@ -252,5 +283,5 @@ fs.writeFileSync(outFile, out);
 console.log(
   `wrote ${path.relative(root, outFile)}: ${allergens.allergens.length} allergens, ` +
     `${dishKb.dishes.length} KB dishes, ${restaurants.length} restaurants, ${dishIds.size} menu dishes ` +
-    `(${typicalCount} filled from the dish KB)`
+    `(${typicalCount} filled from the dish KB), ${products.products.length} packaged products`
 );

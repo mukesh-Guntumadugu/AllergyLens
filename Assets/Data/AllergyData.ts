@@ -76,7 +76,25 @@ export interface RestaurantDef {
   dishes: DishDef[]
 }
 
-export const DATA_VERSION = "1.1.1"
+/** A packaged grocery product (pipeline 2, Open Food Facts). Checked with the
+ *  same alias matching as dishes; "allergens" / "traces" are the label's own
+ *  declarations and win over ingredient matching when present. */
+export interface ProductDef {
+  barcode: string
+  name: string
+  brand: string | null
+  ingredients: string[] | null
+  allergens: string[]
+  traces: string[]
+  nutrition: { sugar_g: number | null; trans_fat_g: number | null; saturated_fat_g: number | null; sodium_mg: number | null; kcal: number | null }
+  fitness: { highSugar: boolean; transFat: boolean; highSodium: boolean }
+  image: string | null
+  source: { type: string; url: string | null; collected: string }
+}
+
+export const DATA_VERSION = "1.1.1.1"
+
+export const PRODUCTS_ATTRIBUTION = "Data from Open Food Facts, https://openfoodfacts.org (ODbL)"
 
 export const ALLERGENS: AllergenDef[] = [
   {
@@ -1701,5 +1719,491 @@ export const RESTAURANTS: RestaurantDef[] = [
         }
       }
     ]
+  }
+]
+
+export const PRODUCTS: ProductDef[] = [
+  {
+    "barcode": "0051500255162",
+    "name": "Creamy Peanut Butter",
+    "brand": "Jif",
+    "ingredients": [
+      "made from roasted peanuts",
+      "sugar",
+      "contains 2% and less of",
+      "fully hydrogenated vegetable oils",
+      "mono- and diglycerides",
+      "salt"
+    ],
+    "allergens": [
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 9.09,
+      "trans_fat_g": 0,
+      "saturated_fat_g": 10.61,
+      "sodium_mg": 420,
+      "kcal": 575.76
+    },
+    "fitness": {
+      "highSugar": false,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/005/150/025/5162/front_en.197.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0051500255162",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0049000028911",
+    "name": "Diet Coke Soft Drink",
+    "brand": "Coke",
+    "ingredients": [
+      "carbonated water",
+      "caramel color",
+      "aspartame acts phosphoric acid",
+      "potassium benzoate",
+      "natural flavors",
+      "citric acid",
+      "caffeine"
+    ],
+    "allergens": [],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": null,
+      "trans_fat_g": null,
+      "saturated_fat_g": null,
+      "sodium_mg": 10,
+      "kcal": 0
+    },
+    "fitness": {
+      "highSugar": false,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/004/900/002/8911/front_en.24.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0049000028911",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "5900316552246",
+    "name": "KETO peanut butter soft cookie",
+    "brand": "FRANK & OLI",
+    "ingredients": [
+      "peanut paste",
+      "chicory root fiber",
+      "peanut flour",
+      "chia seeds",
+      "emulsifier",
+      "himalayan salt",
+      "rapeseed lecithin"
+    ],
+    "allergens": [
+      "peanuts"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 9.8,
+      "trans_fat_g": null,
+      "saturated_fat_g": 12.6,
+      "sodium_mg": 320,
+      "kcal": 467
+    },
+    "fitness": {
+      "highSugar": false,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/590/031/655/2246/front_en.3.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/5900316552246",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0021908122816",
+    "name": "Larabar Peanut Butter Cookie",
+    "brand": "Larabar",
+    "ingredients": [
+      "dates",
+      "peanuts",
+      "sea salt",
+      "ingredients"
+    ],
+    "allergens": [
+      "peanuts"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 33.33,
+      "trans_fat_g": null,
+      "saturated_fat_g": 4.17,
+      "sodium_mg": 190,
+      "kcal": 479.17
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/002/190/812/2816/front_en.3.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0021908122816",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0082011570680",
+    "name": "Oatmeal sandwich cookies with peanut butter filling",
+    "brand": "do-si-dos",
+    "ingredients": [
+      "flour",
+      "sugar",
+      "oats",
+      "soybean oil",
+      "palm oil",
+      "peanut butter",
+      "dextrose",
+      "invert sugar",
+      "whey",
+      "salt",
+      "leavening",
+      "cornstarch",
+      "natural flavors",
+      "soy lecithin",
+      "wheat flour",
+      "niacin",
+      "reduced iron",
+      "vitamin b1",
+      "vitamin b2",
+      "folic acid",
+      "peanuts",
+      "hydrogenated palm oil",
+      "baking soda",
+      "monocalcium phosphate",
+      "thiamin mononitrate",
+      "riboflavin"
+    ],
+    "allergens": [
+      "gluten",
+      "milk",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [
+      "eggs",
+      "nuts"
+    ],
+    "nutrition": {
+      "sugar_g": 32.35,
+      "trans_fat_g": 0,
+      "saturated_fat_g": 5.88,
+      "sodium_mg": 290,
+      "kcal": 470.59
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/008/201/157/0680/front_en.27.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0082011570680",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "4099100032468",
+    "name": "Peanut Butter Fudge Cookies",
+    "brand": "Benton's",
+    "ingredients": [
+      "sugar",
+      "peanut butter",
+      "enriched wheat flour",
+      "vegetable oil shortening",
+      "canola oil",
+      "cocoa",
+      "invert syrup",
+      "leavening",
+      "soy lecithin",
+      "salt",
+      "artificial flavor",
+      "aldi twice as nice checik localy",
+      "peanuts",
+      "palm oil",
+      "corn syrup solids",
+      "salt",
+      "flour",
+      "niacin",
+      "reduced iron",
+      "thiamine mononitrate",
+      "riboflavin",
+      "folic acid",
+      "palm kerneland palm oils",
+      "baking soda",
+      "monocalcium phosphate",
+      "coconut"
+    ],
+    "allergens": [
+      "gluten",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [
+      "milk",
+      "nuts"
+    ],
+    "nutrition": {
+      "sugar_g": 30,
+      "trans_fat_g": null,
+      "saturated_fat_g": 13.33,
+      "sodium_mg": 330,
+      "kcal": 533.33
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/409/910/003/2468/front_en.17.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/4099100032468",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0044000037451",
+    "name": "Peanut Butter Sandwich Cookie",
+    "brand": "Nutter Butter",
+    "ingredients": [
+      "flour",
+      "riboflavin",
+      "folic acid",
+      "sugar",
+      "peanut butter",
+      "salt",
+      "peanut oil",
+      "canola oil",
+      "wheat flour",
+      "high fructose corn syrup",
+      "palm oil",
+      "salt",
+      "baking soda",
+      "calcium phosphate",
+      "soy lecithin",
+      "artificial flavor",
+      "contains a bioengineered food ingredient",
+      "wheat flour",
+      "niacin",
+      "reduced iron",
+      "thiamine mononitrate vitamin b1",
+      "roasted peanuts",
+      "corn syrup solids",
+      "hydrogenated vegetable oil",
+      "and soybean oils",
+      "rapeseed vegetable oil",
+      "cottonseed vegetable oil"
+    ],
+    "allergens": [
+      "gluten",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 28.57,
+      "trans_fat_g": null,
+      "saturated_fat_g": 5.36,
+      "sodium_mg": 0,
+      "kcal": 270
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/004/400/003/7451/front_en.34.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0044000037451",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0078742125961",
+    "name": "Peanut Butter Sandwich Cookies",
+    "brand": "Great Value",
+    "ingredients": [
+      "flour",
+      "sugar",
+      "peanut butter",
+      "palm oil",
+      "canola oil",
+      "high fructose corn syrup",
+      "whole wheat flour",
+      "salt",
+      "corn starch",
+      "leavening",
+      "soy lecithin",
+      "caramel color",
+      "artificial flavor",
+      "wheat flour",
+      "niacin",
+      "reduced iron",
+      "thiamine mononitrate",
+      "riboflavin",
+      "folic acid",
+      "peanuts",
+      "hydrogenated vegetable oil",
+      "and soybean oil",
+      "baking soda",
+      "mono- calcium phosphate",
+      "cottonseed vegetable oil",
+      "rapeseed vegetable oil"
+    ],
+    "allergens": [
+      "gluten",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 27.59,
+      "trans_fat_g": 0,
+      "saturated_fat_g": 5.17,
+      "sodium_mg": 310340,
+      "kcal": 440
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": true
+    },
+    "image": "https://images.openfoodfacts.org/images/products/007/874/212/5961/front_en.6.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0078742125961",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "4800010076073",
+    "name": "presto (g) peanut butter 30g",
+    "brand": "Presto",
+    "ingredients": [
+      "wheat flour",
+      "vegetable fat",
+      "sugar",
+      "cornstarch",
+      "glucose",
+      "sodium bicarbonate",
+      "ammonium bicarbonate",
+      "sodium acid pyrophosphate",
+      "iodized salt",
+      "artificial flavor",
+      "peanut paste",
+      "peanuts",
+      "hydrogenated vegetable oil",
+      "palm",
+      "vitamins",
+      "vitamin b1",
+      "vitamin b6",
+      "folic acid",
+      "whey",
+      "triglycerides",
+      "soy lecithin",
+      "cornstarch",
+      "iodized salt",
+      "bht",
+      "bha",
+      "palm",
+      "antioxidant",
+      "tbhq"
+    ],
+    "allergens": [
+      "gluten",
+      "milk",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 23.33,
+      "trans_fat_g": 0,
+      "saturated_fat_g": 10,
+      "sodium_mg": 380,
+      "kcal": 500
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/480/001/007/6073/front_en.34.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/4800010076073",
+      "collected": "2026-11-01"
+    }
+  },
+  {
+    "barcode": "0016000155664",
+    "name": "Wafer Bars Peanut Butter Chocolate",
+    "brand": "Nature Valley",
+    "ingredients": [
+      "peanut butter",
+      "sugar",
+      "palm oil",
+      "palm kernel oil",
+      "wheat flour",
+      "oats",
+      "corn starch",
+      "cocoa",
+      "milk powder",
+      "salt",
+      "honey",
+      "natural flavor",
+      "soy lecithin",
+      "baking soda",
+      "peanuts",
+      "salt"
+    ],
+    "allergens": [
+      "gluten",
+      "milk",
+      "peanuts",
+      "soybeans"
+    ],
+    "traces": [],
+    "nutrition": {
+      "sugar_g": 25,
+      "trans_fat_g": 0,
+      "saturated_fat_g": 13.89,
+      "sodium_mg": 380,
+      "kcal": 555.56
+    },
+    "fitness": {
+      "highSugar": true,
+      "transFat": false,
+      "highSodium": false
+    },
+    "image": "https://images.openfoodfacts.org/images/products/001/600/015/5664/front_en.20.400.jpg",
+    "source": {
+      "type": "openfoodfacts",
+      "url": "https://world.openfoodfacts.org/product/0016000155664",
+      "collected": "2026-11-01"
+    }
   }
 ]
