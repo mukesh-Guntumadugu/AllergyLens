@@ -35,3 +35,4 @@ AGENTS.md
 agent/
 .agents/
 skills-lock.json
+*.esproj.*.lock
