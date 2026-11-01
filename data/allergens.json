@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "notes": "Allergen knowledge base. Matching is case-insensitive substring on each alias. Groups: allergy (medical), religious, diet, preference. Never mark a dish safe when any ingredient is unknown or the ingredient list is missing.",
+  "allergens": [
+    { "id": "peanut",    "label": "Peanuts",        "group": "allergy",
+      "aliases": ["peanut", "peanuts", "groundnut", "groundnuts", "arachis", "peanut oil", "peanut butter", "satay"] },
+    { "id": "tree_nut",  "label": "Tree nuts",      "group": "allergy",
+      "aliases": ["almond", "almonds", "cashew", "cashews", "walnut", "walnuts", "pecan", "pecans", "pistachio", "pistachios", "hazelnut", "hazelnuts", "macadamia", "brazil nut", "pine nut", "pine nuts", "praline", "marzipan", "nut butter"] },
+    { "id": "milk",      "label": "Milk / dairy",   "group": "allergy",
+      "aliases": ["milk", "whey", "casein", "caseinate", "butter", "cheese", "cream", "ghee", "yogurt", "yoghurt", "paneer", "lactose", "mozzarella", "parmesan", "cheddar", "ricotta", "mascarpone", "buttermilk", "condensed milk"] },
+    { "id": "egg",       "label": "Eggs",           "group": "allergy",
+      "aliases": ["egg", "eggs", "egg white", "egg yolk", "albumen", "albumin", "mayonnaise", "mayo", "meringue", "aioli"] },
+    { "id": "wheat",     "label": "Wheat / gluten", "group": "allergy",
+      "aliases": ["wheat", "gluten", "flour", "semolina", "durum", "bread", "breadcrumbs", "pasta", "noodles", "couscous", "bulgur", "seitan", "soy sauce", "barley", "rye", "malt", "pizza dough", "naan", "roti", "tortilla"] },
+    { "id": "soy",       "label": "Soy",            "group": "allergy",
+      "aliases": ["soy", "soya", "soybean", "soybeans", "tofu", "edamame", "miso", "tempeh", "soy sauce", "tamari"] },
+    { "id": "fish",      "label": "Fish",           "group": "allergy",
+      "aliases": ["fish", "salmon", "tuna", "cod", "anchovy", "anchovies", "fish sauce", "tilapia", "trout", "halibut", "sardine", "sardines", "mackerel", "worcestershire"] },
+    { "id": "shellfish", "label": "Shellfish",      "group": "allergy",
+      "aliases": ["shrimp", "prawn", "prawns", "crab", "lobster", "crawfish", "crayfish", "scallop", "scallops", "clam", "clams", "mussel", "mussels", "oyster", "oysters", "squid", "calamari", "octopus", "shellfish"] },
+    { "id": "sesame",    "label": "Sesame",         "group": "allergy",
+      "aliases": ["sesame", "sesame seeds", "sesame oil", "tahini", "halva", "halvah", "benne"] },
+
+    { "id": "beef",      "label": "No beef",        "group": "religious",
+      "aliases": ["beef", "steak", "brisket", "ground beef", "beef broth", "beef stock", "oxtail", "veal", "beef gelatin", "beef tallow"] },
+    { "id": "pork",      "label": "No pork",        "group": "religious",
+      "aliases": ["pork", "bacon", "ham", "prosciutto", "pancetta", "lard", "chorizo", "salami", "pepperoni", "sausage", "pork belly", "pork gelatin", "char siu"] },
+    { "id": "gelatin",   "label": "No gelatin",     "group": "religious",
+      "aliases": ["gelatin", "gelatine", "marshmallow", "marshmallows", "gummy"] },
+    { "id": "alcohol",   "label": "No alcohol",     "group": "religious",
+      "aliases": ["alcohol", "wine", "beer", "rum", "brandy", "sake", "mirin", "liqueur", "vodka", "whiskey", "bourbon", "tequila", "vermouth"] },
+
+    { "id": "trans_fat", "label": "Avoid trans fat", "group": "diet",
+      "aliases": ["trans fat", "hydrogenated", "partially hydrogenated", "shortening", "margarine", "deep-fried", "deep fried"] },
+    { "id": "high_sugar","label": "Avoid high sugar","group": "diet",
+      "aliases": ["sugar", "syrup", "corn syrup", "honey", "caramel", "icing", "frosting", "glaze", "sweetened", "condensed milk", "candied"] },
+
+    { "id": "chicken",   "label": "No chicken",     "group": "preference",
+      "aliases": ["chicken", "chicken broth", "chicken stock", "poultry"] },
+    { "id": "meat",      "label": "Vegetarian",     "group": "preference",
+      "aliases": ["beef", "pork", "chicken", "lamb", "mutton", "turkey", "duck", "bacon", "ham", "sausage", "steak", "meat", "gelatin", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "anchovy", "fish sauce", "oyster sauce"] }
+  ]
+}

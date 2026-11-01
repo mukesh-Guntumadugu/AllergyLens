@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "notes": "Restaurant menus the Lens can load. Each dish lists its ingredients as plain lowercase words; the checker matches them against data/allergens.json aliases. 'removable' lists ingredients the kitchen can leave out on request. A dish with 'ingredients': null (or an empty list) is UNVERIFIED and must never be shown as safe. 'source' records where the data came from and when.",
+  "restaurants": [
+    {
+      "id": "demo-bistro",
+      "name": "Demo Bistro",
+      "source": { "type": "sample", "url": null, "collected": "2026-10-31" },
+      "dishes": [
+        { "id": "noodles",   "name": "Thai Peanut Noodles",     "icon": "ramen_dining",
+          "ingredients": ["rice noodles", "peanuts", "egg", "scallion", "lime", "soy sauce", "chili"],
+          "removable": ["peanuts"] },
+        { "id": "burger",    "name": "Classic Beef Burger",      "icon": "lunch_dining",
+          "ingredients": ["beef", "bun", "cheddar", "lettuce", "tomato", "onion", "pickle"],
+          "removable": ["cheddar", "onion", "pickle"] },
+        { "id": "salmon",    "name": "Grilled Salmon & Greens",  "icon": "set_meal",
+          "ingredients": ["salmon", "olive oil", "lemon", "kale", "garlic"],
+          "removable": [] },
+        { "id": "pizza",     "name": "Margherita Pizza",         "icon": "local_pizza",
+          "ingredients": ["pizza dough", "tomato", "mozzarella", "basil", "olive oil"],
+          "removable": [] },
+        { "id": "ricebowl",  "name": "Chicken Rice Bowl",        "icon": "rice_bowl",
+          "ingredients": ["chicken", "rice", "avocado", "corn", "black beans", "cilantro", "lime"],
+          "removable": ["avocado", "corn", "cilantro"] },
+        { "id": "cheesecake","name": "Peanut Butter Cheesecake", "icon": "cake",
+          "ingredients": ["peanut butter", "cream cheese", "sugar", "egg", "graham cracker", "butter"],
+          "removable": [] }
+      ]
+    },
+    {
+      "id": "thai-basil",
+      "name": "Thai Basil Kitchen",
+      "source": { "type": "sample", "url": null, "collected": "2026-10-31" },
+      "dishes": [
+        { "id": "pad-thai",    "name": "Pad Thai",             "icon": "ramen_dining",
+          "ingredients": ["rice noodles", "egg", "peanuts", "shrimp", "tamarind", "fish sauce", "bean sprouts", "scallion"],
+          "removable": ["peanuts", "shrimp", "egg"] },
+        { "id": "green-curry", "name": "Green Curry Chicken",  "icon": "rice_bowl",
+          "ingredients": ["chicken", "coconut milk", "green curry paste", "thai basil", "eggplant", "fish sauce", "sugar"],
+          "removable": [] },
+        { "id": "tom-yum",     "name": "Tom Yum Soup",         "icon": "set_meal",
+          "ingredients": ["shrimp", "lemongrass", "galangal", "lime", "chili", "mushroom", "fish sauce"],
+          "removable": ["shrimp"] },
+        { "id": "mango-rice",  "name": "Mango Sticky Rice",    "icon": "cake",
+          "ingredients": ["sticky rice", "mango", "coconut milk", "sugar", "sesame seeds"],
+          "removable": ["sesame seeds"] },
+        { "id": "spring-rolls","name": "Fresh Spring Rolls",   "icon": "lunch_dining",
+          "ingredients": ["rice paper", "shrimp", "vermicelli", "lettuce", "mint", "peanut sauce"],
+          "removable": ["peanut sauce", "shrimp"] },
+        { "id": "chef-special","name": "Chef's Special",       "icon": "local_pizza",
+          "ingredients": null,
+          "removable": [],
+          "notes": "Rotating dish; ingredients not published." }
+      ]
+    },
+    {
+      "id": "spice-route",
+      "name": "Spice Route Indian",
+      "source": { "type": "sample", "url": null, "collected": "2026-10-31" },
+      "dishes": [
+        { "id": "butter-chicken", "name": "Butter Chicken",     "icon": "rice_bowl",
+          "ingredients": ["chicken", "butter", "cream", "tomato", "cashews", "garam masala", "ginger", "garlic"],
+          "removable": ["cashews"] },
+        { "id": "lamb-rogan",     "name": "Lamb Rogan Josh",    "icon": "set_meal",
+          "ingredients": ["lamb", "yogurt", "onion", "tomato", "kashmiri chili", "ghee"],
+          "removable": [] },
+        { "id": "chana-masala",   "name": "Chana Masala",       "icon": "lunch_dining",
+          "ingredients": ["chickpeas", "tomato", "onion", "ginger", "garlic", "cumin", "coriander"],
+          "removable": [] },
+        { "id": "garlic-naan",    "name": "Garlic Naan",        "icon": "local_pizza",
+          "ingredients": ["naan", "flour", "yogurt", "garlic", "butter"],
+          "removable": ["butter"] },
+        { "id": "gulab-jamun",    "name": "Gulab Jamun",        "icon": "cake",
+          "ingredients": ["milk solids", "flour", "sugar", "syrup", "cardamom", "deep fried"],
+          "removable": [] },
+        { "id": "beef-vindaloo",  "name": "Beef Vindaloo",      "icon": "ramen_dining",
+          "ingredients": ["beef", "vinegar", "chili", "garlic", "onion", "potato"],
+          "removable": [] }
+      ]
+    }
+  ]
+}
