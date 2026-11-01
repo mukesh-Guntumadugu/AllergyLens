@@ -6,7 +6,7 @@
 import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
-import {AllergyLensLeafInteractor, requireByName, ALL_DISH_IDS} from "./AllergyLensLeafInteractor"
+import {AllergyLensLeafInteractor, requireByName, DEMO_DISH_IDS} from "./AllergyLensLeafInteractor"
 
 @component
 export class AllergyLensLeafScenario5WorldLocked extends Scenario {
@@ -15,6 +15,7 @@ export class AllergyLensLeafScenario5WorldLocked extends Scenario {
     await sleep(500)
     if (ui.isVisible("ProfilePanel")) await ui.done()
     expect(ui.isVisible("MenuCard"), "menu card visible").toBe(true)
+    await ui.selectRestaurant("Demo Bistro")
 
     const card = requireByName("MenuCard")
     // Not head-locked: no Camera component anywhere up the parent chain.
@@ -44,7 +45,7 @@ export class AllergyLensLeafScenario5WorldLocked extends Scenario {
     expect(size!.x, "card width cm").toBeCloseTo(35, 1)
     expect(size!.y, "card height cm").toBeCloseTo(25, 1)
     // Highlights move with their dish: each is a direct child of its tile, which is under the card.
-    for (const id of ALL_DISH_IDS) {
+    for (const id of DEMO_DISH_IDS) {
       const tile = requireByName(`Dish-${id}`)
       let found = false
       for (let i = 0; i < tile.getChildrenCount(); i++) if (tile.getChild(i).name === "Highlight") found = true

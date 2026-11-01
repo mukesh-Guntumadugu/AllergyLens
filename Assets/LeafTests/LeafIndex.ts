@@ -5,6 +5,8 @@ import {AllergyLensLeafScenario2PeanutScan} from "./AllergyLensLeafScenario2Pean
 import {AllergyLensLeafScenario3BeefRescan} from "./AllergyLensLeafScenario3BeefRescan"
 import {AllergyLensLeafScenario4DishDetail} from "./AllergyLensLeafScenario4DishDetail"
 import {AllergyLensLeafScenario5WorldLocked} from "./AllergyLensLeafScenario5WorldLocked"
+import {AllergyLensLeafScenario6ThaiPeanut} from "./AllergyLensLeafScenario6ThaiPeanut"
+import {AllergyLensLeafScenario7SpiceVegetarian} from "./AllergyLensLeafScenario7SpiceVegetarian"
 import {AllergyLensLeafScenarioIKReach} from "./AllergyLensLeafScenarioIKReach"
 
 @component
@@ -16,6 +18,8 @@ export class LeafIndex extends BaseScriptComponent {
     {id: "allergylens-3-beef-rescan", typename: AllergyLensLeafScenario3BeefRescan.getTypeName()},
     {id: "allergylens-4-dish-detail", typename: AllergyLensLeafScenario4DishDetail.getTypeName()},
     {id: "allergylens-5-world-locked", typename: AllergyLensLeafScenario5WorldLocked.getTypeName()},
+    {id: "allergylens-6-thai-peanut", typename: AllergyLensLeafScenario6ThaiPeanut.getTypeName()},
+    {id: "allergylens-7-spice-vegetarian", typename: AllergyLensLeafScenario7SpiceVegetarian.getTypeName()},
     {id: "allergylens-ik-reach-scan", typename: AllergyLensLeafScenarioIKReach.getTypeName()},
   ]
 }

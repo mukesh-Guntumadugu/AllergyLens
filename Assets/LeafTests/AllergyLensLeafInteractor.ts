@@ -5,11 +5,12 @@
 import {DefaultLeafInteractor} from "Leaf.lspkg/Interactors/interactor/DefaultLeafInteractor"
 import {findInteractablesByName} from "Leaf.lspkg/Interactors/InteractableUtils"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
+import {ALLERGENS, RESTAURANTS} from "../Data/AllergyData"
 
-export const ALL_PROFILE_IDS = [
-  "peanuts", "milk", "eggs", "shellfish", "gluten", "soy", "beef", "pork", "transfat", "sugar",
-]
-export const ALL_DISH_IDS = ["noodles", "burger", "salmon", "pizza", "ricebowl", "cheesecake"]
+/** Every toggle id, straight from the data module (17). */
+export const ALL_PROFILE_IDS: string[] = ALLERGENS.map((a) => a.id)
+export const DEMO_DISH_IDS = ["noodles", "burger", "salmon", "pizza", "ricebowl", "cheesecake"]
+export const RESTAURANT_NAMES: string[] = RESTAURANTS.map((r) => r.name)
 
 /** Depth-first search that INCLUDES disabled objects (hidden panels are the point here). */
 export function findByName(name: string): SceneObject | null {
@@ -53,7 +54,7 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     const target = findInteractablesByName(name, undefined, true)[0]
     if (!target) throw new Error(`Interactable "${name}" not found or not enabled`)
     await this.trigger(target)
-    await sleep(350)
+    await sleep(250)
   }
 
   isVisible(name: string): boolean {
@@ -98,6 +99,30 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     await sleep(400)
   }
 
+  /** The restaurant name currently printed as the menu card title. */
+  currentRestaurantName(): string {
+    const texts = collectTexts(requireByName("MenuCard"))
+    for (const t of texts) if (RESTAURANT_NAMES.indexOf(t) >= 0) return t
+    throw new Error(`MenuCard title is not a known restaurant: [${texts.join(" | ")}]`)
+  }
+
+  /** Cycle the Restaurant button until the card shows `name`. Menu must be visible. */
+  async selectRestaurant(name: string): Promise<void> {
+    for (let i = 0; i <= RESTAURANT_NAMES.length; i++) {
+      if (this.currentRestaurantName() === name) return
+      await this.tap("RestaurantButton")
+    }
+    throw new Error(`Could not reach restaurant "${name}"`)
+  }
+
+  /** Open profile, set exactly `profileIds`, Done, then switch to `restaurant`. */
+  async prepare(restaurant: string, profileIds: string[]): Promise<void> {
+    await this.ensureProfileOpen()
+    await this.setProfile(profileIds)
+    await this.done()
+    await this.selectRestaurant(restaurant)
+  }
+
   highlight(dishId: string): HighlightState {
     const tile = requireByName(`Dish-${dishId}`)
     let hl: SceneObject | null = null
@@ -119,10 +144,31 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   expectRed(dishId: string): void {
     const h = this.highlight(dishId)
     if (!h.enabled || !h.color) throw new Error(`Dish-${dishId}: expected a red highlight, none shown`)
-    if (!(h.color.x > h.color.y && h.color.w > 0)) throw new Error(`Dish-${dishId}: expected red, got ${h.color}`)
+    // red: r > g and g low; amber would have g >= 0.7
+    if (!(h.color.x > h.color.y && h.color.y < 0.6 && h.color.w > 0)) throw new Error(`Dish-${dishId}: expected red, got ${h.color}`)
+  }
+
+  expectAmber(dishId: string): void {
+    const h = this.highlight(dishId)
+    if (!h.enabled || !h.color) throw new Error(`Dish-${dishId}: expected an amber highlight, none shown`)
+    // amber: r >= g, g high, b well below g
+    if (!(h.color.x >= h.color.y && h.color.y >= 0.7 && h.color.z < h.color.y && h.color.w > 0)) {
+      throw new Error(`Dish-${dishId}: expected amber, got ${h.color}`)
+    }
   }
 
   detailTexts(): string[] {
     return collectTexts(requireByName("DishDetail"))
+  }
+
+  /** Restaurant badge as the menu card reports it: {level, text}. */
+  currentBadge(): {level: string; text: string} {
+    const card = requireByName("MenuCard")
+    const comps = card.getComponents("Component.ScriptComponent") as ScriptComponent[]
+    for (const c of comps) {
+      const anyC = c as unknown as {badgeLevel?: string; badgeTextValue?: string}
+      if (typeof anyC.badgeLevel === "string") return {level: anyC.badgeLevel, text: anyC.badgeTextValue ?? ""}
+    }
+    throw new Error("MenuCard has no badge API")
   }
 }

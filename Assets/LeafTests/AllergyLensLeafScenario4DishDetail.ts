@@ -10,9 +10,7 @@ export class AllergyLensLeafScenario4DishDetail extends Scenario {
   async run(): Promise<void> {
     const ui = new AllergyLensLeafInteractor()
     await sleep(500)
-    await ui.ensureProfileOpen()
-    await ui.setProfile(["peanuts"])
-    await ui.done()
+    await ui.prepare("Demo Bistro", ["peanut"])
     await ui.scan()
     ui.expectRed("noodles")
 

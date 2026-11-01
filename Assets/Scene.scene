@@ -1461,6 +1461,9 @@
     scanWidthCm: true
     barHeightCm: true
     textDistanceCm: true
+    badgeGoodColor: true
+    badgeCautionColor: true
+    badgeAvoidColor: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1469,6 +1472,9 @@
       scanWidthCm: !<float> 16.000000
       barHeightCm: 4.500000
       textDistanceCm: !<float> 70.000000
+      badgeGoodColor: !<Vec4> {x: 0.550000, y: 0.950000, z: 0.600000, w: 1.000000}
+      badgeCautionColor: !<Vec4> {x: 1.000000, y: 0.800000, z: 0.300000, w: 1.000000}
+      badgeAvoidColor: !<Vec4> {x: 0.980000, y: 0.450000, z: 0.450000, w: 1.000000}
   ScriptTypes:
     "":
       {}
@@ -2187,9 +2193,9 @@
   ScriptInputsDefault:
     cardWidthCm: true
     cardHeightCm: true
-    title: true
     safeColor: true
     flagColor: true
+    unverifiedColor: true
     textDistanceCm: true
   ScriptTypesDefault:
     {}
@@ -2197,9 +2203,9 @@
     "":
       cardWidthCm: !<float> 35.000000
       cardHeightCm: !<float> 25.000000
-      title: Menu
       safeColor: !<Vec4> {x: 0.550000, y: 0.950000, z: 0.600000, w: 0.350000}
       flagColor: !<Vec4> {x: 0.980000, y: 0.450000, z: 0.450000, w: 0.420000}
+      unverifiedColor: !<Vec4> {x: 1.000000, y: 0.800000, z: 0.300000, w: 0.380000}
       textDistanceCm: !<float> 70.000000
   ScriptTypes:
     "":
@@ -2211,7 +2217,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -6.000000, z: -80.000000}
+    Position: {x: 0.000000, y: -2.000000, z: -80.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -2660,6 +2666,7 @@
     showProfileAtStart: true
     detailGapCm: true
     sfxVolume: true
+    menusUrl: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -2671,6 +2678,7 @@
       showProfileAtStart: true
       detailGapCm: 1.500000
       sfxVolume: 0.800000
+      menusUrl: ""
   ScriptTypes:
     "":
       {}

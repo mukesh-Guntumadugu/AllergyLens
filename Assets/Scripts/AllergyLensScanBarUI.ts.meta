@@ -28,6 +28,9 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    badgeAvoidColor: false
+    badgeCautionColor: false
+    badgeGoodColor: false
     barHeightCm: false
     scanLabel: false
     scanWidthCm: false
@@ -45,16 +48,22 @@
       scanWidthCm: !<float> 16.000000
       barHeightCm: 4.500000
       textDistanceCm: !<float> 70.000000
+      badgeGoodColor: !<Vec4> {x: 0.550000, y: 0.950000, z: 0.600000, w: 1.000000}
+      badgeCautionColor: !<Vec4> {x: 1.000000, y: 0.800000, z: 0.300000, w: 1.000000}
+      badgeAvoidColor: !<Vec4> {x: 0.980000, y: 0.450000, z: 0.450000, w: 1.000000}
   ScriptTypes:
     -
       {}
   InputLines:
-    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensScanBarUI – Scan menu + Profile buttons</span>"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensScanBarUI – Scan menu + Restaurant + Profile buttons</span>"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input string scanLabel = "Scan menu" {"hint":"Label on the big scan button."}'
     - '// @input float scanWidthCm = 16 {"hint":"Width of the scan button in cm. Keep it big — it is the main pinch target.", "widget":"slider", "min":10, "max":30, "step":0.5}'
-    - "// @input float barHeightCm = 4.5 {\"hint\":\"Height of both buttons in cm (also the Profile button's diameter).\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}"
+    - "// @input float barHeightCm = 4.5 {\"hint\":\"Height of all buttons in cm (also the small buttons' width).\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}"
     - '// @input float textDistanceCm = 70 {"hint":"Viewing distance (cm) used to scale the label text.", "widget":"slider", "min":40, "max":110, "step":5}'
+    - '// @input vec4 badgeGoodColor = "{0.55, 0.95, 0.6, 1.0}" {"hint":"Badge dot on the Restaurant button when the restaurant looks good for the profile.", "widget":"color"}'
+    - '// @input vec4 badgeCautionColor = "{1.0, 0.8, 0.3, 1.0}" {"hint":"Badge dot when the restaurant needs caution for the profile.", "widget":"color"}'
+    - '// @input vec4 badgeAvoidColor = "{0.98, 0.45, 0.45, 1.0}" {"hint":"Badge dot when the restaurant should be avoided for the profile.", "widget":"color"}'
     - '// @ui {"widget":"group_end"}'

@@ -49,12 +49,12 @@
     -
       {}
   InputLines:
-    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensProfileUI – allergy / religious / fitness toggles + Done</span>"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensProfileUI – allergen toggles from the data module + Done</span>"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input string title = "Your profile" {"hint":"Header text at the top of the panel."}'
     - '// @input string doneLabel = "Done" {"hint":"Label on the Done button."}'
-    - '// @input float panelWidthCm = 30 {"hint":"Panel width in cm (brief default 30). Height follows the content.", "widget":"slider", "min":20, "max":50, "step":1}'
+    - '// @input float panelWidthCm = 30 {"hint":"Panel width in cm (brief default 30). Height follows the toggle count.", "widget":"slider", "min":20, "max":50, "step":1}'
     - '// @input float textDistanceCm = 80 {"hint":"Viewing distance (cm) used to scale text; the panel sits ~80 cm from the user.", "widget":"slider", "min":40, "max":110, "step":5}'
     - '// @ui {"widget":"group_end"}'

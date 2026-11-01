@@ -13,9 +13,7 @@ export class AllergyLensLeafScenarioIKReach extends Scenario {
   async run(): Promise<void> {
     const ui = new AllergyLensLeafInteractor()
     await sleep(500)
-    await ui.ensureProfileOpen()
-    await ui.setProfile(["peanuts"])
-    await ui.done()
+    await ui.prepare("Demo Bistro", ["peanut"])
     const ik = createIKInteractor()
     const scan = findInteractableByName("ScanButton")
     await ik.trigger(scan)

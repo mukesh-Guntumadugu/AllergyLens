@@ -1,15 +1,18 @@
-// AllergyLensProfileUI — the profile panel shown at Lens start: big pinch toggles in
-// three groups (Allergies / Religious / Fitness) plus a Done button. Owns: the toggle
-// buttons and their on/off visuals. Expects no scene @inputs. Must not hold the
+// AllergyLensProfileUI — the profile panel shown at Lens start: one big pinch toggle
+// per allergen in the knowledge base (Assets/Data/AllergyData.ts), grouped Allergies /
+// Religious / Diet / Preferences in 3-column UIKit grids, plus a Done button. Owns: the
+// toggle buttons and their on/off visuals. Expects no scene @inputs. Must not hold the
 // profile — it reports each flip to Main (the single owner of profile state).
-// Toggle SceneObjects are named "Toggle-<id>" and the Done button "DoneButton" so
-// LEAF scenarios can find them by name.
+// Toggle SceneObjects are named "Toggle-<allergen id>" and the Done button "DoneButton"
+// so LEAF scenarios can find them by name.
 
 import {BackPlate} from "SpectaclesUIKit.lspkg/Scripts/BackPlate"
 import {Button} from "SpectaclesUIKit.lspkg/Scripts/Components/Button/Button"
+import {GridLayout} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid/GridLayout"
+import {GridItem} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid/GridItem"
 import {FlexAlign, FlexJustify} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Flex/FlexTypes"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
-import {PROFILE_ITEMS, ProfileItem} from "./AllergyLensMenuData"
+import {AllergenDef, GROUP_LABELS, GROUP_ORDER, allergensInGroup} from "./AllergyLensMenuData"
 import * as UI from "./AllergyLensSharedUI"
 
 const ICON_DONE = requireAsset("../Icons/check.png") as Texture
@@ -19,21 +22,18 @@ export interface ProfileToggleEvent {
   on: boolean
 }
 
-const PAD = 1.5
-const GAP = 0.5
-const HEADER_H = 2.6
-const GROUP_LABEL_H = 1.4
-const TOGGLE_H = 3.4
+const PAD = 1.2
+const GAP = 0.4
+const HEADER_H = 2.2
+const GROUP_LABEL_H = 1.2
+const TOGGLE_H = 2.8
 const DONE_W = 10
-const GROUPS: Array<{name: ProfileItem["group"]; perRow: number}> = [
-  {name: "Allergies", perRow: 3},
-  {name: "Religious", perRow: 2},
-  {name: "Fitness", perRow: 2},
-]
+const DONE_H = 2.8
+const COLS = 3
 
 @component
 export class AllergyLensProfileUI extends BaseScriptComponent {
-  @ui.label('<span style="color: #60A5FA;">AllergyLensProfileUI – allergy / religious / fitness toggles + Done</span>')
+  @ui.label('<span style="color: #60A5FA;">AllergyLensProfileUI – allergen toggles from the data module + Done</span>')
   @ui.separator
   @ui.label('<span style="color: #60A5FA;">Settings</span>')
   @ui.group_start("Settings")
@@ -46,7 +46,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   doneLabel: string = "Done"
 
   @input
-  @hint("Panel width in cm (brief default 30). Height follows the content.")
+  @hint("Panel width in cm (brief default 30). Height follows the toggle count.")
   @widget(new SliderWidget(20, 50, 1))
   panelWidthCm: number = 30
 
@@ -74,12 +74,18 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const W = this.panelWidthCm
     const innerW = W - PAD * 2
     const d = this.textDistanceCm
+    const btnW = (innerW - GAP * (COLS - 1)) / COLS
 
-    // Height from the row plan so the BackPlate matches the column exactly.
-    let rows = 0
-    for (const g of GROUPS) rows += Math.ceil(PROFILE_ITEMS.filter((p) => p.group === g.name).length / g.perRow)
-    const itemCount = 1 + GROUPS.length + rows + 1
-    const H = PAD * 2 + HEADER_H + GROUPS.length * GROUP_LABEL_H + rows * TOGGLE_H + TOGGLE_H + GAP * (itemCount - 1)
+    // Height from the data: header + per group (label + grid) + Done + gaps.
+    const groups = GROUP_ORDER.map((g) => ({group: g, items: allergensInGroup(g)})).filter((g) => g.items.length > 0)
+    let H = PAD * 2 + HEADER_H + DONE_H
+    let itemCount = 2
+    for (const g of groups) {
+      const rows = Math.ceil(g.items.length / COLS)
+      H += GROUP_LABEL_H + rows * TOGGLE_H + (rows - 1) * GAP
+      itemCount += 2
+    }
+    H += GAP * (itemCount - 1)
 
     this.sceneObject.createComponent("Component.Canvas")
     const plate = this.sceneObject.createComponent(BackPlate.getTypeName()) as BackPlate
@@ -89,26 +95,43 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const col = UI.flexColumn(content, W, H, {gap: GAP, padX: PAD, padY: PAD, justify: FlexJustify.Start, align: FlexAlign.Stretch})
     UI.addColumnText(col, this.title, "Subheadline", d, HEADER_H)
 
-    for (const g of GROUPS) {
-      UI.addColumnText(col, g.name, "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
-      const items = PROFILE_ITEMS.filter((p) => p.group === g.name)
-      const btnW = (innerW - GAP * (g.perRow - 1)) / g.perRow
-      for (let r = 0; r < items.length; r += g.perRow) {
-        const row = UI.flexRow(col, innerW, TOGGLE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-        for (const item of items.slice(r, r + g.perRow)) this.addToggle(row, item, btnW, TOGGLE_H)
-      }
+    for (const g of groups) {
+      UI.addColumnText(col, GROUP_LABELS[g.group], "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
+      const rows = Math.ceil(g.items.length / COLS)
+      const gridH = rows * TOGGLE_H + (rows - 1) * GAP
+      UI.flexChild(col, {w: innerW, h: gridH}, (gridParent) => {
+        const grid = gridParent.createComponent(GridLayout.getTypeName()) as GridLayout
+        grid.onInitialized.add(() => {
+          grid.width = innerW
+          grid.height = gridH
+          grid.templateColumns = "1fr 1fr 1fr"
+          grid.templateRows = `repeat(${rows}, 1fr)`
+          grid.columnGap = GAP
+          grid.rowGap = GAP
+          const gridItems: GridItem[] = []
+          for (const a of g.items) {
+            const tile = UI.obj(gridParent, `Toggle-${a.id}`)
+            const gi = tile.createComponent(GridItem.getTypeName()) as GridItem
+            gi.overrideWidth = btnW
+            gi.overrideHeight = TOGGLE_H
+            gridItems.push(gi)
+            this.buildToggle(tile, a, btnW, TOGGLE_H)
+          }
+          grid.addItems(gridItems)
+        })
+      })
     }
 
     // Done — centered, with a check icon.
-    const doneRow = UI.flexRow(col, innerW, TOGGLE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
-    UI.flexChild(doneRow, {w: DONE_W, h: TOGGLE_H}, (so) => {
+    const doneRow = UI.flexRow(col, innerW, DONE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
+    UI.flexChild(doneRow, {w: DONE_W, h: DONE_H}, (so) => {
       so.name = "DoneButton"
       const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(DONE_W, TOGGLE_H, 1)
+      btn.size = new vec3(DONE_W, DONE_H, 1)
       btn.onTriggerUp.add(() => this._onDone.invoke())
-      const inner = UI.flexRow(so, DONE_W, TOGGLE_H, {gap: 0.6, justify: FlexJustify.Center, align: FlexAlign.Center})
+      const inner = UI.flexRow(so, DONE_W, DONE_H, {gap: 0.6, justify: FlexJustify.Center, align: FlexAlign.Center})
       UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
-      UI.addImage(inner, ICON_DONE, 2.0, 2.0)
+      UI.addImage(inner, ICON_DONE, 1.8, 1.8)
       UI.addRowText(inner, this.doneLabel, "Callout", d,
         this.doneLabel.length * UI.charWidthCm("Callout", d) + 1, HorizontalAlignment.Left)
     })
@@ -125,18 +148,15 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   }
 
   // ── Private ────────────────────────────────────────────────────────────
-  private addToggle(row: SceneObject, item: ProfileItem, w: number, h: number): void {
-    UI.flexChild(row, {w, h}, (so) => {
-      so.name = `Toggle-${item.id}`
-      const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(w, h, 1)
-      btn.setIsToggleable(true)
-      btn.isOn = false
-      // onValueChange carries the settled state (1 = on). onFinished's boolean is the
-      // toggle-group "explicit" flag, not the state — don't use it for on/off.
-      btn.onValueChange.add((v: number) => this._onToggle.invoke({id: item.id, on: v === 1}))
-      UI.addButtonLabel(so, item.label, w - 0.6, this.textDistanceCm, "Button")
-      this.buttons.set(item.id, btn)
-    })
+  private buildToggle(so: SceneObject, item: AllergenDef, w: number, h: number): void {
+    const btn = so.createComponent(Button.getTypeName()) as Button
+    btn.size = new vec3(w, h, 1)
+    btn.setIsToggleable(true)
+    btn.isOn = false
+    // onValueChange carries the settled state (1 = on). onFinished's boolean is the
+    // toggle-group "explicit" flag, not the state — don't use it for on/off.
+    btn.onValueChange.add((v: number) => this._onToggle.invoke({id: item.id, on: v === 1}))
+    UI.addButtonLabel(so, item.label, w - 0.6, this.textDistanceCm, "Button")
+    this.buttons.set(item.id, btn)
   }
 }

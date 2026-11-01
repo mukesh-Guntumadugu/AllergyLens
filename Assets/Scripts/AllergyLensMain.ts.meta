@@ -31,6 +31,7 @@
     detailGapCm: false
     dishDetail: false
     menuCard: false
+    menusUrl: false
     profilePanel: false
     scanBar: false
     sfxVolume: false
@@ -51,18 +52,19 @@
       showProfileAtStart: true
       detailGapCm: 1.500000
       sfxVolume: 0.800000
+      menusUrl: ""
   ScriptTypes:
     -
       {}
   InputLines:
-    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensMain – profile → scan → highlights → detail</span>"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensMain – profile → restaurant → scan → highlights → detail</span>"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">References</span>"}'
     - '// @ui {"widget":"group_start", "label":"References"}'
     - '// @input AssignableType_1 profilePanel {"hint":"Profile panel UI (toggles + Done)."}'
-    - '// @input AssignableType_2 menuCard {"hint":"Menu card UI with the six dish tiles."}'
-    - '// @input AssignableType_3 scanBar {"hint":"Scan menu + Profile buttons."}'
-    - '// @input AssignableType_4 dishDetail {"hint":"Small detail card shown next to a red dish."}'
+    - '// @input AssignableType_2 menuCard {"hint":"Menu card UI with the dish tiles."}'
+    - '// @input AssignableType_3 scanBar {"hint":"Scan menu + Restaurant + Profile buttons."}'
+    - '// @input AssignableType_4 dishDetail {"hint":"Small detail card shown next to a red or amber dish."}'
     - '// @ui {"widget":"group_end"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
@@ -70,4 +72,5 @@
     - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts and keep the menu hidden until Done is pinched."}'
     - "// @input float detailGapCm = 1.5 {\"hint\":\"Gap (cm) between a dish tile's edge and the detail card that opens beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":20, \"step\":0.5}"
     - '// @input float sfxVolume = 0.8 {"hint":"Volume for the click / scan / pop cues (0 = silent).", "widget":"slider", "min":0, "max":1, "step":0.05}'
+    - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
     - '// @ui {"widget":"group_end"}'

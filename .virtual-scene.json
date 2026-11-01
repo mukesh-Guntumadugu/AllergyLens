@@ -4751,6 +4751,12 @@
               "uiInfo": "{\"hint\":\"Volume for the click / scan / pop cues (0 = silent).\", \"widget\":\"slider\", \"min\":0, \"max\":1, \"step\":0.05}",
               "defaultValue": "0.8"
             },
+            "menusUrl": {
+              "isScriptInput": true,
+              "value": "",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used.\"}"
+            },
             "menuCard": {
               "isScriptInput": true,
               "value": {
@@ -4758,7 +4764,7 @@
                 "name": "AllergyLensMenuCardUI"
               },
               "type": "AssignableType_2",
-              "uiInfo": "{\"hint\":\"Menu card UI with the six dish tiles.\"}"
+              "uiInfo": "{\"hint\":\"Menu card UI with the dish tiles.\"}"
             },
             "scanBar": {
               "isScriptInput": true,
@@ -4767,7 +4773,7 @@
                 "name": "AllergyLensScanBarUI"
               },
               "type": "AssignableType_3",
-              "uiInfo": "{\"hint\":\"Scan menu + Profile buttons.\"}"
+              "uiInfo": "{\"hint\":\"Scan menu + Restaurant + Profile buttons.\"}"
             },
             "profilePanel": {
               "isScriptInput": true,
@@ -4785,7 +4791,7 @@
                 "name": "AllergyLensDishDetailUI"
               },
               "type": "AssignableType_4",
-              "uiInfo": "{\"hint\":\"Small detail card shown next to a red dish.\"}"
+              "uiInfo": "{\"hint\":\"Small detail card shown next to a red or amber dish.\"}"
             },
             "detailGapCm": {
               "isScriptInput": true,
@@ -4798,10 +4804,11 @@
             "inputNames.0": "detailGapCm",
             "inputNames.1": "dishDetail",
             "inputNames.2": "menuCard",
-            "inputNames.3": "profilePanel",
-            "inputNames.4": "scanBar",
-            "inputNames.5": "sfxVolume",
-            "inputNames.6": "showProfileAtStart",
+            "inputNames.3": "menusUrl",
+            "inputNames.4": "profilePanel",
+            "inputNames.5": "scanBar",
+            "inputNames.6": "sfxVolume",
+            "inputNames.7": "showProfileAtStart",
             "name": "AllergyLensMain",
             "enabled": true,
             "sceneObject": "@sceneObject:AllergyLens",
@@ -4846,7 +4853,7 @@
       "transform": {
         "position": [
           0,
-          -6,
+          -2,
           -80
         ],
         "rotation": [
@@ -4886,7 +4893,7 @@
               "isScriptInput": true,
               "value": 30,
               "type": "float",
-              "uiInfo": "{\"hint\":\"Panel width in cm (brief default 30). Height follows the content.\", \"widget\":\"slider\", \"min\":20, \"max\":50, \"step\":1}",
+              "uiInfo": "{\"hint\":\"Panel width in cm (brief default 30). Height follows the toggle count.\", \"widget\":\"slider\", \"min\":20, \"max\":50, \"step\":1}",
               "defaultValue": "30"
             },
             "doneLabel": {
@@ -4942,18 +4949,18 @@
           "name": "AllergyLensMenuCardUI",
           "enabled": true,
           "properties": {
-            "title": {
+            "unverifiedColor": {
               "isScriptInput": true,
-              "value": "Menu",
-              "type": "string",
-              "uiInfo": "{\"hint\":\"Title printed at the top of the card.\"}",
-              "defaultValue": "Menu"
+              "value": "{x: 1, y: 0.8, z: 0.3, w: 0.38}",
+              "type": "vec4",
+              "uiInfo": "{\"hint\":\"Transparent amber highlight: ingredients not published — ask the restaurant.\", \"widget\":\"color\"}",
+              "defaultValue": "{1.0, 0.8, 0.3, 0.38}"
             },
             "flagColor": {
               "isScriptInput": true,
               "value": "{x: 0.98, y: 0.45, z: 0.45, w: 0.42}",
               "type": "vec4",
-              "uiInfo": "{\"hint\":\"Transparent light-red highlight for dishes containing something from your profile.\", \"widget\":\"color\"}",
+              "uiInfo": "{\"hint\":\"Transparent light-red highlight: contains something from your profile.\", \"widget\":\"color\"}",
               "defaultValue": "{0.98, 0.45, 0.45, 0.42}"
             },
             "textDistanceCm": {
@@ -4967,7 +4974,7 @@
               "isScriptInput": true,
               "value": "{x: 0.55, y: 0.95, z: 0.6, w: 0.35}",
               "type": "vec4",
-              "uiInfo": "{\"hint\":\"Transparent light-green highlight for dishes you can eat.\", \"widget\":\"color\"}",
+              "uiInfo": "{\"hint\":\"Transparent light-green highlight: ingredients known, nothing from your profile.\", \"widget\":\"color\"}",
               "defaultValue": "{0.55, 0.95, 0.6, 0.35}"
             },
             "cardWidthCm": {
@@ -4990,7 +4997,7 @@
             "inputNames.2": "flagColor",
             "inputNames.3": "safeColor",
             "inputNames.4": "textDistanceCm",
-            "inputNames.5": "title",
+            "inputNames.5": "unverifiedColor",
             "name": "AllergyLensMenuCardUI",
             "enabled": true,
             "sceneObject": "@sceneObject:MenuCard",
@@ -5039,13 +5046,6 @@
               "uiInfo": "{\"hint\":\"Viewing distance (cm) used to scale the label text.\", \"widget\":\"slider\", \"min\":40, \"max\":110, \"step\":5}",
               "defaultValue": "70"
             },
-            "scanWidthCm": {
-              "isScriptInput": true,
-              "value": 16,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Width of the scan button in cm. Keep it big — it is the main pinch target.\", \"widget\":\"slider\", \"min\":10, \"max\":30, \"step\":0.5}",
-              "defaultValue": "16"
-            },
             "scanLabel": {
               "isScriptInput": true,
               "value": "Scan menu",
@@ -5053,18 +5053,49 @@
               "uiInfo": "{\"hint\":\"Label on the big scan button.\"}",
               "defaultValue": "Scan menu"
             },
+            "badgeCautionColor": {
+              "isScriptInput": true,
+              "value": "{x: 1, y: 0.8, z: 0.3, w: 1}",
+              "type": "vec4",
+              "uiInfo": "{\"hint\":\"Badge dot when the restaurant needs caution for the profile.\", \"widget\":\"color\"}",
+              "defaultValue": "{1.0, 0.8, 0.3, 1.0}"
+            },
             "barHeightCm": {
               "isScriptInput": true,
               "value": 4.5,
               "type": "float",
-              "uiInfo": "{\"hint\":\"Height of both buttons in cm (also the Profile button's diameter).\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}",
+              "uiInfo": "{\"hint\":\"Height of all buttons in cm (also the small buttons' width).\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}",
               "defaultValue": "4.5"
             },
+            "scanWidthCm": {
+              "isScriptInput": true,
+              "value": 16,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Width of the scan button in cm. Keep it big — it is the main pinch target.\", \"widget\":\"slider\", \"min\":10, \"max\":30, \"step\":0.5}",
+              "defaultValue": "16"
+            },
+            "badgeGoodColor": {
+              "isScriptInput": true,
+              "value": "{x: 0.55, y: 0.95, z: 0.6, w: 1}",
+              "type": "vec4",
+              "uiInfo": "{\"hint\":\"Badge dot on the Restaurant button when the restaurant looks good for the profile.\", \"widget\":\"color\"}",
+              "defaultValue": "{0.55, 0.95, 0.6, 1.0}"
+            },
+            "badgeAvoidColor": {
+              "isScriptInput": true,
+              "value": "{x: 0.98, y: 0.45, z: 0.45, w: 1}",
+              "type": "vec4",
+              "uiInfo": "{\"hint\":\"Badge dot when the restaurant should be avoided for the profile.\", \"widget\":\"color\"}",
+              "defaultValue": "{0.98, 0.45, 0.45, 1.0}"
+            },
             "scriptAsset": "@asset:Scripts/AllergyLensScanBarUI.ts",
-            "inputNames.0": "barHeightCm",
-            "inputNames.1": "scanLabel",
-            "inputNames.2": "scanWidthCm",
-            "inputNames.3": "textDistanceCm",
+            "inputNames.0": "badgeAvoidColor",
+            "inputNames.1": "badgeCautionColor",
+            "inputNames.2": "badgeGoodColor",
+            "inputNames.3": "barHeightCm",
+            "inputNames.4": "scanLabel",
+            "inputNames.5": "scanWidthCm",
+            "inputNames.6": "textDistanceCm",
             "name": "AllergyLensScanBarUI",
             "enabled": true,
             "sceneObject": "@sceneObject:ScanBar",
@@ -5310,48 +5341,6 @@
             "hasPrefabChanges": false,
             "id": "ac6df675-bdd8-41a3-a5ef-e73d4e47639d",
             "type": "RenderMeshVisual"
-          }
-        }
-      ]
-    },
-    {
-      "id": "7ed47018-cadf-4444-a665-1e3b70e48cfd",
-      "name": "AiPreviewAgent Handler",
-      "enabled": true,
-      "parentId": null,
-      "transform": {
-        "position": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "layers": 1,
-      "components": [
-        {
-          "id": "2d149deb-13a8-4ccf-9fe8-f47f955aadea",
-          "type": "ScriptComponent",
-          "name": "AgentInspectScript",
-          "enabled": true,
-          "properties": {
-            "scriptAsset": null,
-            "name": "AgentInspectScript",
-            "enabled": true,
-            "sceneObject": "@sceneObject:AiPreviewAgent Handler",
-            "isPrefabInstanceRoot": false,
-            "hasPrefabChanges": false,
-            "id": "2d149deb-13a8-4ccf-9fe8-f47f955aadea",
-            "type": "ScriptComponent"
           }
         }
       ]

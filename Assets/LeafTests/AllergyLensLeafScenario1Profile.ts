@@ -14,7 +14,7 @@ export class AllergyLensLeafScenario1Profile extends Scenario {
     await sleep(1000)
     await ui.ensureProfileOpen()
     expect(ui.isVisible("ProfilePanel"), "profile panel visible").toBe(true)
-    for (const id of ["peanuts", "milk", "beef", "pork"]) {
+    for (const id of ["peanut", "milk", "beef", "pork"]) {
       const hits = findInteractablesByName(`Toggle-${id}`, undefined, true)
       expect(hits.length, `Toggle-${id} is a pinchable interactable`).toBeGreaterThan(0)
     }
