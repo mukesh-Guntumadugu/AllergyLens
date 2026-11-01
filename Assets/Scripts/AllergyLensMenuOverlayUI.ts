@@ -20,6 +20,10 @@ import * as UI from "./AllergyLensSharedUI"
 
 const BAR_TEX = requireAsset("../Icons/square.png") as Texture
 const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
+// The printed page itself, drawn ONLY on a simulated page (debugSimulateMarker / LEAF
+// simulateMarker) so the marks are visibly on a menu. Never drawn while the camera
+// tracker owns the pose — there the real page is under the marks.
+const PAGE_TEX = requireAsset("../Markers/menu-1.png") as Texture
 const SQUARE_GLYPH_COVERAGE = 0.75 // the glyph fills 18/24 of its canvas
 const imageMaterial = requireAsset("../Materials/ImageMaterial.mat") as Material
 
@@ -133,6 +137,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private heightCm = 18.2
   private bars: Bar[] = []
   private barsRoot: SceneObject | null = null
+  private pageImage: SceneObject | null = null
   private badgeRoot: SceneObject | null = null
   private badgeText: Text | null = null
   private badgeDotMat: Material | null = null
@@ -233,6 +238,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     })
     this.createEvent("UpdateEvent").bind(() => this.onUpdate())
 
+    this.buildSimulatedPage()
     this.barsRoot = UI.obj(this.sceneObject, "Bars")
     for (const dish of this.restaurant.dishes) {
       if (dish.layout) this.bars.push(this.buildBar(dish))
@@ -305,6 +311,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     t.setWorldRotation(rot) // the page's +Z faces the user
     t.setWorldScale(new vec3(1, 1, 1))
     this.handleFound()
+    this.showPage(true)
     return true
   }
 
@@ -327,6 +334,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     this.hideTimer?.cancel()
     this._active = true
     this.setShown(true)
+    if (!this.simulated) this.showPage(false) // the camera sees the real page
     this.fadeTarget = 1 // fade the marks in (~0.4 s)
     this._onFound.invoke(this.restaurantId)
   }
@@ -344,8 +352,29 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     if (!shown) {
       this._arrowVisible = false
       if (this.arrowRoot) this.arrowRoot.enabled = false
+      this.showPage(false)
     }
     if (!shown) this.fade = 0
+  }
+
+  private showPage(shown: boolean): void {
+    if (this.pageImage) this.pageImage.enabled = shown
+  }
+
+  /** Full-size image of the printed page (widthCm x heightCm), just behind the marks; off until a simulation. */
+  private buildSimulatedPage(): void {
+    const so = UI.obj(this.sceneObject, "SimulatedPage", new vec3(0, 0, 0))
+    const img = so.createComponent("Component.Image") as Image
+    const mat = imageMaterial.clone()
+    mat.mainPass.baseTex = PAGE_TEX
+    mat.mainPass.baseColor = new vec4(1, 1, 1, 1)
+    mat.mainPass.depthTest = true
+    mat.mainPass.depthWrite = true
+    img.clearMaterials()
+    img.addMaterial(mat)
+    so.getTransform().setLocalScale(new vec3(this.widthCm, this.heightCm, 1))
+    so.enabled = false
+    this.pageImage = so
   }
 
   // ── Per-frame: fade + in-view check ──────────────────────────────────

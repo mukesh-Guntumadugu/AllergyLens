@@ -1551,12 +1551,12 @@
   Enabled: true
   ScriptAsset: !<reference> cecc5bf7-f2d9-484b-9f20-a0761fcfca38
   ScriptInputsDefault:
-    {}
+    autoRun: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      autoRun: true
+      autoRun: false
   ScriptTypes:
     "":
       {}
@@ -2605,6 +2605,7 @@
     detailGapCm: true
     sfxVolume: true
     voiceEnabled: true
+    voiceInPreview: true
     debugSimulateMarker: true
     menusUrl: true
   ScriptTypesDefault:
@@ -2621,6 +2622,7 @@
       detailGapCm: 1.500000
       sfxVolume: 0.800000
       voiceEnabled: true
+      voiceInPreview: false
       debugSimulateMarker: false
       menusUrl: ""
   ScriptTypes:

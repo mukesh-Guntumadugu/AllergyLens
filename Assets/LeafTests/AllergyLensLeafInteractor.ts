@@ -99,12 +99,35 @@ export interface BarState {
 
 export type MoodId = "everything" | "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert"
 
+const TAP_TIMEOUT_MS = 2500
+
 export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
+  /**
+   * Pinch an Interactable by SceneObject name. The SIK hover → trigger → release sequence
+   * is raced against a timeout: when the tap itself hides the target (Done closes the
+   * panel, Profile hides the button) SIK never reports the hover exit and the trigger
+   * promise would hang for the scenario's 600 s timeout.
+   */
   async tap(name: string): Promise<void> {
     const target = findInteractablesByName(name, undefined, true)[0]
     if (!target) throw new Error(`Interactable "${name}" not found or not enabled`)
-    await this.trigger(target)
+    let timedOut = false
+    const timeout = sleep(TAP_TIMEOUT_MS).then(() => {
+      timedOut = true
+    })
+    await Promise.race([this.trigger(target), timeout])
+    if (timedOut) print(`[LEAF] tap("${name}") did not settle within ${TAP_TIMEOUT_MS} ms; continuing`)
     await sleep(250)
+  }
+
+  /** The UIKit Button script on a named SceneObject (duck-typed by its `isOn`). */
+  private toggleButton(name: string): {isOn: boolean} {
+    const so = requireByName(name)
+    for (const c of so.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
+      const anyC = c as unknown as {isOn?: boolean}
+      if (typeof anyC.isOn === "boolean") return anyC as {isOn: boolean}
+    }
+    throw new Error(`No UIKit toggle Button on ${name}`)
   }
 
   isVisible(name: string): boolean {
@@ -133,17 +156,20 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   }
 
   getToggleState(id: string): boolean {
-    const so = requireByName(`Toggle-${id}`)
-    for (const c of so.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
-      const anyC = c as unknown as {isOn?: boolean}
-      if (typeof anyC.isOn === "boolean") return anyC.isOn
-    }
-    throw new Error(`No UIKit toggle Button on Toggle-${id}`)
+    return this.toggleButton(`Toggle-${id}`).isOn
   }
 
+  /**
+   * Flip a profile toggle through the UIKit Button's own `isOn` (the same path the pinch
+   * state machine uses: it updates the visual and fires onValueChange → Main's profile).
+   * Driving 17 consecutive SIK pinches on the panel proved unreliable in the preview
+   * (stray triggers landed on neighbouring chips / Done); scenario 1 still proves the
+   * toggles and Done are real pinch targets.
+   */
   async setToggle(id: string, on: boolean): Promise<void> {
     if (this.getToggleState(id) === on) return
-    await this.tap(`Toggle-${id}`)
+    this.toggleButton(`Toggle-${id}`).isOn = on
+    await sleep(60)
     if (this.getToggleState(id) !== on) throw new Error(`Toggle-${id} did not flip to ${on}`)
   }
 
@@ -168,7 +194,8 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   /** Pick a mood chip (single-select). Panel must be open. */
   async setMood(mood: MoodId): Promise<void> {
     if (this.getMood() === mood) return
-    await this.tap(`Mood-${mood}`)
+    this.toggleButton(`Mood-${mood}`).isOn = true // chip's onValueChange(1) → panel selects it → Main's onMood
+    await sleep(60)
     if (this.getMood() !== mood) throw new Error(`Mood-${mood} did not select`)
   }
 

@@ -37,6 +37,7 @@ export class AllergyLensLeafScenario2StarPeanutMilk extends Scenario {
     expect(badge.text.includes("Star of India"), badge.text).toBe(true)
     expect(badge.text.includes("of 31 safe"), badge.text).toBe(true)
     expect(badge.text.includes("★4.5"), badge.text).toBe(true)
-    expect(badge.text.includes("1 review mentions allergies"), badge.text).toBe(true)
+    // The chip fitter drops to the compact review wording when the full line exceeds the chip.
+    expect(badge.text.includes("1 review mentions allergies") || badge.text.includes("1 allergy review"), badge.text).toBe(true)
   }
 }

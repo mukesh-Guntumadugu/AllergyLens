@@ -43,7 +43,7 @@ right column show when the camera pans to that column.
 
 Valid profile ids: `peanut tree_nut milk egg wheat soy fish shellfish sesame
 beef pork gelatin alcohol trans_fat high_sugar chicken meat`.
-Valid moods: `everything chicken red_meat seafood vegetarian dessert drink`.
+Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
 
 ## 3. Pick a dish
 
@@ -58,15 +58,29 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert drink`.
 
 ## 4. The 3D room is NOT a menu test
 
-If you see dots and underlines floating in the room (over posters, a
-turntable…) with no menu, one of these is on:
+The Interactive Preview room has no camera feed, so the real marker can never
+lock there. (The two framed posters in the "Sunlit Room" are part of the room
+itself — their black dots and dashes are not AllergyLens marks; ours are
+red, green and amber.)
 
-- **`LeafRunner` → `autoRun`** is on: the automated test scenarios are running
-  and simulating a page in front of you. Select `LeafRunner` in the Scene
-  Hierarchy and turn `autoRun` off.
-- **`AllergyLens` → `debugSimulateMarker`** is on: the Lens pretends a menu is
-  60 cm ahead so the logic can be checked without a camera. Turn it off for
-  real testing.
+Two debug switches put a **simulated** page 60 cm in front of you instead.
+Since this build the simulated page draws the Star of India menu image
+(`Assets/Markers/menu-1.png`, 29.7 × 18.2 cm) under the marks, so you can see
+that the marks sit on the right printed lines even without a camera. The
+image is only ever drawn on a simulated page; when the camera tracker owns
+the pose nothing is drawn over the real menu except the marks and the badge.
+
+- **`AllergyLens` → `debugSimulateMarker`**: on start, after 0.5 s the Lens
+  pretends the menu was recognised 60 cm ahead. Good for checking the
+  profile → marks → pinch → detail flow in the Interactive Preview. Turn it
+  off for the real (camera) test; it refuses to run while the camera is
+  actually tracking the marker anyway.
+- **`LeafRunner` → `autoRun`**: the automated LEAF scenarios run one after
+  another, opening the panel, flipping toggles and simulating the page. Keep
+  it off unless you want the test run; the result is printed to the Logger
+  panel as `[LEAF SUMMARY] n/9 passed`.
+
+Both are saved **off** in the committed scene.
 
 ## 5. Recording the demo
 
