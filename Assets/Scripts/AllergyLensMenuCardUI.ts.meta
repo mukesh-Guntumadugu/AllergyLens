@@ -1,0 +1,66 @@
+- !<AssetImportMetadata/46b055dd-97ca-4197-91a9-8a7fe39c6a39>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> f4a271f4-f165-4f3a-beeb-2af602582334
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> f4a271f4-f165-4f3a-beeb-2af602582334
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> a76d6d13-ab96-4326-87e5-f109e811dc0a
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/a76d6d13-ab96-4326-87e5-f109e811dc0a>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  VersionPrerelease: ""
+  UpdateOrder: 0
+  ComponentUid: e7d82929-ae12-4422-b298-0ab2f4a80462
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    cardHeightCm: false
+    cardWidthCm: false
+    flagColor: false
+    safeColor: false
+    textDistanceCm: false
+    title: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - cardWidthCm: !<float> 35.000000
+      cardHeightCm: !<float> 25.000000
+      title: Menu
+      safeColor: !<Vec4> {x: 0.550000, y: 0.950000, z: 0.600000, w: 0.350000}
+      flagColor: !<Vec4> {x: 0.980000, y: 0.450000, z: 0.450000, w: 0.420000}
+      textDistanceCm: !<float> 70.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensMenuCardUI – menu card with six highlightable dishes</span>"}'
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
+    - '// @ui {"widget":"group_start", "label":"Settings"}'
+    - '// @input float cardWidthCm = 35 {"hint":"Card width in cm (brief default 35).", "widget":"slider", "min":20, "max":60, "step":1}'
+    - '// @input float cardHeightCm = 25 {"hint":"Card height in cm (brief default 25).", "widget":"slider", "min":15, "max":45, "step":1}'
+    - '// @input string title = "Menu" {"hint":"Title printed at the top of the card."}'
+    - '// @input vec4 safeColor = "{0.55, 0.95, 0.6, 0.35}" {"hint":"Transparent light-green highlight for dishes you can eat.", "widget":"color"}'
+    - '// @input vec4 flagColor = "{0.98, 0.45, 0.45, 0.42}" {"hint":"Transparent light-red highlight for dishes containing something from your profile.", "widget":"color"}'
+    - '// @input float textDistanceCm = 70 {"hint":"Viewing distance (cm) used to scale text; the card sits ~65 cm from the user.", "widget":"slider", "min":40, "max":110, "step":5}'
+    - '// @ui {"widget":"group_end"}'

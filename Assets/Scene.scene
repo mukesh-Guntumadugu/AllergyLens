@@ -4,6 +4,9 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> f5d74682-203a-4970-81ea-9fa7b88c96bb
+    - !<own> f8819744-b2fb-4738-b947-1953ec5ac0c6
+    - !<own> 2925e4b8-dde8-4755-a563-e9104f5751b0
+    - !<own> d6bff709-75dd-4cf0-85df-57affd3b9df5
   layers: !<Layers/267ee9a7-aff2-4f9d-9a49-f71214747d03>
     userLayers:
       - id: 1
@@ -496,6 +499,21 @@
     - !<own> a6af4948-9adc-4052-ae22-db902dd2764e
   Components:
     []
+- !<SceneObject/13a37ae3-cea5-4fff-b955-985eade828ae>
+  PrefabRemaps:
+    []
+  Name: ScanBar
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -49.500000, z: -40.000000}
+    Rotation: {x: -70.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 7f1e5d6b-d26f-491e-8735-8bbf04932448
 - !<SceneObject/181c239f-175e-4912-94fc-d37a2599b2d6>
   PrefabRemaps:
     []
@@ -509,6 +527,21 @@
     HasSegmentScaleCompensation: false
   Children:
     []
+  Components:
+    []
+- !<SceneObject/18cf2810-4fc4-4d88-96b1-0a4d327174fb>
+  PrefabRemaps:
+    []
+  Name: Scenes
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 8a4ca0c6-c7a6-4780-af03-e716d5775d26
   Components:
     []
 - !<RenderMeshVisual/1f969daa-5809-4500-b314-98d91ccba131>
@@ -693,6 +726,21 @@
     ring-3_end_end_end: !<reference> b93dfa60-41bd-4999-ac0f-4b2f1df2bdaf
     thumb-3_end_end_end_end: !<reference> 08e3cc22-f2e1-49fb-9ddc-145fe6547ce3
     pinky-3_end_end: !<reference> d08269e3-acd4-4156-b5b9-477ca259611d
+- !<SceneObject/2925e4b8-dde8-4755-a563-e9104f5751b0>
+  PrefabRemaps:
+    []
+  Name: LeafIndex
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> a30497c0-df88-4a23-a7a6-ee03ff1ea246
 - !<SceneObject/2dae2a27-8ce6-466a-8bff-622195c1b3a8>
   PrefabRemaps:
     []
@@ -708,6 +756,21 @@
     - !<own> a7da4af4-3d84-4acd-a31e-920a56b4c5c8
   Components:
     []
+- !<SceneObject/2eab91dd-e7cf-4f89-a440-61cd258fb833>
+  PrefabRemaps:
+    []
+  Name: geometry_0
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.500000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> ac6df675-bdd8-41a3-a5ef-e73d4e47639d
 - !<RenderMeshVisual/335c5f8b-2917-49e8-8af5-220696e9bc09>
   PrefabRemaps:
     []
@@ -944,6 +1007,25 @@
     []
   Components:
     - !<own> 5f153ad7-2baa-4fd9-a298-0dcfad86da3b
+- !<SceneObject/4ea3c99b-a926-4ed2-a5c3-e02a0253c06a>
+  PrefabRemaps:
+    - 18cf2810-4fc4-4d88-96b1-0a4d327174fb: 4ad32996-3d60-4ed1-481b-4a467277f185
+    - 2eab91dd-e7cf-4f89-a440-61cd258fb833: 473570f6-1874-4865-6141-57b816bbf2de
+    - 4ea3c99b-a926-4ed2-a5c3-e02a0253c06a: 57b8a773-26f9-4f79-4628-8c36bada4431
+    - 8a4ca0c6-c7a6-4780-af03-e716d5775d26: 10bad346-f457-4ecf-51cd-953044ccf832
+    - ac6df675-bdd8-41a3-a5ef-e73d4e47639d: 33972452-953f-486d-6761-32d0c44ce4d0
+  Name: Table
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -150.000000, z: -75.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 18cf2810-4fc4-4d88-96b1-0a4d327174fb
+  Components:
+    []
 - !<SceneObject/52ecefe4-5642-445a-ad16-52ce818076bc>
   PrefabRemaps:
     []
@@ -1139,6 +1221,21 @@
     - !<own> 80574bd1-697b-4bb5-b9ce-13b340146d82
   Components:
     - !<own> ccf4d3bc-d3c2-4580-b9c5-62f164ef7eef
+- !<SceneObject/65819ba2-c0b6-4f51-aed2-83b1d251aca5>
+  PrefabRemaps:
+    []
+  Name: MenuCard
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -38.700001, z: -57.000000}
+    Rotation: {x: -25.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> c5431d4e-b0ed-430c-80f9-22492b3116eb
 - !<SceneObject/6a7a67db-5675-49bb-8f31-ba0588e3cffc>
   PrefabRemaps:
     []
@@ -1353,6 +1450,28 @@
     - !<own> 58ef319f-850e-40dd-8295-e6dc36ab4854
   Components:
     []
+- !<ScriptComponent/7f1e5d6b-d26f-491e-8735-8bbf04932448>
+  PrefabRemaps:
+    []
+  Name: AllergyLensScanBarUI
+  Enabled: true
+  ScriptAsset: !<reference> 84b8a0fa-e627-4f6e-93f1-3ad67b68cef6
+  ScriptInputsDefault:
+    scanLabel: true
+    scanWidthCm: true
+    barHeightCm: true
+    textDistanceCm: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      scanLabel: Scan menu
+      scanWidthCm: !<float> 16.000000
+      barHeightCm: 4.500000
+      textDistanceCm: !<float> 70.000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/7fb3591f-54a2-4aee-b07d-fd10d56538c8>
   PrefabRemaps:
     []
@@ -1476,6 +1595,37 @@
     - !<own> 1fc7fa3e-6910-4741-b8a7-1b6660a39a9d
   Components:
     - !<own> 28e05826-1521-46fa-a54c-80f2957ec80c
+- !<ScriptComponent/88051356-0cdc-4244-be56-dfc4393ecc1b>
+  PrefabRemaps:
+    []
+  Name: AllergyLensScenarioClient
+  Enabled: true
+  ScriptAsset: !<reference> cecc5bf7-f2d9-484b-9f20-a0761fcfca38
+  ScriptInputsDefault:
+    autoRun: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      autoRun: false
+  ScriptTypes:
+    "":
+      {}
+- !<SceneObject/8a4ca0c6-c7a6-4780-af03-e716d5775d26>
+  PrefabRemaps:
+    []
+  Name: Scene
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 2eab91dd-e7cf-4f89-a440-61cd258fb833
+  Components:
+    []
 - !<SceneObject/8b877074-7eee-4be1-b669-714f8d5a1da3>
   PrefabRemaps:
     []
@@ -1560,6 +1710,28 @@
     - !<own> e9454e66-5d09-4a8a-bcd7-dea762326a48
   Components:
     []
+- !<ScriptComponent/952aff08-d515-4296-af97-a06b7768ada8>
+  PrefabRemaps:
+    []
+  Name: AllergyLensProfileUI
+  Enabled: true
+  ScriptAsset: !<reference> a300133b-e76a-4033-84e7-df543526900b
+  ScriptInputsDefault:
+    title: true
+    doneLabel: true
+    panelWidthCm: true
+    textDistanceCm: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      title: Your profile
+      doneLabel: Done
+      panelWidthCm: !<float> 30.000000
+      textDistanceCm: !<float> 80.000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/988c408a-99dc-47e6-b7c4-efbf4bf8dc3c>
   PrefabRemaps:
     []
@@ -1636,6 +1808,22 @@
     - !<own> 46ea93d6-d161-4453-9064-6ac11e1d6523
   Components:
     []
+- !<ScriptComponent/a30497c0-df88-4a23-a7a6-ee03ff1ea246>
+  PrefabRemaps:
+    []
+  Name: LeafIndex
+  Enabled: true
+  ScriptAsset: !<reference> 32be3769-1c97-4ab4-a509-2b5b10cb3cea
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      {}
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/a4b1ce71-4840-4493-bc52-58f3c13933e1>
   PrefabRemaps:
     []
@@ -1775,6 +1963,26 @@
     - !<own> f6687ab7-52ac-408d-a892-8a9559125450
   Components:
     []
+- !<RenderMeshVisual/ac6df675-bdd8-41a3-a5ef-e73d4e47639d>
+  PrefabRemaps:
+    []
+  Name: geometry_0
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> a83a3303-6afb-48af-a384-6e046d840f40
+  Mesh: !<reference> b34aa305-1967-49c6-b0e6-86224bf6472f
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/b22d97e6-4c06-4135-af29-d26adb2b9d86>
   PrefabRemaps:
     []
@@ -1955,6 +2163,62 @@
     []
   Components:
     []
+- !<SceneObject/c52e00dc-7fc6-449b-b188-48c8202fa149>
+  PrefabRemaps:
+    []
+  Name: DishDetail
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -30.000000, z: -57.000000}
+    Rotation: {x: -25.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> d15c45b4-aa50-41ce-aca4-704348f09d4c
+- !<ScriptComponent/c5431d4e-b0ed-430c-80f9-22492b3116eb>
+  PrefabRemaps:
+    []
+  Name: AllergyLensMenuCardUI
+  Enabled: true
+  ScriptAsset: !<reference> f4a271f4-f165-4f3a-beeb-2af602582334
+  ScriptInputsDefault:
+    cardWidthCm: true
+    cardHeightCm: true
+    title: true
+    safeColor: true
+    flagColor: true
+    textDistanceCm: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      cardWidthCm: !<float> 35.000000
+      cardHeightCm: !<float> 25.000000
+      title: Menu
+      safeColor: !<Vec4> {x: 0.550000, y: 0.950000, z: 0.600000, w: 0.350000}
+      flagColor: !<Vec4> {x: 0.980000, y: 0.450000, z: 0.450000, w: 0.420000}
+      textDistanceCm: !<float> 70.000000
+  ScriptTypes:
+    "":
+      {}
+- !<SceneObject/c76ccc16-d2fd-438a-8554-261cfcc36ef5>
+  PrefabRemaps:
+    []
+  Name: ProfilePanel
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -6.000000, z: -80.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 952aff08-d515-4296-af97-a06b7768ada8
 - !<ScriptComponent/c8e031d3-a8a1-468a-a419-427f8556de4c>
   PrefabRemaps:
     []
@@ -2098,6 +2362,26 @@
     - !<own> bb9036be-541f-49e7-9554-c297d354da21
   Components:
     []
+- !<ScriptComponent/d15c45b4-aa50-41ce-aca4-704348f09d4c>
+  PrefabRemaps:
+    []
+  Name: AllergyLensDishDetailUI
+  Enabled: true
+  ScriptAsset: !<reference> d1d39275-9234-4a47-9525-aa17c7d1b608
+  ScriptInputsDefault:
+    cardWidthCm: true
+    headlineColor: true
+    textDistanceCm: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      cardWidthCm: !<float> 12.000000
+      headlineColor: !<Vec4> {x: 1.000000, y: 0.720000, z: 0.720000, w: 1.000000}
+      textDistanceCm: !<float> 70.000000
+  ScriptTypes:
+    "":
+      {}
 - !<ScriptComponent/d3e2fbc5-8795-4913-9af6-c8626f8e6d9c>
   PrefabRemaps:
     []
@@ -2148,6 +2432,21 @@
     - !<own> bbcbfc17-8d65-4333-bce1-6f7239f690b8
   Components:
     []
+- !<SceneObject/d6bff709-75dd-4cf0-85df-57affd3b9df5>
+  PrefabRemaps:
+    []
+  Name: LeafRunner
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 88051356-0cdc-4244-be56-dfc4393ecc1b
 - !<SceneObject/d9071294-12e8-425f-98f1-bf308a02639e>
   PrefabRemaps:
     []
@@ -2351,6 +2650,48 @@
     Fingers_length: 0.000000
     Thumb_inflate: 0.000000
     Thumb_length: 0.000000
+- !<ScriptComponent/edfe5e9d-27d6-4b22-b944-ac74dc9695d7>
+  PrefabRemaps:
+    []
+  Name: AllergyLensMain
+  Enabled: true
+  ScriptAsset: !<reference> d5638eef-0648-4cc2-8a01-2f3542bbd9f1
+  ScriptInputsDefault:
+    showProfileAtStart: true
+    detailGapCm: true
+    sfxVolume: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      profilePanel: !<MappingBased.AssignableType_1> 952aff08-d515-4296-af97-a06b7768ada8
+      menuCard: !<MappingBased.AssignableType_2> c5431d4e-b0ed-430c-80f9-22492b3116eb
+      scanBar: !<MappingBased.AssignableType_3> 7f1e5d6b-d26f-491e-8735-8bbf04932448
+      dishDetail: !<MappingBased.AssignableType_4> d15c45b4-aa50-41ce-aca4-704348f09d4c
+      showProfileAtStart: true
+      detailGapCm: 1.500000
+      sfxVolume: 0.800000
+  ScriptTypes:
+    "":
+      {}
+- !<SceneObject/eec1fdbb-b8e4-459d-9ee8-ea8bd76da00b>
+  PrefabRemaps:
+    []
+  Name: UI
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> c76ccc16-d2fd-438a-8554-261cfcc36ef5
+    - !<own> 65819ba2-c0b6-4f51-aed2-83b1d251aca5
+    - !<own> 13a37ae3-cea5-4fff-b955-985eade828ae
+    - !<own> c52e00dc-7fc6-449b-b188-48c8202fa149
+  Components:
+    []
 - !<SceneObject/f0394c5d-4c44-4c65-a77c-e1c7e05ca905>
   PrefabRemaps:
     []
@@ -2573,6 +2914,22 @@
     - !<own> a7526b33-fca3-4f28-8e32-b0e9aa13c4b4
   Components:
     []
+- !<SceneObject/f8819744-b2fb-4738-b947-1953ec5ac0c6>
+  PrefabRemaps:
+    []
+  Name: AllergyLens
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> eec1fdbb-b8e4-459d-9ee8-ea8bd76da00b
+    - !<own> 4ea3c99b-a926-4ed2-a5c3-e02a0253c06a
+  Components:
+    - !<own> edfe5e9d-27d6-4b22-b944-ac74dc9695d7
 - !<SceneObject/fcc185fc-4e88-4e9e-9c71-40bd83b1b0ed>
   PrefabRemaps:
     []
