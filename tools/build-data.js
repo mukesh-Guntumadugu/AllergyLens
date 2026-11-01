@@ -55,7 +55,7 @@ function lookupDish(menuName) {
 
 // --- dish category (what someone "in the mood for X" is looking for) -------
 const CATEGORY_RULES = [
-  ["drink", /\b(lassi|tea|coffee|soda|soft drink|juice|smoothie|milkshake|cola|water)\b/, "name"],
+  ["drink", /\b(lassi|tea|coffee|soda|soft drink|juice|smoothie|milkshake|cola|water|milk)\b/, "name"],
   ["dessert", /\b(ice cream|kulfi|kheer|jamun|cake|pudding|halwa|dessert|sweet|brownie|cheesecake|pie)\b/, "name"],
   ["chicken", /\b(chicken|poultry|turkey|duck)\b/, "ingredients"],
   ["red_meat", /\b(beef|lamb|mutton|pork|bacon|ham|steak|sausage|veal|goat|prosciutto|pepperoni|salami)\b/, "ingredients"],

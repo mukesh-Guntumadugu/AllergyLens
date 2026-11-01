@@ -899,12 +899,35 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "curry",
         "name": "Navrattan Curry",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "mixed vegetables",
+          "paneer",
+          "cream",
+          "cashews",
+          "raisins",
+          "tomato",
+          "onion",
+          "ghee"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
-        "substitutes": {},
+        "shares": {
+          "mixed vegetables": 45,
+          "cream": 15,
+          "paneer": 12,
+          "tomato": 10,
+          "onion": 8,
+          "cashews": 5,
+          "raisins": 3,
+          "ghee": 2
+        },
+        "substitutes": {
+          "cream": "coconut cream",
+          "paneer": "tofu",
+          "cashews": null,
+          "ghee": "oil"
+        },
         "layout": {
           "x": 0.062,
           "y": 0.1673,
@@ -1133,12 +1156,32 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "maharani-dal",
         "name": "Maharani Dal",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "black lentils",
+          "kidney beans",
+          "butter",
+          "cream",
+          "tomato",
+          "ginger",
+          "garlic",
+          "garam masala"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
-        "substitutes": {},
+        "shares": {
+          "black lentils": 45,
+          "kidney beans": 15,
+          "tomato": 12,
+          "cream": 10,
+          "butter": 8,
+          "ginger": 3,
+          "garlic": 3
+        },
+        "substitutes": {
+          "cream": "coconut cream",
+          "butter": "oil"
+        },
         "layout": {
           "x": 0.0011,
           "y": 0.3603,
@@ -1188,11 +1231,26 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "bengan-bartha",
         "name": "Bengan Bartha",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "eggplant",
+          "onion",
+          "tomato",
+          "green peas",
+          "ginger",
+          "garlic",
+          "cumin",
+          "oil"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
+        "shares": {
+          "eggplant": 55,
+          "onion": 15,
+          "tomato": 15,
+          "green peas": 8,
+          "oil": 4
+        },
         "substitutes": {},
         "layout": {
           "x": 0.0028,
@@ -1353,11 +1411,24 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "alu-palak",
         "name": "Alu Palak",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "potato",
+          "spinach",
+          "onion",
+          "garlic",
+          "ginger",
+          "cumin",
+          "oil"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
+        "shares": {
+          "spinach": 50,
+          "potato": 35,
+          "onion": 8,
+          "oil": 3
+        },
         "substitutes": {},
         "layout": {
           "x": 0.0079,
@@ -1416,9 +1487,17 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "channa-masala",
         "name": "Channa Masala",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "chickpeas",
+          "tomato",
+          "onion",
+          "ginger",
+          "garlic",
+          "cumin",
+          "coriander"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1433,11 +1512,25 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "alu-mutter",
         "name": "Alu Mutter",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "potato",
+          "green peas",
+          "tomato",
+          "onion",
+          "ginger",
+          "cumin",
+          "oil"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
+        "shares": {
+          "potato": 45,
+          "green peas": 30,
+          "tomato": 12,
+          "onion": 8,
+          "oil": 3
+        },
         "substitutes": {},
         "layout": {
           "x": 0.0107,
@@ -1471,17 +1564,24 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": [
           "chickpeas",
+          "potato",
           "tomato",
           "onion",
           "ginger",
           "garlic",
           "cumin",
-          "coriander"
+          "oil"
         ],
         "ingredientsSource": "typical",
         "category": "vegetarian",
         "removable": [],
-        "shares": {},
+        "shares": {
+          "chickpeas": 45,
+          "potato": 30,
+          "tomato": 12,
+          "onion": 8,
+          "oil": 3
+        },
         "substitutes": {},
         "layout": {
           "x": 0.0124,
@@ -1498,7 +1598,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "whole milk"
         ],
         "ingredientsSource": "restaurant",
-        "category": "vegetarian",
+        "category": "drink",
         "removable": [],
         "shares": {},
         "substitutes": {},
