@@ -53,6 +53,25 @@ function lookupDish(menuName) {
   return best ? best.dish : null;
 }
 
+// --- dish category (what someone "in the mood for X" is looking for) -------
+const CATEGORY_RULES = [
+  ["drink", /\b(lassi|tea|coffee|soda|soft drink|juice|smoothie|milkshake|cola|water)\b/, "name"],
+  ["dessert", /\b(ice cream|kulfi|kheer|jamun|cake|pudding|halwa|dessert|sweet|brownie|cheesecake|pie)\b/, "name"],
+  ["chicken", /\b(chicken|poultry|turkey|duck)\b/, "ingredients"],
+  ["red_meat", /\b(beef|lamb|mutton|pork|bacon|ham|steak|sausage|veal|goat|prosciutto|pepperoni|salami)\b/, "ingredients"],
+  ["seafood", /\b(fish|salmon|tuna|shrimp|prawn|prawns|crab|lobster|anchovy|anchovies|squid|calamari|clam|clams|mussel|mussels|scallop|scallops|cod)\b/, "ingredients"],
+];
+function deriveCategory(name, ingredients, kb) {
+  const n = norm(name);
+  const ingText = (ingredients || []).concat(kb ? kb.typicalIngredients || [] : []).join(" ").toLowerCase() + " " + n;
+  for (const [cat, re, scope] of CATEGORY_RULES) {
+    if (re.test(scope === "name" ? n : ingText)) return cat;
+  }
+  if (ingredients && ingredients.length) return "vegetarian";
+  if (kb) return "vegetarian";
+  return "unknown";
+}
+
 // --- menus -----------------------------------------------------------------
 const iconDir = path.join(root, "Assets", "Icons");
 const icons = fs.existsSync(iconDir)
@@ -95,6 +114,7 @@ const restaurants = menus.restaurants.map((r) => {
     // shares / substitutes come from the dish KB entry when we have one (either as the
     // ingredient source or as extra knowledge for a restaurant-published list)
     const kbForShares = lookupDish(d.name);
+    const category = d.category || deriveCategory(d.name, ingredients, kbForShares);
     const shares = kbForShares && kbForShares.shares ? kbForShares.shares : {};
     const substitutes = kbForShares && kbForShares.substitutes ? kbForShares.substitutes : {};
 
@@ -110,6 +130,7 @@ const restaurants = menus.restaurants.map((r) => {
       icon: d.icon || null,
       ingredients,
       ingredientsSource,
+      category,
       removable: d.removable || [],
       shares,
       substitutes,
@@ -157,6 +178,8 @@ export interface AllergenDef {
  *  none       = unknown: the dish is UNVERIFIED and never safe */
 export type IngredientsSource = "restaurant" | "typical" | "none"
 
+export type DishCategory = "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert" | "drink" | "unknown"
+
 /** Where a dish line sits on the restaurant's menu image, as fractions of the
  *  image (0..1, origin top-left). Used to place the highlight over the printed
  *  line when the menu is marker-tracked. null when unknown. */
@@ -174,6 +197,9 @@ export interface DishDef {
   /** null when ingredientsSource is "none" */
   ingredients: string[] | null
   ingredientsSource: IngredientsSource
+  /** what kind of dish this is, for the "in the mood for" filter; derived from
+   *  ingredients/name at build time unless menus.json sets it explicitly */
+  category: DishCategory
   removable: string[]
   /** rough percent of the dish by weight, per ingredient (from the dish knowledge base; may be empty) */
   shares: { [ingredient: string]: number }

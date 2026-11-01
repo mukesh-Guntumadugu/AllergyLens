@@ -16,6 +16,8 @@ export interface AllergenDef {
  *  none       = unknown: the dish is UNVERIFIED and never safe */
 export type IngredientsSource = "restaurant" | "typical" | "none"
 
+export type DishCategory = "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert" | "drink" | "unknown"
+
 /** Where a dish line sits on the restaurant's menu image, as fractions of the
  *  image (0..1, origin top-left). Used to place the highlight over the printed
  *  line when the menu is marker-tracked. null when unknown. */
@@ -33,6 +35,9 @@ export interface DishDef {
   /** null when ingredientsSource is "none" */
   ingredients: string[] | null
   ingredientsSource: IngredientsSource
+  /** what kind of dish this is, for the "in the mood for" filter; derived from
+   *  ingredients/name at build time unless menus.json sets it explicitly */
+  category: DishCategory
   removable: string[]
   /** rough percent of the dish by weight, per ingredient (from the dish knowledge base; may be empty) */
   shares: { [ingredient: string]: number }
@@ -441,6 +446,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "chili"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [
           "peanuts"
         ],
@@ -462,6 +468,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "pickle"
         ],
         "ingredientsSource": "restaurant",
+        "category": "red_meat",
         "removable": [
           "cheddar",
           "onion",
@@ -483,6 +490,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garlic"
         ],
         "ingredientsSource": "restaurant",
+        "category": "seafood",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -500,6 +508,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "olive oil"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -519,6 +528,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "lime"
         ],
         "ingredientsSource": "restaurant",
+        "category": "chicken",
         "removable": [
           "avocado",
           "corn",
@@ -541,6 +551,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "butter"
         ],
         "ingredientsSource": "restaurant",
+        "category": "dessert",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -583,6 +594,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "scallion"
         ],
         "ingredientsSource": "restaurant",
+        "category": "seafood",
         "removable": [
           "peanuts",
           "shrimp",
@@ -620,6 +632,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "sugar"
         ],
         "ingredientsSource": "restaurant",
+        "category": "chicken",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -639,6 +652,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "fish sauce"
         ],
         "ingredientsSource": "restaurant",
+        "category": "seafood",
         "removable": [
           "shrimp"
         ],
@@ -658,6 +672,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "sesame seeds"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [
           "sesame seeds"
         ],
@@ -678,6 +693,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "peanut sauce"
         ],
         "ingredientsSource": "typical",
+        "category": "seafood",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -690,6 +706,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": "local_pizza",
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -733,6 +750,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garlic"
         ],
         "ingredientsSource": "restaurant",
+        "category": "chicken",
         "removable": [
           "cashews"
         ],
@@ -766,6 +784,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "ghee"
         ],
         "ingredientsSource": "restaurant",
+        "category": "red_meat",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -785,6 +804,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "coriander"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -802,6 +822,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "butter"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [
           "butter"
         ],
@@ -822,6 +843,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "deep fried"
         ],
         "ingredientsSource": "restaurant",
+        "category": "dessert",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -840,6 +862,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "potato"
         ],
         "ingredientsSource": "restaurant",
+        "category": "red_meat",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -878,6 +901,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -896,6 +920,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "white flour bread"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -921,6 +946,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garam masala"
         ],
         "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {
           "paneer": 35,
@@ -951,6 +977,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "spinach stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -970,6 +997,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "potato dish"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {
           "cauliflower": 45,
@@ -996,6 +1024,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cheese stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1020,6 +1049,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cumin"
         ],
         "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {
           "spinach": 45,
@@ -1050,6 +1080,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cheese stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1068,6 +1099,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cauliflower stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1086,6 +1118,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "chicken stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "chicken",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1102,6 +1135,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1120,6 +1154,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "nan with spiced onions"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1138,6 +1173,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garlic stuffed nan"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1154,6 +1190,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1172,6 +1209,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "potato stuffed whole wheat bread"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1197,6 +1235,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "deep fried"
         ],
         "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {
           "potato": 30,
@@ -1228,6 +1267,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "a creamy indian ice cream"
         ],
         "ingredientsSource": "restaurant",
+        "category": "dessert",
         "removable": [],
         "shares": {
           "milk": 60,
@@ -1260,6 +1300,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garam masala"
         ],
         "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {
           "paneer": 40,
@@ -1297,6 +1338,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "deep fried"
         ],
         "ingredientsSource": "typical",
+        "category": "dessert",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1313,6 +1355,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1331,6 +1374,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "rice pudding"
         ],
         "ingredientsSource": "restaurant",
+        "category": "dessert",
         "removable": [],
         "shares": {
           "milk": 70,
@@ -1357,6 +1401,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "dessert",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1373,6 +1418,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1389,6 +1435,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "unknown",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1407,6 +1454,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "unsweet"
         ],
         "ingredientsSource": "restaurant",
+        "category": "drink",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1431,6 +1479,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "coriander"
         ],
         "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1449,6 +1498,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "whole milk"
         ],
         "ingredientsSource": "restaurant",
+        "category": "vegetarian",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1465,6 +1515,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "drink",
         "removable": [],
         "shares": {},
         "substitutes": {},
@@ -1485,6 +1536,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "milk"
         ],
         "ingredientsSource": "restaurant",
+        "category": "drink",
         "removable": [],
         "shares": {
           "yogurt": 70,
@@ -1513,6 +1565,7 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cardamom"
         ],
         "ingredientsSource": "typical",
+        "category": "drink",
         "removable": [],
         "shares": {
           "yogurt": 70,
@@ -1536,6 +1589,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "icon": null,
         "ingredients": null,
         "ingredientsSource": "none",
+        "category": "drink",
         "removable": [],
         "shares": {},
         "substitutes": {},
