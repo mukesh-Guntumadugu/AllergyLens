@@ -1,12 +1,12 @@
 studioVersion:
   major: 5
-  minor: 24
-  patch: 1
-  build: 26100516
+  minor: 23
+  patch: 2
+  build: 26081320
   type: Public
-coreVersion: 377
-clientVersion: 14.21
-updateCheckpoint: 107
+coreVersion: 372
+clientVersion: 14.16
+updateCheckpoint: 102
 sceneId: 0a1ccb1a-fe88-4fbb-9883-e3af3c75fd99
 metaInfo:
   hints:
@@ -28,9 +28,8 @@ metaInfo:
   platformBundlesEnabled: false
   iconHash: ""
   videoPreviewHash: ""
-  localizationsHash: ""
   fromTemplateName: Specs Base Template
-  fromTemplateUrl: Lens Studio 5.24.1.26100516
+  fromTemplateUrl: Lens Studio 5.23.2.26081320
   activationCamera: Front
   sourceMapEnabled: false
   shaderCacheInvalidationEnabled: false
@@ -45,7 +44,7 @@ metaInfo:
     minor: 0
     patch: 0
     build: 0
-  documentId: 47c8abe8-1ac2-42ba-9e00-d7790cf0d07d
+  documentId: 7af00f7d-51ce-4bbd-8afd-4d01885be336
   originalDocumentId: 4492aa5f-47e4-4abe-9643-7d6f708b0869
   packageId: ""
   packageVersion: ""
