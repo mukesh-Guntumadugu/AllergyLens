@@ -6,9 +6,31 @@ them; `node tools/build-data.js` validates them and generates
 
 ```
 data/allergens.json   allergen knowledge base: allergen -> aliases
-data/menus.json       restaurants -> dishes -> ingredients
-tools/build-data.js   validate + generate Assets/Data/AllergyData.ts
+data/dishes.json      dish knowledge base: dish name -> typical ingredients
+data/menus.json       restaurants -> dishes -> ingredients (+ optional rating)
+tools/build-data.js   validate + join + generate Assets/Data/AllergyData.ts
+tools/scrape/         helpers for the scraping machine (menu photo classifier)
 ```
+
+## dishes.json
+
+Menus found online usually give only the dish name. This file says what a
+dish is *typically* made of, so the Lens can still warn:
+
+```json
+{
+  "name": "pad thai",
+  "aliases": ["phad thai"],
+  "typicalIngredients": ["rice noodles", "egg", "peanuts", "shrimp", "fish sauce"],
+  "source": { "type": "recipe", "url": "https://en.wikipedia.org/wiki/Pad_thai", "collected": "2026-10-31" }
+}
+```
+
+At build time, a menu dish with no `ingredients` whose name contains a
+`name` or alias gets these as its ingredients with
+`ingredientsSource: "typical"`. The Lens shows matches from a typical list
+as **"typically contains … confirm with the restaurant"**, never as a
+restaurant-confirmed fact.
 
 ## allergens.json
 
@@ -75,6 +97,9 @@ tools/build-data.js   validate + generate Assets/Data/AllergyData.ts
 - `source`: where the data came from and when. Use sources that permit reuse
   (the restaurant's own site, your own printed menus, Open Food Facts).
   Don't bulk-scrape Google Maps; its terms forbid it.
+- `rating` (optional): `{ "stars": 4.3, "reviewCount": 812, "allergyComplaints": 2, "source": {...} }`.
+  `allergyComplaints` is how many reviews mention allergy problems or wrong
+  orders. Feeds the restaurant-level badge (see `tools/scrape/README.md`).
 
 ## Safety rule
 
@@ -82,11 +107,14 @@ The checker produces three states per dish:
 
 | state | when | colour |
 |---|---|---|
-| `safe` | every ingredient is known and none matches the profile | light green |
-| `contains` | at least one ingredient matches the profile | light red |
-| `unverified` | `ingredients` is `null`/empty, or an ingredient matches nothing in the knowledge base and the profile has an allergy toggled | amber |
+| `safe` | ingredients known (restaurant or typical) and none matches the profile | light green (typical: detail card notes "typical recipe") |
+| `contains` | at least one ingredient matches the profile | light red (typical: "typically contains …, confirm with the restaurant") |
+| `unverified` | no ingredients from the restaurant and no match in the dish knowledge base | amber, "ask the restaurant" |
 
-Unknown never becomes safe.
+Unknown never becomes safe. Each restaurant also gets a badge on the picker:
+**good / caution / avoid**, from how many of its dishes are safe for the
+current profile plus its `rating.allergyComplaints` (rule in
+`tools/scrape/README.md`).
 
 ## Workflow for the scraper (ASUS GX10)
 
