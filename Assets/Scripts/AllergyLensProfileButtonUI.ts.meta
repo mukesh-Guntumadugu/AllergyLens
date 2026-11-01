@@ -1,0 +1,51 @@
+- !<AssetImportMetadata/7bcbb086-f3ce-45f0-8370-f40f914502b9>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 15e30ff0-d496-409a-b1a1-d93801c610d0
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 15e30ff0-d496-409a-b1a1-d93801c610d0
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> ec5b3cc6-8611-45d0-956c-53a4ee2cc57a
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/ec5b3cc6-8611-45d0-956c-53a4ee2cc57a>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  VersionPrerelease: ""
+  UpdateOrder: 0
+  ComponentUid: 33b54cd4-7018-46db-8ca6-bc57929d2984
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    sizeCm: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - sizeCm: 4.500000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensProfileButtonUI – reopen the profile panel</span>"}'
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
+    - '// @ui {"widget":"group_start", "label":"Settings"}'
+    - '// @input float sizeCm = 4.5 {"hint":"Button size in cm (square). Keep it ≥ 4 cm so it is an easy pinch target.", "widget":"slider", "min":3, "max":8, "step":0.5}'
+    - '// @ui {"widget":"group_end"}'

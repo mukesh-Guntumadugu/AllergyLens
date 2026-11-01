@@ -77,7 +77,11 @@ export function checkDish(dish: DishDef, profile: Profile, allergens: AllergenDe
   }
   const active = allergens.filter((a) => profile.has(a.id))
   const matches: IngredientMatch[] = []
-  for (const ing of dish.ingredients) {
+  // Match the published ingredient lines AND the knowledge-base share keys (a restaurant
+  // line like "rice pudding" says nothing about milk; the KB's shares do).
+  const candidates = dish.ingredients.slice()
+  for (const key of Object.keys(dish.shares ?? {})) if (candidates.indexOf(key) < 0) candidates.push(key)
+  for (const ing of candidates) {
     for (const a of active) {
       if (ingredientMatches(ing, a)) {
         matches.push({
@@ -117,6 +121,101 @@ export function rateRestaurant(restaurant: RestaurantDef, profile: Profile, alle
 
 export function checkMenu(dishes: DishDef[], profile: Profile, allergens: AllergenDef[] = ALLERGENS): DishResult[] {
   return dishes.map((d) => checkDish(d, profile, allergens))
+}
+
+// ── Replacement rule (detail card) ──────────────────────────────────────────
+
+const SHARE_THRESHOLD_PCT = 10
+
+function shareOf(dish: DishDef, ingredient: string): number | null {
+  const v = dish.shares ? dish.shares[ingredient] : undefined
+  return typeof v === "number" && isFinite(v) ? v : null
+}
+
+function capitalize(s: string): string {
+  return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s
+}
+
+/**
+ * Nearest SAFE dish on the same menu by printed layout: same column preferred
+ * (|dx| < 0.3), smallest |dy|. Returns null when nothing safe has a layout.
+ */
+export function nearestSafeDish(dish: DishDef, restaurant: RestaurantDef, allResults: DishResult[]): DishDef | null {
+  if (!dish.layout) return null
+  const safeIds = new Set(allResults.filter((r) => r.verdict === "safe").map((r) => r.dishId))
+  let best: DishDef | null = null
+  let bestKey = Infinity
+  for (const other of restaurant.dishes) {
+    if (other.id === dish.id || !other.layout || !safeIds.has(other.id)) continue
+    const dx = Math.abs(other.layout.x - dish.layout.x)
+    const dy = Math.abs(other.layout.y - dish.layout.y)
+    const key = (dx < 0.3 ? 0 : 10) + dy // same column sorts first, then vertical distance
+    if (key < bestKey) {
+      bestKey = key
+      best = other
+    }
+  }
+  return best
+}
+
+/**
+ * The replacement rule — what to say about a dish the user pinched, given the
+ * check result. Pure; tests call it directly.
+ *   unverified → "Ingredients not published." / "Ask the restaurant before ordering."
+ *   contains, lead = matched ingredient with the largest known share:
+ *     share unknown → "Contains X." / "Ask the chef whether it can be left out."
+ *     share ≤ 10 %  → "Contains X (about 6% of the dish)." / "Ask the chef to leave them out."
+ *     share > 10 %  → "X is about 40% of this dish — leaving it out guts the dish; you'd pay
+ *                      the same for less." then "Ask for a swap: tofu." or
+ *                      "No good swap. Better pick: <nearest safe dish | none on this menu>"
+ *   other matches → "Also: …". Typical recipes get "Typically …" + "Confirm with the restaurant."
+ */
+export function describeChoice(dish: DishDef, result: DishResult, restaurant: RestaurantDef,
+    allResults: DishResult[] = []): {headline: string; body: string} {
+  if (result.verdict === "unverified") {
+    return {headline: "Ingredients not published.", body: "Ask the restaurant before ordering."}
+  }
+  const typical = result.source === "typical"
+  const confirm = typical ? " Confirm with the restaurant." : ""
+  if (result.matches.length === 0) {
+    return typical
+      ? {headline: "Looks fine.", body: "Based on a typical recipe; confirm with the restaurant."}
+      : {headline: "Looks fine.", body: "Nothing from your profile."}
+  }
+  // One entry per ingredient, ordered by known share (largest first; unknown last).
+  const byIngredient = new Map<string, IngredientMatch>()
+  for (const m of result.matches) if (!byIngredient.has(m.ingredient)) byIngredient.set(m.ingredient, m)
+  const ordered = Array.from(byIngredient.values()).sort((a, b) => (shareOf(dish, b.ingredient) ?? -1) - (shareOf(dish, a.ingredient) ?? -1))
+  const lead = ordered[0]
+  const share = shareOf(dish, lead.ingredient)
+  const name = lead.ingredient
+  let headline: string
+  let body: string
+  if (share === null) {
+    headline = `${typical ? "Typically contains" : "Contains"} ${name}.`
+    body = "Ask the chef whether it can be left out."
+  } else if (share <= SHARE_THRESHOLD_PCT) {
+    headline = `${typical ? "Typically contains" : "Contains"} ${name} (about ${Math.round(share)}% of the dish).`
+    body = "Ask the chef to leave them out."
+  } else {
+    headline = `${typical ? "Typically, " + name : capitalize(name)} is about ${Math.round(share)}% of this dish — leaving it out guts the dish; you'd pay the same for less.`
+    const swap = dish.substitutes ? dish.substitutes[name] : undefined
+    if (typeof swap === "string" && swap.length > 0) {
+      body = `Ask for a swap: ${swap}.`
+    } else {
+      const alt = nearestSafeDish(dish, restaurant, allResults)
+      body = `No good swap. Better pick: ${alt ? alt.name : "none on this menu"}`
+    }
+  }
+  if (ordered.length > 1) {
+    const rest = ordered.slice(1).map((m) => {
+      const s = shareOf(dish, m.ingredient)
+      return s === null ? m.ingredient : `${m.ingredient} (${Math.round(s)}%)`
+    })
+    body += `\nAlso: ${rest.join(", ")}.`
+  }
+  body += confirm
+  return {headline, body}
 }
 
 /** "No beef" -> "beef", "Avoid trans fat" -> "trans fat", "Vegetarian" -> "meat". */

@@ -1,18 +1,18 @@
-// AllergyLensLeafInteractor — shared LEAF helpers for the AllergyLens scenarios.
-// Scenarios run back-to-back against one live Lens, so every helper is state-
-// resilient: it reads the current state and only acts when needed.
+// AllergyLensLeafInteractor — shared LEAF helpers for the see-through AllergyLens flow.
+// Scenarios run back-to-back against one live Lens, so every helper is state-resilient.
+// Marker recognition is driven through Main.simulateMarker so tests never depend on
+// the camera.
 
 import {DefaultLeafInteractor} from "Leaf.lspkg/Interactors/interactor/DefaultLeafInteractor"
 import {findInteractablesByName} from "Leaf.lspkg/Interactors/InteractableUtils"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
 import {ALLERGENS, RESTAURANTS} from "../Data/AllergyData"
 
-/** Every toggle id, straight from the data module (17). */
+/** Every toggle id, straight from the data module. */
 export const ALL_PROFILE_IDS: string[] = ALLERGENS.map((a) => a.id)
-export const DEMO_DISH_IDS = ["noodles", "burger", "salmon", "pizza", "ricebowl", "cheesecake"]
-export const RESTAURANT_NAMES: string[] = RESTAURANTS.map((r) => r.name)
+export const STAR = RESTAURANTS.find((r) => r.id === "star-of-india")!
 
-/** Depth-first search that INCLUDES disabled objects (hidden panels are the point here). */
+/** Depth-first search that INCLUDES disabled objects. */
 export function findByName(name: string): SceneObject | null {
   const count = global.scene.getRootObjectsCount()
   for (let i = 0; i < count; i++) {
@@ -44,8 +44,35 @@ export function collectTexts(root: SceneObject, out: string[] = []): string[] {
   return out
 }
 
-export interface HighlightState {
-  enabled: boolean
+/** Is this object and every ancestor enabled? */
+export function isEffectivelyEnabled(so: SceneObject): boolean {
+  let cur: SceneObject | null = so
+  while (cur) {
+    if (!cur.enabled) return false
+    cur = cur.getParent()
+  }
+  return true
+}
+
+interface MainApi {
+  simulateMarker(id: string): boolean
+  simulateMarkerLost(): void
+  setCameraTracking(enabled: boolean): void
+  markerActive: boolean
+}
+
+export function mainScript(): MainApi {
+  const root = requireByName("AllergyLens")
+  for (const c of root.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
+    const api = c as unknown as MainApi
+    if (typeof api.simulateMarker === "function") return api
+  }
+  throw new Error("AllergyLensMain not found on AllergyLens")
+}
+
+export interface BarState {
+  exists: boolean
+  shown: boolean
   color: vec4 | null
 }
 
@@ -59,10 +86,23 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
 
   isVisible(name: string): boolean {
     const so = findByName(name)
-    return !!so && so.enabled
+    return !!so && isEffectivelyEnabled(so)
+  }
+
+  /** Tests drive recognition through simulateMarker only — never the camera. */
+  async isolateFromCamera(): Promise<void> {
+    const main = mainScript()
+    main.setCameraTracking(false)
+    if (main.markerActive) {
+      // A menu is in view (real or simulated): nothing else is drawn, so drop it first and
+      // wait for the Profile button to come back (~1 s after the marker is lost).
+      main.simulateMarkerLost()
+      await sleep(1400)
+    }
   }
 
   async ensureProfileOpen(): Promise<void> {
+    await this.isolateFromCamera()
     if (this.isVisible("ProfilePanel")) return
     await this.tap("ProfileButton")
     await sleep(300)
@@ -71,8 +111,7 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
 
   getToggleState(id: string): boolean {
     const so = requireByName(`Toggle-${id}`)
-    const comps = so.getComponents("Component.ScriptComponent") as ScriptComponent[]
-    for (const c of comps) {
+    for (const c of so.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
       const anyC = c as unknown as {isOn?: boolean}
       if (typeof anyC.isOn === "boolean") return anyC.isOn
     }
@@ -94,81 +133,64 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     await this.tap("DoneButton")
   }
 
-  async scan(): Promise<void> {
-    await this.tap("ScanButton")
-    await sleep(400)
-  }
-
-  /** The restaurant name currently printed as the menu card title. */
-  currentRestaurantName(): string {
-    const texts = collectTexts(requireByName("MenuCard"))
-    for (const t of texts) if (RESTAURANT_NAMES.indexOf(t) >= 0) return t
-    throw new Error(`MenuCard title is not a known restaurant: [${texts.join(" | ")}]`)
-  }
-
-  /** Cycle the Restaurant button until the card shows `name`. Menu must be visible. */
-  async selectRestaurant(name: string): Promise<void> {
-    for (let i = 0; i <= RESTAURANT_NAMES.length; i++) {
-      if (this.currentRestaurantName() === name) return
-      await this.tap("RestaurantButton")
-    }
-    throw new Error(`Could not reach restaurant "${name}"`)
-  }
-
-  /** Open profile, set exactly `profileIds`, Done, then switch to `restaurant`. */
-  async prepare(restaurant: string, profileIds: string[]): Promise<void> {
+  /** Open profile, set exactly `profileIds`, Done. */
+  async prepareProfile(profileIds: string[]): Promise<void> {
     await this.ensureProfileOpen()
     await this.setProfile(profileIds)
     await this.done()
-    await this.selectRestaurant(restaurant)
   }
 
-  highlight(dishId: string): HighlightState {
-    const tile = requireByName(`Dish-${dishId}`)
-    let hl: SceneObject | null = null
-    for (let i = 0; i < tile.getChildrenCount(); i++) {
-      if (tile.getChild(i).name === "Highlight") hl = tile.getChild(i)
+  async simulateMarker(id: string): Promise<void> {
+    mainScript().setCameraTracking(false)
+    if (!mainScript().simulateMarker(id)) throw new Error(`simulateMarker(${id}) returned false`)
+    await sleep(600)
+  }
+
+  async simulateMarkerLost(): Promise<void> {
+    mainScript().simulateMarkerLost()
+  }
+
+  bar(dishId: string): BarState {
+    const root = findByName(`Bar-${dishId}`)
+    if (!root) return {exists: false, shown: false, color: null}
+    let color: vec4 | null = null
+    for (let i = 0; i < root.getChildrenCount(); i++) {
+      const img = root.getChild(i).getComponent("Component.Image") as Image | null
+      if (img) color = img.mainMaterial.mainPass.baseColor
     }
-    if (!hl) throw new Error(`Dish-${dishId} has no Highlight child`)
-    const img = hl.getComponent("Component.Image") as Image | null
-    const color = img ? img.mainMaterial.mainPass.baseColor : null
-    return {enabled: hl.enabled, color}
+    return {exists: true, shown: isEffectivelyEnabled(root), color}
+  }
+
+  private expectTint(dishId: string, name: string, test: (c: vec4) => boolean): void {
+    const b = this.bar(dishId)
+    if (!b.exists) throw new Error(`Bar-${dishId}: no bar`)
+    if (!b.shown || !b.color) throw new Error(`Bar-${dishId}: expected a ${name} bar, none shown`)
+    if (!test(b.color)) throw new Error(`Bar-${dishId}: expected ${name}, got ${b.color}`)
   }
 
   expectGreen(dishId: string): void {
-    const h = this.highlight(dishId)
-    if (!h.enabled || !h.color) throw new Error(`Dish-${dishId}: expected a green highlight, none shown`)
-    if (!(h.color.y > h.color.x && h.color.w > 0)) throw new Error(`Dish-${dishId}: expected green, got ${h.color}`)
+    this.expectTint(dishId, "green", (c) => c.y > c.x && c.w > 0)
   }
 
   expectRed(dishId: string): void {
-    const h = this.highlight(dishId)
-    if (!h.enabled || !h.color) throw new Error(`Dish-${dishId}: expected a red highlight, none shown`)
-    // red: r > g and g low; amber would have g >= 0.7
-    if (!(h.color.x > h.color.y && h.color.y < 0.6 && h.color.w > 0)) throw new Error(`Dish-${dishId}: expected red, got ${h.color}`)
+    this.expectTint(dishId, "red", (c) => c.x > c.y && c.y < 0.6 && c.w > 0)
   }
 
   expectAmber(dishId: string): void {
-    const h = this.highlight(dishId)
-    if (!h.enabled || !h.color) throw new Error(`Dish-${dishId}: expected an amber highlight, none shown`)
-    // amber: r >= g, g high, b well below g
-    if (!(h.color.x >= h.color.y && h.color.y >= 0.7 && h.color.z < h.color.y && h.color.w > 0)) {
-      throw new Error(`Dish-${dishId}: expected amber, got ${h.color}`)
+    this.expectTint(dishId, "amber", (c) => c.x >= c.y && c.y >= 0.7 && c.z < c.y && c.w > 0)
+  }
+
+  /** Badge as the overlay on MenuMarker reports it. */
+  badge(): {level: string; text: string} {
+    const marker = requireByName("MenuMarker")
+    for (const c of marker.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
+      const anyC = c as unknown as {badgeLevel?: string; badgeTextValue?: string}
+      if (typeof anyC.badgeLevel === "string") return {level: anyC.badgeLevel, text: anyC.badgeTextValue ?? ""}
     }
+    throw new Error("MenuMarker has no overlay badge API")
   }
 
   detailTexts(): string[] {
     return collectTexts(requireByName("DishDetail"))
-  }
-
-  /** Restaurant badge as the menu card reports it: {level, text}. */
-  currentBadge(): {level: string; text: string} {
-    const card = requireByName("MenuCard")
-    const comps = card.getComponents("Component.ScriptComponent") as ScriptComponent[]
-    for (const c of comps) {
-      const anyC = c as unknown as {badgeLevel?: string; badgeTextValue?: string}
-      if (typeof anyC.badgeLevel === "string") return {level: anyC.badgeLevel, text: anyC.badgeTextValue ?? ""}
-    }
-    throw new Error("MenuCard has no badge API")
   }
 }

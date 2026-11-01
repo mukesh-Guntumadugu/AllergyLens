@@ -1,6 +1,6 @@
 // Done criterion 1: at start a profile panel is in front of the user with pinchable
-// toggles for at least peanuts, milk, beef and pork; pinching Done hides it and shows
-// the menu on the table.
+// toggles for at least peanut, milk, beef and pork; pinching Done hides it; the small
+// Profile button stays available to reopen it.
 import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
@@ -20,7 +20,10 @@ export class AllergyLensLeafScenario1Profile extends Scenario {
     }
     await ui.done()
     expect(ui.isVisible("ProfilePanel"), "profile panel hidden after Done").toBe(false)
-    expect(ui.isVisible("MenuCard"), "menu card shown after Done").toBe(true)
-    expect(ui.isVisible("ScanBar"), "scan button shown after Done").toBe(true)
+    expect(findInteractablesByName("ProfileButton", undefined, true).length, "Profile button available (no menu in view)").toBeGreaterThan(0)
+    // While a menu is in view nothing else is drawn: button gone, panel stays closed.
+    await ui.simulateMarker("star-of-india")
+    expect(ui.isVisible("ProfileButton"), "Profile button hidden while a menu is recognised").toBe(false)
+    expect(ui.isVisible("ProfilePanel"), "profile panel stays closed").toBe(false)
   }
 }

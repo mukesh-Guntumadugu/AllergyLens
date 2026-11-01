@@ -57,6 +57,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   @ui.group_end
 
   private buttons = new Map<string, Button>()
+  private pendingStates = new Map<string, boolean>()
   private _onToggle = new Event<ProfileToggleEvent>()
   private _onDone = new Event<void>()
 
@@ -139,6 +140,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
   // ── Public API ─────────────────────────────────────────────────────────
   setToggle(id: string, on: boolean): void {
+    this.pendingStates.set(id, on)
     const btn = this.buttons.get(id)
     if (btn) btn.isOn = on
   }
@@ -158,5 +160,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     btn.onValueChange.add((v: number) => this._onToggle.invoke({id: item.id, on: v === 1}))
     UI.addButtonLabel(so, item.label, w - 0.6, this.textDistanceCm, "Button")
     this.buttons.set(item.id, btn)
+    const pending = this.pendingStates.get(item.id)
+    if (pending !== undefined) btn.isOn = pending
   }
 }

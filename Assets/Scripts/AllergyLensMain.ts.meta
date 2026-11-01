@@ -28,12 +28,14 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    debugSimulateMarker: false
+    defaultProfile: false
     detailGapCm: false
     dishDetail: false
-    menuCard: false
+    markersRoot: false
     menusUrl: false
+    profileButton: false
     profilePanel: false
-    scanBar: false
     sfxVolume: false
     showProfileAtStart: false
   ScriptTypesHidden:
@@ -46,31 +48,35 @@
     []
   DefaultScriptInputs:
     - profilePanel: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      menuCard: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
-      scanBar: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
-      dishDetail: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      profileButton: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      dishDetail: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      markersRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
+      defaultProfile: ""
       detailGapCm: 1.500000
       sfxVolume: 0.800000
+      debugSimulateMarker: false
       menusUrl: ""
   ScriptTypes:
     -
       {}
   InputLines:
-    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensMain – profile → restaurant → scan → highlights → detail</span>"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensMain – profile → real menu recognised → bars + badge → detail</span>"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">References</span>"}'
     - '// @ui {"widget":"group_start", "label":"References"}'
     - '// @input AssignableType_1 profilePanel {"hint":"Profile panel UI (toggles + Done)."}'
-    - '// @input AssignableType_2 menuCard {"hint":"Menu card UI with the dish tiles."}'
-    - '// @input AssignableType_3 scanBar {"hint":"Scan menu + Restaurant + Profile buttons."}'
-    - '// @input AssignableType_4 dishDetail {"hint":"Small detail card shown next to a red or amber dish."}'
+    - '// @input AssignableType_2 profileButton {"hint":"Small world-locked Profile button that reopens the panel."}'
+    - '// @input AssignableType_3 dishDetail {"hint":"Detail card shown beside a pinched red or amber bar."}'
+    - '// @input SceneObject markersRoot {"hint":"Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI)."}'
     - '// @ui {"widget":"group_end"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
-    - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts and keep the menu hidden until Done is pinched."}'
-    - "// @input float detailGapCm = 1.5 {\"hint\":\"Gap (cm) between a dish tile's edge and the detail card that opens beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":20, \"step\":0.5}"
+    - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts (ignored when defaultProfile is set)."}'
+    - '// @input string defaultProfile {"hint":"Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo."}'
+    - "// @input float detailGapCm = 1 {\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}"
     - '// @input float sfxVolume = 0.8 {"hint":"Volume for the click / scan / pop cues (0 = silent).", "widget":"slider", "min":0, "max":1, "step":0.05}'
+    - '// @input bool debugSimulateMarker {"hint":"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
     - '// @ui {"widget":"group_end"}'

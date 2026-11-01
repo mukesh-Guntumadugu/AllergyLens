@@ -4741,39 +4741,8 @@
               "isScriptInput": true,
               "value": true,
               "type": "bool",
-              "uiInfo": "{\"hint\":\"Show the profile panel when the Lens starts and keep the menu hidden until Done is pinched.\"}",
+              "uiInfo": "{\"hint\":\"Show the profile panel when the Lens starts (ignored when defaultProfile is set).\"}",
               "defaultValue": "true"
-            },
-            "sfxVolume": {
-              "isScriptInput": true,
-              "value": 0.800000011920929,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Volume for the click / scan / pop cues (0 = silent).\", \"widget\":\"slider\", \"min\":0, \"max\":1, \"step\":0.05}",
-              "defaultValue": "0.8"
-            },
-            "menusUrl": {
-              "isScriptInput": true,
-              "value": "",
-              "type": "string",
-              "uiInfo": "{\"hint\":\"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used.\"}"
-            },
-            "menuCard": {
-              "isScriptInput": true,
-              "value": {
-                "UUID": "c5431d4e-b0ed-430c-80f9-22492b3116eb",
-                "name": "AllergyLensMenuCardUI"
-              },
-              "type": "AssignableType_2",
-              "uiInfo": "{\"hint\":\"Menu card UI with the dish tiles.\"}"
-            },
-            "scanBar": {
-              "isScriptInput": true,
-              "value": {
-                "UUID": "7f1e5d6b-d26f-491e-8735-8bbf04932448",
-                "name": "AllergyLensScanBarUI"
-              },
-              "type": "AssignableType_3",
-              "uiInfo": "{\"hint\":\"Scan menu + Restaurant + Profile buttons.\"}"
             },
             "profilePanel": {
               "isScriptInput": true,
@@ -4784,31 +4753,76 @@
               "type": "AssignableType_1",
               "uiInfo": "{\"hint\":\"Profile panel UI (toggles + Done).\"}"
             },
+            "profileButton": {
+              "isScriptInput": true,
+              "value": {
+                "UUID": "69fd1002-088d-4f30-acc1-dbf5ed897db1",
+                "name": "AllergyLensProfileButtonUI"
+              },
+              "type": "AssignableType_2",
+              "uiInfo": "{\"hint\":\"Small world-locked Profile button that reopens the panel.\"}"
+            },
+            "menusUrl": {
+              "isScriptInput": true,
+              "value": "",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used.\"}"
+            },
             "dishDetail": {
               "isScriptInput": true,
               "value": {
                 "UUID": "d15c45b4-aa50-41ce-aca4-704348f09d4c",
                 "name": "AllergyLensDishDetailUI"
               },
-              "type": "AssignableType_4",
-              "uiInfo": "{\"hint\":\"Small detail card shown next to a red or amber dish.\"}"
+              "type": "AssignableType_3",
+              "uiInfo": "{\"hint\":\"Detail card shown beside a pinched red or amber bar.\"}"
             },
             "detailGapCm": {
               "isScriptInput": true,
               "value": 1.5,
               "type": "float",
-              "uiInfo": "{\"hint\":\"Gap (cm) between a dish tile's edge and the detail card that opens beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":20, \"step\":0.5}",
-              "defaultValue": "1.5"
+              "uiInfo": "{\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}",
+              "defaultValue": "1"
+            },
+            "defaultProfile": {
+              "isScriptInput": true,
+              "value": "",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Comma-separated allergen ids (e.g. \\\"peanut,milk\\\") applied at start — with showProfileAtStart off this gives a hands-free demo.\"}"
+            },
+            "markersRoot": {
+              "isScriptInput": true,
+              "value": {
+                "UUID": "d4d72d8d-7a7e-4db6-930e-358c6d92ebea",
+                "name": "Markers"
+              },
+              "type": "SceneObject",
+              "uiInfo": "{\"hint\":\"Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI).\"}"
+            },
+            "sfxVolume": {
+              "isScriptInput": true,
+              "value": 0.800000011920929,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Volume for the click / scan / pop cues (0 = silent).\", \"widget\":\"slider\", \"min\":0, \"max\":1, \"step\":0.05}",
+              "defaultValue": "0.8"
+            },
+            "debugSimulateMarker": {
+              "isScriptInput": true,
+              "value": false,
+              "type": "bool",
+              "uiInfo": "{\"hint\":\"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera).\"}"
             },
             "scriptAsset": "@asset:Scripts/AllergyLensMain.ts",
-            "inputNames.0": "detailGapCm",
-            "inputNames.1": "dishDetail",
-            "inputNames.2": "menuCard",
-            "inputNames.3": "menusUrl",
-            "inputNames.4": "profilePanel",
-            "inputNames.5": "scanBar",
-            "inputNames.6": "sfxVolume",
-            "inputNames.7": "showProfileAtStart",
+            "inputNames.0": "debugSimulateMarker",
+            "inputNames.1": "defaultProfile",
+            "inputNames.2": "detailGapCm",
+            "inputNames.3": "dishDetail",
+            "inputNames.4": "markersRoot",
+            "inputNames.5": "menusUrl",
+            "inputNames.6": "profileButton",
+            "inputNames.7": "profilePanel",
+            "inputNames.8": "sfxVolume",
+            "inputNames.9": "showProfileAtStart",
             "name": "AllergyLensMain",
             "enabled": true,
             "sceneObject": "@sceneObject:AllergyLens",
@@ -4920,194 +4934,6 @@
       ]
     },
     {
-      "id": "65819ba2-c0b6-4f51-aed2-83b1d251aca5",
-      "name": "MenuCard",
-      "enabled": true,
-      "parentId": "eec1fdbb-b8e4-459d-9ee8-ea8bd76da00b",
-      "transform": {
-        "position": [
-          0,
-          -38.70000076293945,
-          -57
-        ],
-        "rotation": [
-          -25,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "layers": 1,
-      "components": [
-        {
-          "id": "c5431d4e-b0ed-430c-80f9-22492b3116eb",
-          "type": "ScriptComponent",
-          "name": "AllergyLensMenuCardUI",
-          "enabled": true,
-          "properties": {
-            "unverifiedColor": {
-              "isScriptInput": true,
-              "value": "{x: 1, y: 0.8, z: 0.3, w: 0.38}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Transparent amber highlight: ingredients not published — ask the restaurant.\", \"widget\":\"color\"}",
-              "defaultValue": "{1.0, 0.8, 0.3, 0.38}"
-            },
-            "flagColor": {
-              "isScriptInput": true,
-              "value": "{x: 0.98, y: 0.45, z: 0.45, w: 0.42}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Transparent light-red highlight: contains something from your profile.\", \"widget\":\"color\"}",
-              "defaultValue": "{0.98, 0.45, 0.45, 0.42}"
-            },
-            "textDistanceCm": {
-              "isScriptInput": true,
-              "value": 70,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Viewing distance (cm) used to scale text; the card sits ~65 cm from the user.\", \"widget\":\"slider\", \"min\":40, \"max\":110, \"step\":5}",
-              "defaultValue": "70"
-            },
-            "safeColor": {
-              "isScriptInput": true,
-              "value": "{x: 0.55, y: 0.95, z: 0.6, w: 0.35}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Transparent light-green highlight: ingredients known, nothing from your profile.\", \"widget\":\"color\"}",
-              "defaultValue": "{0.55, 0.95, 0.6, 0.35}"
-            },
-            "cardWidthCm": {
-              "isScriptInput": true,
-              "value": 35,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Card width in cm (brief default 35).\", \"widget\":\"slider\", \"min\":20, \"max\":60, \"step\":1}",
-              "defaultValue": "35"
-            },
-            "cardHeightCm": {
-              "isScriptInput": true,
-              "value": 25,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Card height in cm (brief default 25).\", \"widget\":\"slider\", \"min\":15, \"max\":45, \"step\":1}",
-              "defaultValue": "25"
-            },
-            "scriptAsset": "@asset:Scripts/AllergyLensMenuCardUI.ts",
-            "inputNames.0": "cardHeightCm",
-            "inputNames.1": "cardWidthCm",
-            "inputNames.2": "flagColor",
-            "inputNames.3": "safeColor",
-            "inputNames.4": "textDistanceCm",
-            "inputNames.5": "unverifiedColor",
-            "name": "AllergyLensMenuCardUI",
-            "enabled": true,
-            "sceneObject": "@sceneObject:MenuCard",
-            "isPrefabInstanceRoot": false,
-            "hasPrefabChanges": false,
-            "id": "c5431d4e-b0ed-430c-80f9-22492b3116eb",
-            "type": "ScriptComponent"
-          }
-        }
-      ]
-    },
-    {
-      "id": "13a37ae3-cea5-4fff-b955-985eade828ae",
-      "name": "ScanBar",
-      "enabled": true,
-      "parentId": "eec1fdbb-b8e4-459d-9ee8-ea8bd76da00b",
-      "transform": {
-        "position": [
-          0,
-          -49.5,
-          -40
-        ],
-        "rotation": [
-          -70,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "layers": 1,
-      "components": [
-        {
-          "id": "7f1e5d6b-d26f-491e-8735-8bbf04932448",
-          "type": "ScriptComponent",
-          "name": "AllergyLensScanBarUI",
-          "enabled": true,
-          "properties": {
-            "textDistanceCm": {
-              "isScriptInput": true,
-              "value": 70,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Viewing distance (cm) used to scale the label text.\", \"widget\":\"slider\", \"min\":40, \"max\":110, \"step\":5}",
-              "defaultValue": "70"
-            },
-            "scanLabel": {
-              "isScriptInput": true,
-              "value": "Scan menu",
-              "type": "string",
-              "uiInfo": "{\"hint\":\"Label on the big scan button.\"}",
-              "defaultValue": "Scan menu"
-            },
-            "badgeCautionColor": {
-              "isScriptInput": true,
-              "value": "{x: 1, y: 0.8, z: 0.3, w: 1}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Badge dot when the restaurant needs caution for the profile.\", \"widget\":\"color\"}",
-              "defaultValue": "{1.0, 0.8, 0.3, 1.0}"
-            },
-            "barHeightCm": {
-              "isScriptInput": true,
-              "value": 4.5,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Height of all buttons in cm (also the small buttons' width).\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}",
-              "defaultValue": "4.5"
-            },
-            "scanWidthCm": {
-              "isScriptInput": true,
-              "value": 16,
-              "type": "float",
-              "uiInfo": "{\"hint\":\"Width of the scan button in cm. Keep it big — it is the main pinch target.\", \"widget\":\"slider\", \"min\":10, \"max\":30, \"step\":0.5}",
-              "defaultValue": "16"
-            },
-            "badgeGoodColor": {
-              "isScriptInput": true,
-              "value": "{x: 0.55, y: 0.95, z: 0.6, w: 1}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Badge dot on the Restaurant button when the restaurant looks good for the profile.\", \"widget\":\"color\"}",
-              "defaultValue": "{0.55, 0.95, 0.6, 1.0}"
-            },
-            "badgeAvoidColor": {
-              "isScriptInput": true,
-              "value": "{x: 0.98, y: 0.45, z: 0.45, w: 1}",
-              "type": "vec4",
-              "uiInfo": "{\"hint\":\"Badge dot when the restaurant should be avoided for the profile.\", \"widget\":\"color\"}",
-              "defaultValue": "{0.98, 0.45, 0.45, 1.0}"
-            },
-            "scriptAsset": "@asset:Scripts/AllergyLensScanBarUI.ts",
-            "inputNames.0": "badgeAvoidColor",
-            "inputNames.1": "badgeCautionColor",
-            "inputNames.2": "badgeGoodColor",
-            "inputNames.3": "barHeightCm",
-            "inputNames.4": "scanLabel",
-            "inputNames.5": "scanWidthCm",
-            "inputNames.6": "textDistanceCm",
-            "name": "AllergyLensScanBarUI",
-            "enabled": true,
-            "sceneObject": "@sceneObject:ScanBar",
-            "isPrefabInstanceRoot": false,
-            "hasPrefabChanges": false,
-            "id": "7f1e5d6b-d26f-491e-8735-8bbf04932448",
-            "type": "ScriptComponent"
-          }
-        }
-      ]
-    },
-    {
       "id": "c52e00dc-7fc6-449b-b188-48c8202fa149",
       "name": "DishDetail",
       "enabled": true,
@@ -5174,38 +5000,63 @@
       ]
     },
     {
-      "id": "4ea3c99b-a926-4ed2-a5c3-e02a0253c06a",
-      "name": "Table",
+      "id": "a4d566c6-6af0-43f1-9636-72092d911d2c",
+      "name": "ProfileButtonPanel",
+      "enabled": true,
+      "parentId": "eec1fdbb-b8e4-459d-9ee8-ea8bd76da00b",
+      "transform": {
+        "position": [
+          -10,
+          -12,
+          -55
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "layers": 1,
+      "components": [
+        {
+          "id": "69fd1002-088d-4f30-acc1-dbf5ed897db1",
+          "type": "ScriptComponent",
+          "name": "AllergyLensProfileButtonUI",
+          "enabled": true,
+          "properties": {
+            "sizeCm": {
+              "isScriptInput": true,
+              "value": 4.5,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Button size in cm (square). Keep it ≥ 4 cm so it is an easy pinch target.\", \"widget\":\"slider\", \"min\":3, \"max\":8, \"step\":0.5}",
+              "defaultValue": "4.5"
+            },
+            "scriptAsset": "@asset:Scripts/AllergyLensProfileButtonUI.ts",
+            "inputNames.0": "sizeCm",
+            "name": "AllergyLensProfileButtonUI",
+            "enabled": true,
+            "sceneObject": "@sceneObject:ProfileButtonPanel",
+            "isPrefabInstanceRoot": false,
+            "hasPrefabChanges": false,
+            "id": "69fd1002-088d-4f30-acc1-dbf5ed897db1",
+            "type": "ScriptComponent"
+          }
+        }
+      ]
+    },
+    {
+      "id": "d4d72d8d-7a7e-4db6-930e-358c6d92ebea",
+      "name": "Markers",
       "enabled": true,
       "parentId": "f8819744-b2fb-4738-b947-1953ec5ac0c6",
       "transform": {
         "position": [
           0,
-          -150,
-          -75
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          100,
-          100,
-          100
-        ]
-      },
-      "layers": 1,
-      "components": []
-    },
-    {
-      "id": "18cf2810-4fc4-4d88-96b1-0a4d327174fb",
-      "name": "Scenes",
-      "enabled": true,
-      "parentId": "4ea3c99b-a926-4ed2-a5c3-e02a0253c06a",
-      "transform": {
-        "position": [
-          0,
           0,
           0
         ],
@@ -5224,39 +5075,14 @@
       "components": []
     },
     {
-      "id": "8a4ca0c6-c7a6-4780-af03-e716d5775d26",
-      "name": "Scene",
+      "id": "e605cb47-8d2b-40de-8a38-cb78621ea477",
+      "name": "MenuMarker",
       "enabled": true,
-      "parentId": "18cf2810-4fc4-4d88-96b1-0a4d327174fb",
+      "parentId": "d4d72d8d-7a7e-4db6-930e-358c6d92ebea",
       "transform": {
         "position": [
           0,
           0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "layers": 1,
-      "components": []
-    },
-    {
-      "id": "2eab91dd-e7cf-4f89-a440-61cd258fb833",
-      "name": "geometry_0",
-      "enabled": true,
-      "parentId": "8a4ca0c6-c7a6-4780-af03-e716d5775d26",
-      "transform": {
-        "position": [
-          0,
-          0.5,
           0
         ],
         "rotation": [
@@ -5273,74 +5099,107 @@
       "layers": 1,
       "components": [
         {
-          "id": "ac6df675-bdd8-41a3-a5ef-e73d4e47639d",
-          "type": "RenderMeshVisual",
-          "name": "geometry_0",
+          "id": "b03074db-0fac-46b9-b20a-37a421dcc567",
+          "type": "MarkerTrackingComponent",
+          "name": "Marker Tracking",
           "enabled": true,
           "properties": {
-            "mesh": "@asset:GeneratedMeshes/Table.glb",
-            "blendShapesEnabled": true,
-            "blendNormals": false,
-            "materials.0": "@asset:GeneratedMeshes/Table.glb",
-            "mainMaterial": "@asset:GeneratedMeshes/Table.glb",
-            "stretchMode": {
-              "value": "Stretch",
-              "type": "enum",
-              "enumType": "Editor.Components.StretchMode",
-              "options": [
-                "Fill",
-                "Fit",
-                "Stretch",
-                "FitHeight",
-                "FitWidth",
-                "FillAndCut"
-              ]
-            },
-            "verticalAlignment": {
-              "value": "Center",
-              "type": "enum",
-              "enumType": "Editor.Alignment.Vertical",
-              "options": [
-                "Bottom",
-                "Center",
-                "Top"
-              ]
-            },
-            "horizontalAlignment": {
-              "value": "Center",
-              "type": "enum",
-              "enumType": "Editor.Alignment.Horizontal",
-              "options": [
-                "Left",
-                "Center",
-                "Right"
-              ]
-            },
-            "meshShadowMode": {
-              "value": "None",
-              "type": "enum",
-              "enumType": "Editor.Components.MeshShadowMode",
-              "options": [
-                "None",
-                "Caster",
-                "Receiver"
-              ]
-            },
-            "shadowColor": {
-              "x": 1,
-              "y": 1,
-              "z": 1,
-              "w": 1
-            },
-            "shadowDensity": 1,
-            "renderOrder": 0,
-            "name": "geometry_0",
+            "marker": "@asset:Markers/MenuMarker.imgmarker",
+            "name": "Marker Tracking",
             "enabled": true,
-            "sceneObject": "@sceneObject:geometry_0",
+            "sceneObject": "@sceneObject:MenuMarker",
             "isPrefabInstanceRoot": false,
             "hasPrefabChanges": false,
-            "id": "ac6df675-bdd8-41a3-a5ef-e73d4e47639d",
-            "type": "RenderMeshVisual"
+            "id": "b03074db-0fac-46b9-b20a-37a421dcc567",
+            "type": "MarkerTrackingComponent"
+          }
+        },
+        {
+          "id": "777cfb04-810b-46c4-9993-0f1397cb14dd",
+          "type": "ScriptComponent",
+          "name": "AllergyLensMenuOverlayUI",
+          "enabled": true,
+          "properties": {
+            "safeColor": {
+              "isScriptInput": true,
+              "value": "{x: 0.55, y: 0.95, z: 0.6}",
+              "type": "vec3",
+              "uiInfo": "{\"hint\":\"Bar tint for safe dishes.\", \"widget\":\"color\"}",
+              "defaultValue": "{0.55, 0.95, 0.6}"
+            },
+            "unverifiedColor": {
+              "isScriptInput": true,
+              "value": "{x: 1, y: 0.8, z: 0.3}",
+              "type": "vec3",
+              "uiInfo": "{\"hint\":\"Bar tint for dishes whose ingredients are not published.\", \"widget\":\"color\"}",
+              "defaultValue": "{1.0, 0.8, 0.3}"
+            },
+            "restaurantId": {
+              "isScriptInput": true,
+              "value": "star-of-india",
+              "type": "string",
+              "uiInfo": "{\"hint\":\"Restaurant id from the data (must have a menuImage). The marker on this object is that page.\"}",
+              "defaultValue": "star-of-india"
+            },
+            "flagColor": {
+              "isScriptInput": true,
+              "value": "{x: 0.98, y: 0.45, z: 0.45}",
+              "type": "vec3",
+              "uiInfo": "{\"hint\":\"Bar tint for dishes that contain something from the profile.\", \"widget\":\"color\"}",
+              "defaultValue": "{0.98, 0.45, 0.45}"
+            },
+            "lostHideDelaySec": {
+              "isScriptInput": true,
+              "value": 1,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Seconds to keep the overlay after the marker is lost before hiding it.\", \"widget\":\"slider\", \"min\":0, \"max\":5, \"step\":0.1}",
+              "defaultValue": "1"
+            },
+            "barAlpha": {
+              "isScriptInput": true,
+              "value": 0.6000000238418579,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Opacity of the highlight bars over the paper.\", \"widget\":\"slider\", \"min\":0.1, \"max\":1, \"step\":0.05}",
+              "defaultValue": "0.6"
+            },
+            "badgeWidthCm": {
+              "isScriptInput": true,
+              "value": 15,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Badge chip width in cm. Keep it inside the glasses' display band (~55% of the page width).\", \"widget\":\"slider\", \"min\":8, \"max\":30, \"step\":0.5}",
+              "defaultValue": "15"
+            },
+            "barPaddingCm": {
+              "isScriptInput": true,
+              "value": 0.20000000298023224,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Padding (cm) added around each printed line's OCR box; bars are otherwise exactly the line's width and height.\", \"widget\":\"slider\", \"min\":0, \"max\":0.5, \"step\":0.05}",
+              "defaultValue": "0.2"
+            },
+            "badgeEdgeOffsetCm": {
+              "isScriptInput": true,
+              "value": -0.8999999761581421,
+              "type": "float",
+              "uiInfo": "{\"hint\":\"Badge chip centre relative to the page's top edge, in cm: negative = inside the page's top margin (default), positive = floating above the edge.\", \"widget\":\"slider\", \"min\":-4, \"max\":4, \"step\":0.1}",
+              "defaultValue": "-0.9"
+            },
+            "scriptAsset": "@asset:Scripts/AllergyLensMenuOverlayUI.ts",
+            "inputNames.0": "badgeEdgeOffsetCm",
+            "inputNames.1": "badgeWidthCm",
+            "inputNames.2": "barAlpha",
+            "inputNames.3": "barPaddingCm",
+            "inputNames.4": "flagColor",
+            "inputNames.5": "lostHideDelaySec",
+            "inputNames.6": "restaurantId",
+            "inputNames.7": "safeColor",
+            "inputNames.8": "unverifiedColor",
+            "name": "AllergyLensMenuOverlayUI",
+            "enabled": true,
+            "sceneObject": "@sceneObject:MenuMarker",
+            "isPrefabInstanceRoot": false,
+            "hasPrefabChanges": false,
+            "id": "777cfb04-810b-46c4-9993-0f1397cb14dd",
+            "type": "ScriptComponent"
           }
         }
       ]
@@ -5438,6 +5297,428 @@
     }
   ],
   "assets": [
+    {
+      "id": "0b3bd577-884b-4fa1-b287-607979225792",
+      "name": "HighlightAmber",
+      "type": "Material",
+      "path": "Materials/HighlightAmber.mat",
+      "properties": {
+        "passInfos.0.baseColor.value": {
+          "x": 1,
+          "y": 0.800000011920929,
+          "z": 0.30000001192092896,
+          "w": 0.6000000238418579
+        },
+        "passInfos.0.baseColor.label": "Base Color",
+        "passInfos.0.ENABLE_BASE_TEX": {
+          "value": true,
+          "isDefine": true,
+          "type": "define",
+          "label": "Base Texture"
+        },
+        "passInfos.0.baseTex.value.id": "e9538533-ebd9-4ffb-a776-f2f7a66ef09c",
+        "passInfos.0.baseTex.label": "Texture",
+        "passInfos.0.Texture UV": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Transformed UV 2",
+            "Transformed UV 3"
+          ],
+          "label": "Texture UV"
+        },
+        "passInfos.0.ENABLE_OPACITY_TEX": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Opacity Texture"
+        },
+        "passInfos.0.opacityTex.value": null,
+        "passInfos.0.opacityTex.hidden": true,
+        "passInfos.0.opacityTex.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityTex.label": "Texture",
+        "passInfos.0.opacityMul.value": null,
+        "passInfos.0.opacityMul.hidden": true,
+        "passInfos.0.opacityMul.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityMul.label": "Opacity Multiplier",
+        "passInfos.0.opacityMul.min": 0,
+        "passInfos.0.opacityMul.max": 1,
+        "passInfos.0.Tweak_N67": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 2"
+        },
+        "passInfos.0.Source": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Screen UV",
+            "Transformed UV 2"
+          ],
+          "label": "Source"
+        },
+        "passInfos.0.uv2Scale.value": null,
+        "passInfos.0.uv2Scale.hidden": true,
+        "passInfos.0.uv2Scale.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Scale.label": "Scale",
+        "passInfos.0.uv2Offset.value": null,
+        "passInfos.0.uv2Offset.hidden": true,
+        "passInfos.0.uv2Offset.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Offset.label": "Offset",
+        "passInfos.0.uv2EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.Tweak_N11": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 3"
+        },
+        "passInfos.0.uv3Scale.value": null,
+        "passInfos.0.uv3Scale.hidden": true,
+        "passInfos.0.uv3Scale.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Scale.label": "Scale",
+        "passInfos.0.uv3Offset.value": null,
+        "passInfos.0.uv3Offset.hidden": true,
+        "passInfos.0.uv3Offset.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Offset.label": "Offset",
+        "passInfos.0.uv3EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.alphaTestThreshold.value": null,
+        "passInfos.0.alphaTestThreshold.hidden": true,
+        "passInfos.0.alphaTestThreshold.enabledBy": "uv3EnableAnimation",
+        "passInfos.0.alphaTestThreshold.label": "Alpha Test Threshold",
+        "passInfos.0.alphaTestThreshold.min": 0,
+        "passInfos.0.alphaTestThreshold.max": 1,
+        "passInfos.0.Port_Default_N204": 1,
+        "passInfos.0.PreviewEnabled": 0,
+        "passInfos.0.depthWrite": false,
+        "passInfos.0.depthTest": false,
+        "passInfos.0.depthFunction": {
+          "value": "LessEqual",
+          "type": "enum",
+          "enumType": "Editor.Assets.DepthFunction",
+          "options": [
+            "Never",
+            "Less",
+            "Equal",
+            "LessEqual",
+            "Greater",
+            "NotEqual",
+            "GreaterEqual",
+            "Always"
+          ]
+        },
+        "passInfos.0.twoSided": false,
+        "passInfos.0.cullMode": {
+          "value": "Back",
+          "type": "enum",
+          "enumType": "Editor.Assets.CullMode",
+          "options": [
+            "Front",
+            "Back",
+            "FrontAndBack"
+          ]
+        },
+        "passInfos.0.blendMode": {
+          "value": "PremultipliedAlphaAuto",
+          "type": "enum",
+          "enumType": "Editor.Assets.BlendMode",
+          "options": [
+            "Disabled",
+            "Normal",
+            "Multiply",
+            "MultiplyLegacy",
+            "Add",
+            "AddLegacy",
+            "PremultipliedAlpha",
+            "Glass",
+            "ColoredGlass",
+            "AlphaTest",
+            "AlphaToCoverage",
+            "Screen",
+            "Min",
+            "Max",
+            "PremultipliedAlphaAuto",
+            "Custom",
+            "Darken",
+            "ColorBurn",
+            "Lighten",
+            "ColorDodge",
+            "Overlay",
+            "SoftLight",
+            "HardLight",
+            "VividLight",
+            "LinearLight",
+            "PinLight",
+            "HardMix",
+            "Diff",
+            "Exclusion",
+            "Subtract",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity",
+            "Average",
+            "Negation",
+            "HardReflect",
+            "HardGlow",
+            "HardPhoenix",
+            "Realistic",
+            "Division",
+            "Bright",
+            "Forgray",
+            "NotBright",
+            "Intense"
+          ]
+        },
+        "passInfos.0.polygonOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "passInfos.0.frustumCulling": {
+          "value": "Auto",
+          "type": "enum",
+          "enumType": "Editor.Assets.FrustumCullMode",
+          "options": [
+            "Auto",
+            "Extend"
+          ]
+        },
+        "passInfos.0.instanceCount": 1,
+        "passInfos.0.id": "8b57050a-41f2-4373-8ac3-31b238ed1ab5",
+        "passInfos.0.type": "PassInfo",
+        "name": "HighlightAmber",
+        "fileMeta.id": "4d0b1619-56a1-4fea-b4ac-3294d05634c0",
+        "id": "0b3bd577-884b-4fa1-b287-607979225792",
+        "type": "Material"
+      }
+    },
+    {
+      "id": "83ba2907-f070-4576-81ea-8f73ffcf7e77",
+      "name": "HighlightGreen",
+      "type": "Material",
+      "path": "Materials/HighlightGreen.mat",
+      "properties": {
+        "passInfos.0.baseColor.value": {
+          "x": 0.550000011920929,
+          "y": 0.949999988079071,
+          "z": 0.6000000238418579,
+          "w": 0.6100000143051147
+        },
+        "passInfos.0.baseColor.label": "Base Color",
+        "passInfos.0.ENABLE_BASE_TEX": {
+          "value": true,
+          "isDefine": true,
+          "type": "define",
+          "label": "Base Texture"
+        },
+        "passInfos.0.baseTex.value.id": "e9538533-ebd9-4ffb-a776-f2f7a66ef09c",
+        "passInfos.0.baseTex.label": "Texture",
+        "passInfos.0.Texture UV": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Transformed UV 2",
+            "Transformed UV 3"
+          ],
+          "label": "Texture UV"
+        },
+        "passInfos.0.ENABLE_OPACITY_TEX": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Opacity Texture"
+        },
+        "passInfos.0.opacityTex.value": null,
+        "passInfos.0.opacityTex.hidden": true,
+        "passInfos.0.opacityTex.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityTex.label": "Texture",
+        "passInfos.0.opacityMul.value": null,
+        "passInfos.0.opacityMul.hidden": true,
+        "passInfos.0.opacityMul.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityMul.label": "Opacity Multiplier",
+        "passInfos.0.opacityMul.min": 0,
+        "passInfos.0.opacityMul.max": 1,
+        "passInfos.0.Tweak_N67": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 2"
+        },
+        "passInfos.0.Source": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Screen UV",
+            "Transformed UV 2"
+          ],
+          "label": "Source"
+        },
+        "passInfos.0.uv2Scale.value": null,
+        "passInfos.0.uv2Scale.hidden": true,
+        "passInfos.0.uv2Scale.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Scale.label": "Scale",
+        "passInfos.0.uv2Offset.value": null,
+        "passInfos.0.uv2Offset.hidden": true,
+        "passInfos.0.uv2Offset.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Offset.label": "Offset",
+        "passInfos.0.uv2EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.Tweak_N11": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 3"
+        },
+        "passInfos.0.uv3Scale.value": null,
+        "passInfos.0.uv3Scale.hidden": true,
+        "passInfos.0.uv3Scale.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Scale.label": "Scale",
+        "passInfos.0.uv3Offset.value": null,
+        "passInfos.0.uv3Offset.hidden": true,
+        "passInfos.0.uv3Offset.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Offset.label": "Offset",
+        "passInfos.0.uv3EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.alphaTestThreshold.value": null,
+        "passInfos.0.alphaTestThreshold.hidden": true,
+        "passInfos.0.alphaTestThreshold.enabledBy": "uv3EnableAnimation",
+        "passInfos.0.alphaTestThreshold.label": "Alpha Test Threshold",
+        "passInfos.0.alphaTestThreshold.min": 0,
+        "passInfos.0.alphaTestThreshold.max": 1,
+        "passInfos.0.Port_Default_N204": 1,
+        "passInfos.0.PreviewEnabled": 0,
+        "passInfos.0.depthWrite": false,
+        "passInfos.0.depthTest": false,
+        "passInfos.0.depthFunction": {
+          "value": "LessEqual",
+          "type": "enum",
+          "enumType": "Editor.Assets.DepthFunction",
+          "options": [
+            "Never",
+            "Less",
+            "Equal",
+            "LessEqual",
+            "Greater",
+            "NotEqual",
+            "GreaterEqual",
+            "Always"
+          ]
+        },
+        "passInfos.0.twoSided": false,
+        "passInfos.0.cullMode": {
+          "value": "Back",
+          "type": "enum",
+          "enumType": "Editor.Assets.CullMode",
+          "options": [
+            "Front",
+            "Back",
+            "FrontAndBack"
+          ]
+        },
+        "passInfos.0.blendMode": {
+          "value": "PremultipliedAlphaAuto",
+          "type": "enum",
+          "enumType": "Editor.Assets.BlendMode",
+          "options": [
+            "Disabled",
+            "Normal",
+            "Multiply",
+            "MultiplyLegacy",
+            "Add",
+            "AddLegacy",
+            "PremultipliedAlpha",
+            "Glass",
+            "ColoredGlass",
+            "AlphaTest",
+            "AlphaToCoverage",
+            "Screen",
+            "Min",
+            "Max",
+            "PremultipliedAlphaAuto",
+            "Custom",
+            "Darken",
+            "ColorBurn",
+            "Lighten",
+            "ColorDodge",
+            "Overlay",
+            "SoftLight",
+            "HardLight",
+            "VividLight",
+            "LinearLight",
+            "PinLight",
+            "HardMix",
+            "Diff",
+            "Exclusion",
+            "Subtract",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity",
+            "Average",
+            "Negation",
+            "HardReflect",
+            "HardGlow",
+            "HardPhoenix",
+            "Realistic",
+            "Division",
+            "Bright",
+            "Forgray",
+            "NotBright",
+            "Intense"
+          ]
+        },
+        "passInfos.0.polygonOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "passInfos.0.frustumCulling": {
+          "value": "Auto",
+          "type": "enum",
+          "enumType": "Editor.Assets.FrustumCullMode",
+          "options": [
+            "Auto",
+            "Extend"
+          ]
+        },
+        "passInfos.0.instanceCount": 1,
+        "passInfos.0.id": "ae58cf63-3fba-48d5-aa0a-59a2cc7066f3",
+        "passInfos.0.type": "PassInfo",
+        "name": "HighlightGreen",
+        "fileMeta.id": "e2c4ff89-3679-4a86-8ebd-b7a45ab1c384",
+        "id": "83ba2907-f070-4576-81ea-8f73ffcf7e77",
+        "type": "Material"
+      }
+    },
     {
       "id": "e571f369-9712-4127-9dd0-d17c38e6a392",
       "name": "Icons__PLACE_IN_SCENE",
@@ -6231,6 +6512,217 @@
       }
     },
     {
+      "id": "68203ad7-0990-44b1-a967-7b30cca565a8",
+      "name": "HighlightRed",
+      "type": "Material",
+      "path": "Materials/HighlightRed.mat",
+      "properties": {
+        "passInfos.0.baseColor.value": {
+          "x": 0.9800000190734863,
+          "y": 0.44999998807907104,
+          "z": 0.44999998807907104,
+          "w": 0.6000000238418579
+        },
+        "passInfos.0.baseColor.label": "Base Color",
+        "passInfos.0.ENABLE_BASE_TEX": {
+          "value": true,
+          "isDefine": true,
+          "type": "define",
+          "label": "Base Texture"
+        },
+        "passInfos.0.baseTex.value.id": "e9538533-ebd9-4ffb-a776-f2f7a66ef09c",
+        "passInfos.0.baseTex.label": "Texture",
+        "passInfos.0.Texture UV": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Transformed UV 2",
+            "Transformed UV 3"
+          ],
+          "label": "Texture UV"
+        },
+        "passInfos.0.ENABLE_OPACITY_TEX": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Opacity Texture"
+        },
+        "passInfos.0.opacityTex.value": null,
+        "passInfos.0.opacityTex.hidden": true,
+        "passInfos.0.opacityTex.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityTex.label": "Texture",
+        "passInfos.0.opacityMul.value": null,
+        "passInfos.0.opacityMul.hidden": true,
+        "passInfos.0.opacityMul.enabledBy": "ENABLE_OPACITY_TEX",
+        "passInfos.0.opacityMul.label": "Opacity Multiplier",
+        "passInfos.0.opacityMul.min": 0,
+        "passInfos.0.opacityMul.max": 1,
+        "passInfos.0.Tweak_N67": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 2"
+        },
+        "passInfos.0.Source": {
+          "value": "Mesh UV 0",
+          "isDefine": true,
+          "type": "defineSelect",
+          "options": [
+            "Mesh UV 0",
+            "Mesh UV 1",
+            "Screen UV",
+            "Transformed UV 2"
+          ],
+          "label": "Source"
+        },
+        "passInfos.0.uv2Scale.value": null,
+        "passInfos.0.uv2Scale.hidden": true,
+        "passInfos.0.uv2Scale.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Scale.label": "Scale",
+        "passInfos.0.uv2Offset.value": null,
+        "passInfos.0.uv2Offset.hidden": true,
+        "passInfos.0.uv2Offset.enabledBy": "Tweak_N67",
+        "passInfos.0.uv2Offset.label": "Offset",
+        "passInfos.0.uv2EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.Tweak_N11": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Transformed UV 3"
+        },
+        "passInfos.0.uv3Scale.value": null,
+        "passInfos.0.uv3Scale.hidden": true,
+        "passInfos.0.uv3Scale.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Scale.label": "Scale",
+        "passInfos.0.uv3Offset.value": null,
+        "passInfos.0.uv3Offset.hidden": true,
+        "passInfos.0.uv3Offset.enabledBy": "Tweak_N11",
+        "passInfos.0.uv3Offset.label": "Offset",
+        "passInfos.0.uv3EnableAnimation": {
+          "value": false,
+          "isDefine": true,
+          "type": "define",
+          "label": "Animation"
+        },
+        "passInfos.0.alphaTestThreshold.value": null,
+        "passInfos.0.alphaTestThreshold.hidden": true,
+        "passInfos.0.alphaTestThreshold.enabledBy": "uv3EnableAnimation",
+        "passInfos.0.alphaTestThreshold.label": "Alpha Test Threshold",
+        "passInfos.0.alphaTestThreshold.min": 0,
+        "passInfos.0.alphaTestThreshold.max": 1,
+        "passInfos.0.Port_Default_N204": 1,
+        "passInfos.0.PreviewEnabled": 0,
+        "passInfos.0.depthWrite": false,
+        "passInfos.0.depthTest": false,
+        "passInfos.0.depthFunction": {
+          "value": "LessEqual",
+          "type": "enum",
+          "enumType": "Editor.Assets.DepthFunction",
+          "options": [
+            "Never",
+            "Less",
+            "Equal",
+            "LessEqual",
+            "Greater",
+            "NotEqual",
+            "GreaterEqual",
+            "Always"
+          ]
+        },
+        "passInfos.0.twoSided": false,
+        "passInfos.0.cullMode": {
+          "value": "Back",
+          "type": "enum",
+          "enumType": "Editor.Assets.CullMode",
+          "options": [
+            "Front",
+            "Back",
+            "FrontAndBack"
+          ]
+        },
+        "passInfos.0.blendMode": {
+          "value": "PremultipliedAlphaAuto",
+          "type": "enum",
+          "enumType": "Editor.Assets.BlendMode",
+          "options": [
+            "Disabled",
+            "Normal",
+            "Multiply",
+            "MultiplyLegacy",
+            "Add",
+            "AddLegacy",
+            "PremultipliedAlpha",
+            "Glass",
+            "ColoredGlass",
+            "AlphaTest",
+            "AlphaToCoverage",
+            "Screen",
+            "Min",
+            "Max",
+            "PremultipliedAlphaAuto",
+            "Custom",
+            "Darken",
+            "ColorBurn",
+            "Lighten",
+            "ColorDodge",
+            "Overlay",
+            "SoftLight",
+            "HardLight",
+            "VividLight",
+            "LinearLight",
+            "PinLight",
+            "HardMix",
+            "Diff",
+            "Exclusion",
+            "Subtract",
+            "Hue",
+            "Saturation",
+            "Color",
+            "Luminosity",
+            "Average",
+            "Negation",
+            "HardReflect",
+            "HardGlow",
+            "HardPhoenix",
+            "Realistic",
+            "Division",
+            "Bright",
+            "Forgray",
+            "NotBright",
+            "Intense"
+          ]
+        },
+        "passInfos.0.polygonOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "passInfos.0.frustumCulling": {
+          "value": "Auto",
+          "type": "enum",
+          "enumType": "Editor.Assets.FrustumCullMode",
+          "options": [
+            "Auto",
+            "Extend"
+          ]
+        },
+        "passInfos.0.instanceCount": 1,
+        "passInfos.0.id": "76a20ad6-0f6f-4688-bebc-61bd4e9433ad",
+        "passInfos.0.type": "PassInfo",
+        "name": "HighlightRed",
+        "fileMeta.id": "348ce482-1c60-46a3-8813-a0028b08db87",
+        "id": "68203ad7-0990-44b1-a967-7b30cca565a8",
+        "type": "Material"
+      }
+    },
+    {
       "id": "3fae247d-570d-4a3e-9070-aeb2b9236133",
       "name": "ImageMaterial",
       "type": "Material",
@@ -6448,7 +6940,6 @@
       "path": "GeneratedMeshes/Table.glb",
       "properties": {
         "prefabInstances.0": "@id:57b8a773-26f9-4f79-b9d7-73c94525bbce (Table)",
-        "prefabInstances.1": "@sceneObject:Table",
         "lazyLoading": false,
         "retainAssets": true,
         "sceneObjects.0": "@id:57b8a773-26f9-4f79-b9d7-73c94525bbce (Table)",

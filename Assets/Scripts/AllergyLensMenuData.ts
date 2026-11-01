@@ -18,6 +18,37 @@ export type {AllergenDef, AllergenGroup, DishDef, RestaurantDef}
 export {ALLERGENS, DATA_VERSION}
 export type IngredientsSource = DishDef["ingredientsSource"]
 export type RestaurantRating = NonNullable<RestaurantDef["rating"]>
+export type DishLayout = NonNullable<DishDef["layout"]>
+export type MenuImageDef = NonNullable<RestaurantDef["menuImage"]>
+
+function numOr(v: unknown, fallback: number): number {
+  return typeof v === "number" && isFinite(v) ? v : fallback
+}
+
+function parseLayout(v: unknown): DishLayout | null {
+  if (!v || typeof v !== "object") return null
+  const o = v as Record<string, unknown>
+  if (typeof o.x !== "number" || typeof o.y !== "number" || typeof o.w !== "number" || typeof o.h !== "number") return null
+  return {x: o.x, y: o.y, w: o.w, h: o.h}
+}
+
+function parseMenuImage(v: unknown): MenuImageDef | null {
+  if (!v || typeof v !== "object") return null
+  const o = v as Record<string, unknown>
+  if (typeof o.path !== "string") return null
+  return {path: o.path, widthPx: numOr(o.widthPx, 0), heightPx: numOr(o.heightPx, 0), widthCm: numOr(o.widthCm, 0)}
+}
+
+function parseStringMap<T>(v: unknown, accept: (x: unknown) => x is T): {[k: string]: T} {
+  const out: {[k: string]: T} = {}
+  if (v && typeof v === "object") {
+    for (const k of Object.keys(v as object)) {
+      const val = (v as Record<string, unknown>)[k]
+      if (accept(val)) out[k] = val
+    }
+  }
+  return out
+}
 
 export const DEFAULT_RESTAURANT_ID = "demo-bistro"
 
@@ -42,6 +73,11 @@ export function getRestaurants(): RestaurantDef[] {
 
 export function getRestaurant(id: string): RestaurantDef | undefined {
   return activeRestaurants.find((r) => r.id === id)
+}
+
+/** Restaurants whose real menu page is tracked as an image marker. */
+export function restaurantsWithMenuImage(): RestaurantDef[] {
+  return activeRestaurants.filter((r) => !!r.menuImage)
 }
 
 /** Replace the bundled list (e.g. with a fetched menus.json). Pass a validated list. */
@@ -74,10 +110,13 @@ export function validateMenus(json: unknown): RestaurantDef[] | null {
       dishes.push({
         id: d.id,
         name: d.name,
-        icon: typeof d.icon === "string" ? d.icon : "set_meal",
+        icon: typeof d.icon === "string" ? d.icon : null,
         ingredients: ingredientsSource === "none" ? null : ing,
         ingredientsSource,
         removable,
+        shares: parseStringMap<number>(d.shares, (x): x is number => typeof x === "number"),
+        substitutes: parseStringMap<string | null>(d.substitutes, (x): x is string | null => x === null || typeof x === "string"),
+        layout: parseLayout(d.layout),
         notes: typeof d.notes === "string" ? d.notes : undefined,
       })
     }
@@ -95,6 +134,7 @@ export function validateMenus(json: unknown): RestaurantDef[] | null {
         : null
     out.push({
       rating,
+      menuImage: parseMenuImage(r.menuImage),
       id: r.id,
       name: r.name,
       source: {
