@@ -92,21 +92,42 @@ const restaurants = menus.restaurants.map((r) => {
         typicalCount++;
       }
     }
+    // shares / substitutes come from the dish KB entry when we have one (either as the
+    // ingredient source or as extra knowledge for a restaurant-published list)
+    const kbForShares = lookupDish(d.name);
+    const shares = kbForShares && kbForShares.shares ? kbForShares.shares : {};
+    const substitutes = kbForShares && kbForShares.substitutes ? kbForShares.substitutes : {};
+
+    if (d.layout) {
+      for (const k of ["x", "y", "w", "h"]) {
+        const v = d.layout[k];
+        if (typeof v !== "number" || v < 0 || v > 1) errors.push(`${key}: layout.${k} must be a 0..1 fraction`);
+      }
+    }
     return {
       id: d.id,
       name: d.name,
-      icon: d.icon,
+      icon: d.icon || null,
       ingredients,
       ingredientsSource,
       removable: d.removable || [],
+      shares,
+      substitutes,
+      layout: d.layout || null,
       ...(d.notes ? { notes: d.notes } : {}),
     };
   });
+  if (r.menuImage) {
+    const mi = r.menuImage;
+    if (!mi.path || typeof mi.widthCm !== "number") errors.push(`${r.id}: menuImage needs path and widthCm`);
+    else if (!fs.existsSync(path.join(root, mi.path))) errors.push(`${r.id}: menuImage.path not found: ${mi.path}`);
+  }
   return {
     id: r.id,
     name: r.name,
     source: r.source,
     rating: r.rating || null,
+    menuImage: r.menuImage || null,
     dishes,
   };
 });
@@ -136,15 +157,40 @@ export interface AllergenDef {
  *  none       = unknown: the dish is UNVERIFIED and never safe */
 export type IngredientsSource = "restaurant" | "typical" | "none"
 
+/** Where a dish line sits on the restaurant's menu image, as fractions of the
+ *  image (0..1, origin top-left). Used to place the highlight over the printed
+ *  line when the menu is marker-tracked. null when unknown. */
+export interface DishLayout {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface DishDef {
   id: string
   name: string
-  icon: string
+  icon: string | null
   /** null when ingredientsSource is "none" */
   ingredients: string[] | null
   ingredientsSource: IngredientsSource
   removable: string[]
+  /** rough percent of the dish by weight, per ingredient (from the dish knowledge base; may be empty) */
+  shares: { [ingredient: string]: number }
+  /** common kitchen substitute per ingredient, or null when there is none (may be empty) */
+  substitutes: { [ingredient: string]: string | null }
+  layout: DishLayout | null
   notes?: string
+}
+
+/** The photo of the real menu page the Lens tracks as an image marker. */
+export interface MenuImageDef {
+  /** repo-relative path to the image (also imported as a texture under Assets/Markers) */
+  path: string
+  widthPx: number
+  heightPx: number
+  /** printed width of the page in centimeters (marker size) */
+  widthCm: number
 }
 
 export interface RestaurantRating {
@@ -161,6 +207,8 @@ export interface RestaurantDef {
   name: string
   source: { type: string; url: string | null; collected: string }
   rating: RestaurantRating | null
+  /** null for restaurants without a tracked menu image */
+  menuImage: MenuImageDef | null
   dishes: DishDef[]
 }
 

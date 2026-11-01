@@ -16,15 +16,40 @@ export interface AllergenDef {
  *  none       = unknown: the dish is UNVERIFIED and never safe */
 export type IngredientsSource = "restaurant" | "typical" | "none"
 
+/** Where a dish line sits on the restaurant's menu image, as fractions of the
+ *  image (0..1, origin top-left). Used to place the highlight over the printed
+ *  line when the menu is marker-tracked. null when unknown. */
+export interface DishLayout {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface DishDef {
   id: string
   name: string
-  icon: string
+  icon: string | null
   /** null when ingredientsSource is "none" */
   ingredients: string[] | null
   ingredientsSource: IngredientsSource
   removable: string[]
+  /** rough percent of the dish by weight, per ingredient (from the dish knowledge base; may be empty) */
+  shares: { [ingredient: string]: number }
+  /** common kitchen substitute per ingredient, or null when there is none (may be empty) */
+  substitutes: { [ingredient: string]: string | null }
+  layout: DishLayout | null
   notes?: string
+}
+
+/** The photo of the real menu page the Lens tracks as an image marker. */
+export interface MenuImageDef {
+  /** repo-relative path to the image (also imported as a texture under Assets/Markers) */
+  path: string
+  widthPx: number
+  heightPx: number
+  /** printed width of the page in centimeters (marker size) */
+  widthCm: number
 }
 
 export interface RestaurantRating {
@@ -41,6 +66,8 @@ export interface RestaurantDef {
   name: string
   source: { type: string; url: string | null; collected: string }
   rating: RestaurantRating | null
+  /** null for restaurants without a tracked menu image */
+  menuImage: MenuImageDef | null
   dishes: DishDef[]
 }
 
@@ -398,6 +425,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "collected": "2026-10-31"
       }
     },
+    "menuImage": null,
     "dishes": [
       {
         "id": "noodles",
@@ -415,7 +443,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "removable": [
           "peanuts"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "burger",
@@ -435,7 +466,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cheddar",
           "onion",
           "pickle"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "salmon",
@@ -449,7 +483,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "garlic"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "pizza",
@@ -463,7 +500,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "olive oil"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "ricebowl",
@@ -483,7 +523,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "avocado",
           "corn",
           "cilantro"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "cheesecake",
@@ -498,7 +541,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "butter"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       }
     ]
   },
@@ -520,6 +566,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "collected": "2026-10-31"
       }
     },
+    "menuImage": null,
     "dishes": [
       {
         "id": "pad-thai",
@@ -540,7 +587,24 @@ export const RESTAURANTS: RestaurantDef[] = [
           "peanuts",
           "shrimp",
           "egg"
-        ]
+        ],
+        "shares": {
+          "rice noodles": 45,
+          "shrimp": 15,
+          "egg": 10,
+          "bean sprouts": 10,
+          "tofu": 8,
+          "tamarind": 4,
+          "fish sauce": 3,
+          "peanuts": 4
+        },
+        "substitutes": {
+          "peanuts": "toasted cashews or none",
+          "shrimp": "chicken or tofu",
+          "egg": null,
+          "fish sauce": "soy sauce"
+        },
+        "layout": null
       },
       {
         "id": "green-curry",
@@ -556,7 +620,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "sugar"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "tom-yum",
@@ -574,7 +641,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "removable": [
           "shrimp"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "mango-rice",
@@ -590,7 +660,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "removable": [
           "sesame seeds"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "spring-rolls",
@@ -606,6 +679,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "ingredientsSource": "typical",
         "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null,
         "notes": "Menu lists the name only; ingredients come from the dish knowledge base."
       },
       {
@@ -615,6 +691,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredients": null,
         "ingredientsSource": "none",
         "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null,
         "notes": "Rotating dish; ingredients not published."
       }
     ]
@@ -637,6 +716,7 @@ export const RESTAURANTS: RestaurantDef[] = [
         "collected": "2026-10-31"
       }
     },
+    "menuImage": null,
     "dishes": [
       {
         "id": "butter-chicken",
@@ -655,7 +735,23 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "removable": [
           "cashews"
-        ]
+        ],
+        "shares": {
+          "chicken": 45,
+          "tomato": 20,
+          "cream": 12,
+          "butter": 8,
+          "yogurt": 6,
+          "cashews": 4,
+          "garam masala": 1
+        },
+        "substitutes": {
+          "cream": "coconut cream",
+          "butter": "oil",
+          "cashews": null,
+          "yogurt": "coconut yogurt"
+        },
+        "layout": null
       },
       {
         "id": "lamb-rogan",
@@ -670,7 +766,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "ghee"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "chana-masala",
@@ -686,7 +785,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "coriander"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "garlic-naan",
@@ -702,7 +804,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "removable": [
           "butter"
-        ]
+        ],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "gulab-jamun",
@@ -717,7 +822,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "deep fried"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
       },
       {
         "id": "beef-vindaloo",
@@ -732,7 +840,711 @@ export const RESTAURANTS: RestaurantDef[] = [
           "potato"
         ],
         "ingredientsSource": "restaurant",
-        "removable": []
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": null
+      }
+    ]
+  },
+  {
+    "id": "star-of-india",
+    "name": "Star of India",
+    "source": {
+      "type": "photo",
+      "url": null,
+      "collected": "2026-10-31"
+    },
+    "rating": {
+      "stars": 4.5,
+      "reviewCount": 480,
+      "allergyComplaints": 1,
+      "source": {
+        "type": "sample",
+        "url": null,
+        "collected": "2026-10-31"
+      }
+    },
+    "menuImage": {
+      "path": "data/menus/star-of-india/menu-1.png",
+      "widthPx": 1774,
+      "heightPx": 1088,
+      "widthCm": 29.7
+    },
+    "dishes": [
+      {
+        "id": "curry",
+        "name": "Navrattan Curry",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.062,
+          "y": 0.1673,
+          "w": 0.0327,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "regular-nan",
+        "name": "Regular Nan",
+        "icon": null,
+        "ingredients": [
+          "white flour bread"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.2123,
+          "w": 0.1522,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "autter-paneer",
+        "name": "Mutter Paneer",
+        "icon": null,
+        "ingredients": [
+          "paneer",
+          "green peas",
+          "tomato",
+          "onion",
+          "cream",
+          "ginger",
+          "garlic",
+          "garam masala"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {
+          "paneer": 35,
+          "green peas": 25,
+          "tomato": 15,
+          "onion": 10,
+          "cream": 8,
+          "ginger": 2,
+          "garlic": 2,
+          "garam masala": 1
+        },
+        "substitutes": {
+          "paneer": "tofu",
+          "cream": "coconut cream"
+        },
+        "layout": {
+          "x": 0,
+          "y": 0.2215,
+          "w": 0.08,
+          "h": 0.0156
+        }
+      },
+      {
+        "id": "palak-nan",
+        "name": "Palak Nan",
+        "icon": null,
+        "ingredients": [
+          "spinach stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.239,
+          "w": 0.1488,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "alu-gobi",
+        "name": "Alu Gobi",
+        "icon": null,
+        "ingredients": [
+          "a seasoned cauliflower",
+          "potato dish"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {
+          "cauliflower": 45,
+          "potato": 35,
+          "onion": 10,
+          "tomato": 7,
+          "oil": 3
+        },
+        "substitutes": {},
+        "layout": {
+          "x": 0,
+          "y": 0.2776,
+          "w": 0.2604,
+          "h": 0.0211
+        }
+      },
+      {
+        "id": "mixed-nan",
+        "name": "Mixed Nan",
+        "icon": null,
+        "ingredients": [
+          "onion",
+          "garlic",
+          "cheese stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.2665,
+          "w": 0.2052,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "paneer-palak",
+        "name": "Paneer Palak",
+        "icon": null,
+        "ingredients": [
+          "paneer",
+          "spinach",
+          "onion",
+          "garlic",
+          "cream",
+          "ghee",
+          "cumin"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {
+          "spinach": 45,
+          "paneer": 30,
+          "onion": 10,
+          "cream": 8,
+          "ghee": 4,
+          "garlic": 2,
+          "cumin": 1
+        },
+        "substitutes": {
+          "paneer": "tofu",
+          "cream": "coconut cream",
+          "ghee": "oil"
+        },
+        "layout": {
+          "x": 0,
+          "y": 0.3051,
+          "w": 0.0744,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "paneer-nan",
+        "name": "Paneer Nan",
+        "icon": null,
+        "ingredients": [
+          "cheese stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.2941,
+          "w": 0.1522,
+          "h": 0.0175
+        }
+      },
+      {
+        "id": "gobi-nan",
+        "name": "Gobi Nan",
+        "icon": null,
+        "ingredients": [
+          "cauliflower stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.3199,
+          "w": 0.1556,
+          "h": 0.0175
+        }
+      },
+      {
+        "id": "chicken-nan",
+        "name": "Chicken Nan",
+        "icon": null,
+        "ingredients": [
+          "chicken stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.3465,
+          "w": 0.1595,
+          "h": 0.0175
+        }
+      },
+      {
+        "id": "maharani-dal",
+        "name": "Maharani Dal",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.0011,
+          "y": 0.3603,
+          "w": 0.0784,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "onion-kulcha",
+        "name": "Onion Kulcha",
+        "icon": null,
+        "ingredients": [
+          "nan with spiced onions"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.3732,
+          "w": 0.1838,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "garlic-nan",
+        "name": "Garlic Nan",
+        "icon": null,
+        "ingredients": [
+          "garlic stuffed nan"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.3998,
+          "w": 0.1437,
+          "h": 0.0165
+        }
+      },
+      {
+        "id": "bengan-bartha",
+        "name": "Bengan Bartha",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.0028,
+          "y": 0.4145,
+          "w": 0.0857,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "alu-paratha",
+        "name": "Alu Paratha",
+        "icon": null,
+        "ingredients": [
+          "potato stuffed whole wheat bread"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.4265,
+          "w": 0.2204,
+          "h": 0.0175
+        }
+      },
+      {
+        "id": "egetable-malai-kofta",
+        "name": "Vegetable Malai Kofta",
+        "icon": null,
+        "ingredients": [
+          "paneer",
+          "potato",
+          "cream",
+          "cashews",
+          "tomato",
+          "onion",
+          "flour",
+          "deep fried"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {
+          "potato": 30,
+          "paneer": 20,
+          "tomato": 15,
+          "cream": 12,
+          "onion": 10,
+          "cashews": 6,
+          "flour": 5
+        },
+        "substitutes": {
+          "paneer": "tofu",
+          "cream": "coconut cream",
+          "cashews": null,
+          "flour": "chickpea flour"
+        },
+        "layout": {
+          "x": 0.0045,
+          "y": 0.4688,
+          "w": 0.124,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "kulfi",
+        "name": "Kulfi",
+        "icon": null,
+        "ingredients": [
+          "a creamy indian ice cream"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {
+          "milk": 60,
+          "condensed milk": 25,
+          "sugar": 10,
+          "pistachios": 4
+        },
+        "substitutes": {
+          "milk": "coconut milk",
+          "pistachios": null
+        },
+        "layout": {
+          "x": 0.363,
+          "y": 0.5129,
+          "w": 0.1477,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "paneer-sha-kurma",
+        "name": "Paneer Shai Kurma",
+        "icon": null,
+        "ingredients": [
+          "paneer",
+          "cream",
+          "tomato",
+          "onion",
+          "cashews",
+          "ghee",
+          "garam masala"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {
+          "paneer": 40,
+          "tomato": 18,
+          "cream": 15,
+          "onion": 12,
+          "cashews": 6,
+          "ghee": 5,
+          "garam masala": 1
+        },
+        "substitutes": {
+          "paneer": "tofu",
+          "cream": "coconut cream",
+          "cashews": null,
+          "ghee": "oil"
+        },
+        "layout": {
+          "x": 0.0068,
+          "y": 0.5221,
+          "w": 0.102,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "gulab-jamun",
+        "name": "Gulab Jamun",
+        "icon": null,
+        "ingredients": [
+          "milk solids",
+          "flour",
+          "sugar",
+          "syrup",
+          "cardamom",
+          "ghee",
+          "deep fried"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.5386,
+          "w": 0.0654,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "alu-palak",
+        "name": "Alu Palak",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.0079,
+          "y": 0.5754,
+          "w": 0.0536,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "kheer",
+        "name": "Kheer",
+        "icon": null,
+        "ingredients": [
+          "rice pudding"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {
+          "milk": 70,
+          "rice": 15,
+          "sugar": 10,
+          "almonds": 2,
+          "pistachios": 2
+        },
+        "substitutes": {
+          "milk": "oat milk",
+          "almonds": null,
+          "pistachios": null
+        },
+        "layout": {
+          "x": 0.363,
+          "y": 0.591,
+          "w": 0.093,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "mango-ice-cream",
+        "name": "Mango Ice Cream",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.6176,
+          "w": 0.0885,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "channa-masala",
+        "name": "Channa Masala",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.009,
+          "y": 0.6268,
+          "w": 0.0874,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "alu-mutter",
+        "name": "Alu Mutter",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.0107,
+          "y": 0.6792,
+          "w": 0.0614,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "iced-tea",
+        "name": "Iced Tea",
+        "icon": null,
+        "ingredients": [
+          "unsweet"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.704,
+          "w": 0.0902,
+          "h": 0.0175
+        }
+      },
+      {
+        "id": "alu-choley",
+        "name": "Alu Choley",
+        "icon": null,
+        "ingredients": [
+          "chickpeas",
+          "tomato",
+          "onion",
+          "ginger",
+          "garlic",
+          "cumin",
+          "coriander"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.0124,
+          "y": 0.7307,
+          "w": 0.0609,
+          "h": 0.0147
+        }
+      },
+      {
+        "id": "milk",
+        "name": "Milk",
+        "icon": null,
+        "ingredients": [
+          "whole milk"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.7325,
+          "w": 0.097,
+          "h": 0.0184
+        }
+      },
+      {
+        "id": "soft-salted-drink-lassi-coca-cola-sprite",
+        "name": "Soft Drink",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.761,
+          "w": 0.1826,
+          "h": 0.0441
+        }
+      },
+      {
+        "id": "sweet-lassi",
+        "name": "Sweet Lassi",
+        "icon": null,
+        "ingredients": [
+          "mixture of yogurt",
+          "sugar",
+          "milk"
+        ],
+        "ingredientsSource": "restaurant",
+        "removable": [],
+        "shares": {
+          "yogurt": 70,
+          "milk": 20,
+          "sugar": 8
+        },
+        "substitutes": {
+          "yogurt": "coconut yogurt",
+          "milk": "oat milk"
+        },
+        "layout": {
+          "x": 0.363,
+          "y": 0.8483,
+          "w": 0.257,
+          "h": 0.0221
+        }
+      },
+      {
+        "id": "mango-lassi",
+        "name": "Mango Lassi",
+        "icon": null,
+        "ingredients": [
+          "yogurt",
+          "milk",
+          "sugar",
+          "cardamom"
+        ],
+        "ingredientsSource": "typical",
+        "removable": [],
+        "shares": {
+          "yogurt": 70,
+          "milk": 20,
+          "sugar": 8
+        },
+        "substitutes": {
+          "yogurt": "coconut yogurt",
+          "milk": "oat milk"
+        },
+        "layout": {
+          "x": 0.363,
+          "y": 0.8778,
+          "w": 0.0699,
+          "h": 0.0156
+        }
+      },
+      {
+        "id": "indian-tea",
+        "name": "Indian Tea",
+        "icon": null,
+        "ingredients": null,
+        "ingredientsSource": "none",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.363,
+          "y": 0.9072,
+          "w": 0.0575,
+          "h": 0.0147
+        }
       }
     ]
   }
