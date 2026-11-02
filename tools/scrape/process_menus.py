@@ -95,8 +95,15 @@ def main() -> int:
                                     "asset_sha256": g["sha256"], "vision_model": used, "processed_at": datetime.now(timezone.utc).isoformat()}) + "\n")
         print(f"  [{i + 1}/{len(todo)}] {rid}: {len(entry['dishes'])} dishes ({len(lines)} OCR lines, {used}, {dt:.0f}s)", flush=True)
     pool.shutdown(wait=True)
-    # county file in the menus.json shape
+    # county file in the menus.json shape: only this county's restaurants (the per-restaurant gold files hold every county)
     allr = [json.loads(p.read_text()) for p in sorted(gold.glob("*.json"))]
+    where = {}
+    rpath = lake / "silver" / "restaurants.jsonl"
+    if rpath.exists():
+        for l in rpath.read_text().splitlines():
+            if l.strip():
+                r = json.loads(l); where[r["restaurant_id"]] = (r.get("state"), (r.get("county") or "").lower())
+    allr = [e for e in allr if where.get(e.get("id") or e.get("restaurant_id"), (args.state, args.county.lower())) == (args.state, args.county.lower())]
     county = lake / "gold" / f"menus.{args.state.lower()}-{args.county.lower()}.json"
     county.write_text(json.dumps({"version": 1, "restaurants": allr}, indent=2, ensure_ascii=False) + "\n")
     print(f"{len(allr)} restaurants with menus -> {county}")
