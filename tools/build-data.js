@@ -18,7 +18,7 @@ const root = path.resolve(__dirname, "..");
 const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
 
 const allergens = read("data/allergens.json");
-const dishKb = read("data/dishes.json");
+let dishKb = read("data/dishes.json");                        // committed, hand-checked seed catalog
 const menus = read("data/menus.json");                       // committed, hand-curated seed only
 // Scraped restaurants live in the gitignored lake; join them in for a local Lens build, never for a commit.
 const withLake = process.argv.includes("--with-lake") || process.env.ALLERGY_WITH_LAKE === "1";
@@ -29,6 +29,14 @@ if (withLake && fs.existsSync(lakePath)) {
   for (const r of lake.restaurants) byId.set(r.id, r);        // lake entry wins over the seed
   menus.restaurants = [...byId.values()];
   console.log(`+ ${lake.restaurants.length} scraped restaurants from ${path.relative(root, lakePath)} (local build; do not commit the result)`);
+}
+const lakeDishes = path.join(root, "data-lake", "gold", "dishes.json");
+if (withLake && fs.existsSync(lakeDishes)) {
+  const lake = JSON.parse(fs.readFileSync(lakeDishes, "utf8"));
+  const byName = new Map(dishKb.dishes.map((d) => [d.name, d]));
+  for (const d of lake.dishes) byName.set(d.name, d);         // researched entry wins over the seed
+  dishKb = { ...dishKb, dishes: [...byName.values()] };
+  console.log(`+ ${lake.dishes.length} researched dishes from data-lake/gold/dishes.json (local build; do not commit the result)`);
 }
 
 const errors = [];

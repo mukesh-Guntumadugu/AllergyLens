@@ -2,7 +2,7 @@
 """Stage E: dish name -> ingredients by WEB RETRIEVAL with citations (no LLM facts).
 
 Replaces enrich_dishes.py. For every menu dish not yet in the dish catalog
-(data/dishes.json) this script:
+(seed data/dishes.json plus the scraped data-lake/gold/dishes.json) this script:
 
   1. searches the web for recipes of the dish        (ddg | brave | searxng)
   2. fetches the result pages into the bronze store   (data-lake/bronze/, by content hash)
@@ -27,8 +27,10 @@ Usage:
     python3 tools/scrape/ingredients_rag.py data/menus.json --search brave   # BRAVE_API_KEY in env
     python3 tools/scrape/ingredients_rag.py data/menus.json --search searxng --searxng-url http://localhost:8080
 
-Output: entries in data/dishes.json (see tools/scrape/DESIGN.md §9), unknown
-dishes in data-lake/silver/review_queue.jsonl, raw pages in data-lake/bronze/.
+Output: entries in data-lake/gold/dishes.json (see tools/scrape/DESIGN.md §9; the
+committed seed data/dishes.json is read but never written, so scraper output stays
+out of git), unknown dishes in data-lake/silver/review_queue.jsonl, raw pages in
+data-lake/bronze/.
 """
 
 from __future__ import annotations
@@ -512,7 +514,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("menu_json", help="data/menus.json or one restaurant entry (e.g. an .ocr.json)")
     ap.add_argument("--restaurant", default=None, help="only this restaurant id")
-    ap.add_argument("--dishes", default=str(REPO / "data/dishes.json"))
+    ap.add_argument("--seed", default=str(REPO / "data/dishes.json"), help="committed catalog, read only")
+    ap.add_argument("--dishes", default=None, help="catalog to write (default <lake>/gold/dishes.json)")
     ap.add_argument("--lake", default=str(REPO / "data-lake"))
     ap.add_argument("--cuisine", default=None, help="search hint, e.g. Indian")
     ap.add_argument("--search", choices=["ddg", "brave", "searxng"], default="ddg")
@@ -536,12 +539,23 @@ def main() -> int:
     restaurants = src.get("restaurants") or [src]
     if args.restaurant:
         restaurants = [r for r in restaurants if r["id"] == args.restaurant]
-    kb_path = Path(args.dishes)
+    # The written catalog lives in the gitignored lake; the committed seed is only read, so nothing the
+    # scraper researches can end up in git. The lake file starts as a copy of the seed.
+    kb_path = Path(args.dishes) if args.dishes else Path(args.lake) / "gold" / "dishes.json"
+    kb_path.parent.mkdir(parents=True, exist_ok=True)
+    seed_path = Path(args.seed)
     kb = json.loads(kb_path.read_text()) if kb_path.exists() else {"version": 1, "dishes": []}
     by_key: dict[str, dict] = {}
     for d in kb["dishes"]:
         for k in [d["name"], *d.get("aliases", [])]:
             by_key[canonical_name(k)] = d
+    if seed_path.exists() and seed_path.resolve() != kb_path.resolve():
+        for d in json.loads(seed_path.read_text()).get("dishes", []):
+            if canonical_name(d["name"]) in by_key:
+                continue
+            kb["dishes"].append(d)
+            for k in [d["name"], *d.get("aliases", [])]:
+                by_key[canonical_name(k)] = d
 
     today = date.today().isoformat()
     # names that came back unknown in the last 14 days: don't repeat the same failed searches on every pass

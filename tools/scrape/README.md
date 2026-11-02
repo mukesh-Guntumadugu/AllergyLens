@@ -65,7 +65,7 @@ xvfb-run -a .venv/bin/python tools/scrape/sources/google_maps_web.py --allow-goo
 .venv/bin/python tools/scrape/gate_menu_images.py
 .venv/bin/python tools/scrape/process_menus.py
 
-# E. ingredients by web retrieval with citations -> data/dishes.json
+# E. ingredients by web retrieval with citations -> data-lake/gold/dishes.json (seed data/dishes.json is read only)
 .venv/bin/python tools/scrape/ingredients_rag.py data-lake/gold/menus.oh-athens.json
 
 # Lens data
@@ -98,7 +98,7 @@ python3 tools/scrape/ocr_menu.py data/menus/star-of-india/menu-1.png \
 # c) dish names -> ingredients by WEB RETRIEVAL with citations (no LLM facts; see DESIGN.md §9)
 #    searches recipes, reads each page's schema.org Recipe ingredient list, votes across recipes,
 #    stores the source URLs per ingredient; dishes with < 3 agreeing recipes stay UNKNOWN (amber in the Lens).
-#    Cache-first: dishes already in data/dishes.json are not researched again (seen_count is bumped).
+#    Cache-first: dishes already in the seed or the lake catalog are not researched again (seen_count is bumped).
 python3 tools/scrape/ingredients_rag.py data/menus.json --restaurant star-of-india --cuisine Indian
 #    --search brave|searxng for a production search backend (default ddg needs no key); --force to re-research;
 #    --judge-model qwen2.5:72b-instruct-q8_0 adds a local model that only answers "same dish?" (never ingredients)
