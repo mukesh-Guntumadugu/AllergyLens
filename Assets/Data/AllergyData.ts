@@ -44,6 +44,12 @@ export interface DishDef {
   /** common kitchen substitute per ingredient, or null when there is none (may be empty) */
   substitutes: { [ingredient: string]: string | null }
   layout: DishLayout | null
+  /** printed price in the menu's currency, or null when not read (price filter in the Lens) */
+  price: number | null
+  /** section heading as printed on the menu ("Tandoori Breads"), or null */
+  section: string | null
+  /** printed dietary markers next to the line, e.g. ["V", "GF", "spicy:2"] */
+  markers: string[]
   notes?: string
 }
 
@@ -70,6 +76,8 @@ export interface RestaurantDef {
   id: string
   name: string
   source: { type: string; url: string | null; collected: string }
+  /** cuisine tag from discovery (OpenStreetMap), e.g. "indian"; null when unknown */
+  cuisine: string | null
   rating: RestaurantRating | null
   /** null for restaurants without a tracked menu image */
   menuImage: MenuImageDef | null
@@ -438,6 +446,7 @@ export const RESTAURANTS: RestaurantDef[] = [
       "url": null,
       "collected": "2026-10-31"
     },
+    "cuisine": null,
     "rating": {
       "stars": 4.6,
       "reviewCount": 230,
@@ -470,7 +479,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "burger",
@@ -494,7 +506,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "salmon",
@@ -512,7 +527,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "pizza",
@@ -530,7 +548,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "ricebowl",
@@ -554,7 +575,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "cheesecake",
@@ -573,7 +597,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       }
     ]
   },
@@ -585,6 +612,7 @@ export const RESTAURANTS: RestaurantDef[] = [
       "url": null,
       "collected": "2026-10-31"
     },
+    "cuisine": null,
     "rating": {
       "stars": 4.4,
       "reviewCount": 612,
@@ -634,7 +662,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "egg": null,
           "fish sauce": "soy sauce"
         },
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "green-curry",
@@ -654,7 +685,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "tom-yum",
@@ -676,7 +710,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "mango-rice",
@@ -696,7 +733,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "spring-rolls",
@@ -716,6 +756,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "shares": {},
         "substitutes": {},
         "layout": null,
+        "price": null,
+        "section": null,
+        "markers": [],
         "notes": "Menu lists the name only; ingredients come from the dish knowledge base."
       },
       {
@@ -729,6 +772,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "shares": {},
         "substitutes": {},
         "layout": null,
+        "price": null,
+        "section": null,
+        "markers": [],
         "notes": "Rotating dish; ingredients not published."
       }
     ]
@@ -741,6 +787,7 @@ export const RESTAURANTS: RestaurantDef[] = [
       "url": null,
       "collected": "2026-10-31"
     },
+    "cuisine": null,
     "rating": {
       "stars": 4.1,
       "reviewCount": 1290,
@@ -787,7 +834,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cashews": null,
           "yogurt": "coconut yogurt"
         },
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "lamb-rogan",
@@ -806,7 +856,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "chana-masala",
@@ -826,7 +879,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "garlic-naan",
@@ -846,7 +902,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         ],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "gulab-jamun",
@@ -865,7 +924,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "beef-vindaloo",
@@ -884,7 +946,10 @@ export const RESTAURANTS: RestaurantDef[] = [
         "removable": [],
         "shares": {},
         "substitutes": {},
-        "layout": null
+        "layout": null,
+        "price": null,
+        "section": null,
+        "markers": []
       }
     ]
   },
@@ -896,6 +961,7 @@ export const RESTAURANTS: RestaurantDef[] = [
       "url": null,
       "collected": "2026-10-31"
     },
+    "cuisine": null,
     "rating": {
       "stars": 4.5,
       "reviewCount": 480,
@@ -951,7 +1017,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.1673,
           "w": 0.0327,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "regular-nan",
@@ -970,7 +1039,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.2123,
           "w": 0.1522,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "autter-paneer",
@@ -1008,7 +1080,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.2215,
           "w": 0.08,
           "h": 0.0156
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "palak-nan",
@@ -1027,7 +1102,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.239,
           "w": 0.1488,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "alu-gobi",
@@ -1053,7 +1131,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.2776,
           "w": 0.2604,
           "h": 0.0211
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "mixed-nan",
@@ -1074,7 +1155,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.2665,
           "w": 0.2052,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "paneer-palak",
@@ -1111,7 +1195,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3051,
           "w": 0.0744,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "paneer-nan",
@@ -1130,7 +1217,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.2941,
           "w": 0.1522,
           "h": 0.0175
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "gobi-nan",
@@ -1149,7 +1239,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3199,
           "w": 0.1556,
           "h": 0.0175
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "chicken-nan",
@@ -1168,7 +1261,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3465,
           "w": 0.1595,
           "h": 0.0175
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "maharani-dal",
@@ -1205,7 +1301,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3603,
           "w": 0.0784,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "onion-kulcha",
@@ -1224,7 +1323,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3732,
           "w": 0.1838,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "garlic-nan",
@@ -1243,7 +1345,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.3998,
           "w": 0.1437,
           "h": 0.0165
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "bengan-bartha",
@@ -1275,7 +1380,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.4145,
           "w": 0.0857,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "alu-paratha",
@@ -1294,7 +1402,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.4265,
           "w": 0.2204,
           "h": 0.0175
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "egetable-malai-kofta",
@@ -1333,7 +1444,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.4688,
           "w": 0.124,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "kulfi",
@@ -1360,7 +1474,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.5129,
           "w": 0.1477,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "paneer-sha-kurma",
@@ -1398,7 +1515,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.5221,
           "w": 0.102,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "gulab-jamun",
@@ -1423,7 +1543,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.5386,
           "w": 0.0654,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "alu-palak",
@@ -1453,7 +1576,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.5754,
           "w": 0.0536,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "kheer",
@@ -1482,14 +1608,21 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.591,
           "w": 0.093,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "mango-ice-cream",
         "name": "Mango Ice Cream",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
+        "ingredients": [
+          "cream",
+          "mango",
+          "sugar"
+        ],
+        "ingredientsSource": "typical",
         "category": "dessert",
         "removable": [],
         "shares": {},
@@ -1499,7 +1632,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.6176,
           "w": 0.0885,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "channa-masala",
@@ -1524,7 +1660,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.6268,
           "w": 0.0874,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "alu-mutter",
@@ -1555,7 +1694,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.6792,
           "w": 0.0614,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "iced-tea",
@@ -1574,7 +1716,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.704,
           "w": 0.0902,
           "h": 0.0175
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "alu-choley",
@@ -1606,7 +1751,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.7307,
           "w": 0.0609,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "milk",
@@ -1625,7 +1773,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.7325,
           "w": 0.097,
           "h": 0.0184
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "soft-salted-drink-lassi-coca-cola-sprite",
@@ -1642,7 +1793,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.761,
           "w": 0.1826,
           "h": 0.0441
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "sweet-lassi",
@@ -1670,7 +1824,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.8483,
           "w": 0.257,
           "h": 0.0221
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "mango-lassi",
@@ -1699,14 +1856,26 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.8778,
           "w": 0.0699,
           "h": 0.0156
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       },
       {
         "id": "indian-tea",
         "name": "Indian Tea",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
+        "ingredients": [
+          "cardamom",
+          "black tea",
+          "ginger",
+          "milk",
+          "cinnamon",
+          "black peppercorn",
+          "sugar",
+          "fennel seed"
+        ],
+        "ingredientsSource": "typical",
         "category": "drink",
         "removable": [],
         "shares": {},
@@ -1716,7 +1885,10 @@ export const RESTAURANTS: RestaurantDef[] = [
           "y": 0.9072,
           "w": 0.0575,
           "h": 0.0147
-        }
+        },
+        "price": null,
+        "section": null,
+        "markers": []
       }
     ]
   }

@@ -28,7 +28,7 @@ export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
       id: "test-butter-chicken", name: "Butter Chicken", icon: null,
       ingredients: ["chicken", "butter", "cream", "tomato", "cashews"], ingredientsSource: "restaurant",
       removable: [], shares: {chicken: 50, butter: 10, cream: 20, tomato: 16, cashews: 4}, substitutes: {},
-      layout: null, category: "chicken",
+      layout: null, category: "chicken", price: null, section: null, markers: [],
     }
     const t2 = describeChoice(butterChicken, checkDish(butterChicken, nuts), star, [])
     const s2 = `${t2.headline} ${t2.body}`
@@ -44,7 +44,7 @@ export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
       id: "test-peanut-dal", name: "Peanut Dal", icon: null,
       ingredients: ["lentils", "peanuts", "onion"], ingredientsSource: "restaurant",
       removable: [], shares: {lentils: 60, peanuts: 30, onion: 10}, substitutes: {peanuts: null},
-      layout: {x: 0.01, y: 0.6, w: 0.08, h: 0.015}, category: "vegetarian",
+      layout: {x: 0.01, y: 0.6, w: 0.08, h: 0.015}, category: "vegetarian", price: null, section: null, markers: [],
     }
     const menuWithDal: RestaurantDef = {...star, dishes: star.dishes.concat([peanutDal])}
     const dalResults = checkMenu(menuWithDal.dishes, peanut)

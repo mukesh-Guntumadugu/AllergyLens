@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "notes": "Restaurant menus the Lens can load. Each dish lists its ingredients as plain lowercase words; the checker matches them against data/allergens.json aliases. 'removable' lists ingredients the kitchen can leave out on request. A dish with 'ingredients': null (or an empty list) is UNVERIFIED and must never be shown as safe. 'source' records where the data came from and when.",
   "restaurants": [
     {
       "id": "demo-bistro",
