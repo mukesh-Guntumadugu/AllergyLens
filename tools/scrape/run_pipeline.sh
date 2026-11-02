@@ -21,11 +21,11 @@ VISION_MODEL=${VISION_MODEL:-auto}
 SKIP=${SKIP:-}
 
 log()   { echo "$(date -Is) $*" | tee -a "$STATUS"; }
-stage() {  # stage <name> <command...>   runs, logs, never aborts the whole run
+stage() {  # stage <name> <command...>   runs, logs, never aborts the whole run; returns the command's status
   local name=$1; shift
   if [[ " $SKIP " == *" $name "* ]]; then log "skip  $name"; return 0; fi
   log "start $name"
-  if "$@" >"$LOGDIR/$name.log" 2>&1; then log "ok    $name"; else log "FAIL  $name (exit $?) see $LOGDIR/$name.log"; fi
+  if "$@" >"$LOGDIR/$name.log" 2>&1; then log "ok    $name"; return 0; else local rc=$?; log "FAIL  $name (exit $rc) see $LOGDIR/$name.log"; return $rc; fi
 }
 
 COUNTIES=("$@")
@@ -33,6 +33,7 @@ if [ ${#COUNTIES[@]} -eq 0 ]; then
   mapfile -t COUNTIES < <(grep -v '^\s*#' tools/scrape/counties.txt | grep -v '^\s*$')
 fi
 
+RETRY=()
 while :; do
   # groceries once per pass: packaged products with their ingredient-label photos (Open Food Facts, open data)
   stage products $PY tools/scrape/fetch_products.py --categories-file tools/scrape/product_categories.txt --n ${PRODUCTS_PER_CATEGORY:-100} --out data-lake/gold/products.json
@@ -42,7 +43,14 @@ while :; do
     if [ -f .env ]; then set -a; . ./.env; set +a; fi
     IFS="|" read -r STATE CODE COUNTY FIPS <<<"$spec"
     log "=== $COUNTY, $CODE ==="
-    stage discover   $PY tools/scrape/discover_restaurants.py --state "$STATE" --state-code "$CODE" --county "$COUNTY"
+    # Overpass (OpenStreetMap) mirrors time out now and then: retry a few times, then put the county at the
+    # end of the queue instead of recording it as a county with no restaurants
+    ok=0
+    for attempt in 1 2 3; do
+      if stage discover $PY tools/scrape/discover_restaurants.py --state "$STATE" --state-code "$CODE" --county "$COUNTY"; then ok=1; break; fi
+      log "discover attempt $attempt failed; waiting 2 min"; sleep 120
+    done
+    if [ $ok = 0 ]; then log "requeue $COUNTY, $CODE (discovery failed 3 times; retried at the end of the pass)"; RETRY+=("$spec"); continue; fi
     stage websites   $PY tools/scrape/acquire_websites.py
     stage pdfs       $PY tools/scrape/pdf_menus.py
     if [ -n "${GOOGLE_PLACES_API_KEY:-}" ]; then
@@ -64,7 +72,7 @@ PYEOF
       fi
     fi
     stage gate       $PY tools/scrape/gate_menu_images.py --vision-model "$VISION_MODEL"
-    stage process    $PY tools/scrape/process_menus.py --vision-model "$VISION_MODEL" --state "$CODE" --county "${COUNTY% County}"
+    stage process    $PY tools/scrape/process_menus.py --vision-model "$VISION_MODEL" --state "$CODE" --county "${COUNTY% County}" --workers "${VLM_WORKERS:-8}"
     GOLD="data-lake/gold/menus.$(echo "$CODE" | tr A-Z a-z)-$(echo "${COUNTY% County}" | tr A-Z a-z | tr ' ' '-').json"
     if [ -f "$GOLD" ]; then
       stage research $PY tools/scrape/ingredients_rag.py "$GOLD"
@@ -74,6 +82,10 @@ PYEOF
     stage merge      $PY tools/scrape/merge_gold.py
     stage build      node tools/build-data.js --with-lake
   done
+  if [ ${#RETRY[@]} -gt 0 ] && [ "${LOOP:-0}" != "1" ]; then
+    log "retrying ${#RETRY[@]} counties whose discovery failed"
+    COUNTIES=("${RETRY[@]}"); RETRY=(); continue
+  fi
   [ "${LOOP:-0}" = "1" ] || break
   log "loop: sleeping 6h before the next pass"; sleep 6h
 done

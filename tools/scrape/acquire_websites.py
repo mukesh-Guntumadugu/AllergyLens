@@ -7,11 +7,17 @@ Output: raw pages / PDFs / images in data-lake/bronze/ and one row per menu asse
           {restaurant_id, kind: jsonld | html-menu | pdf | image, sha256, url, page_url, items?}
         JSON-LD Menu items (already structured) also go to data-lake/silver/menu_jsonld.jsonl.
 
-Polite: robots.txt honoured, 1 request/s per host, <= 30 pages per site, depth <= 2,
-identifies itself. JS-only sites are rendered once with Playwright (stock Chromium).
+Polite: robots.txt honoured, one request every 0.5 s per host, <= 20 pages and 120 s per site,
+depth <= 2, identifies itself. JS-only sites are rendered once with Playwright (stock Chromium).
+Sites are crawled 8 at a time (one thread per site; the pause is per site, so per host).
+
+Chains: a brand domain (mcdonalds.com, subway.com, ...; known list plus any domain shared by
+3+ restaurants) is crawled once, from its home page, and recorded in
+data-lake/silver/brand_crawl.jsonl. Every other location of that brand gets a crawl_log row
+{chain_of: domain} and no crawl: locator pages hold no menu, and the menu is national anyway.
 
 Usage:
-    .venv/bin/python tools/scrape/acquire_websites.py [--limit 10] [--restaurant star-of-india-athens]
+    .venv/bin/python tools/scrape/acquire_websites.py [--limit 10] [--restaurant star-of-india-athens] [--workers 8]
 """
 from __future__ import annotations
 
@@ -28,6 +34,8 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import socket
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from bs4 import BeautifulSoup
@@ -45,6 +53,36 @@ BLOCKED_HOSTS = ("doordash.com", "grubhub.com", "ubereats.com", "yelp.com", "fac
 PRICE_RE = re.compile(r"\$\s?\d{1,3}(?:[.,]\d{2})?\b")
 IMG_MIN_BYTES = 40_000
 IMG_MIN_SIDE = 600
+# national chains whose per-location pages are store locators: crawl the brand once, skip the locations
+CHAIN_DOMAINS = {
+    "mcdonalds.com", "subway.com", "tacobell.com", "bk.com", "burgerking.com", "wendys.com", "dominos.com", "pizzahut.com",
+    "kfc.com", "littlecaesars.com", "papajohns.com", "starbucks.com", "dunkindonuts.com", "dunkin.com", "arbys.com",
+    "sonicdrivein.com", "dairyqueen.com", "chick-fil-a.com", "chipotle.com", "pandaexpress.com", "popeyes.com", "wingstop.com",
+    "jimmyjohns.com", "jerseymikes.com", "firehousesubs.com", "pennstation.com", "applebees.com", "bobevans.com",
+    "buffalowildwings.com", "perkinsrestaurants.com", "dennys.com", "ihop.com", "crackerbarrel.com", "olivegarden.com",
+    "redlobster.com", "texasroadhouse.com", "outback.com", "chilis.com", "tgifridays.com", "goldencorral.com", "waffle-house.com",
+    "wafflehouse.com", "whitecastle.com", "fiveguys.com", "culvers.com", "steak-n-shake.com", "steaknshake.com", "hardees.com",
+    "carlsjr.com", "jackinthebox.com", "longjohnsilvers.com", "captainds.com", "churchs.com", "bojangles.com", "zaxbys.com",
+    "raisingcanes.com", "cfacdn.com", "qdoba.com", "moes.com", "noodles.com", "pandarg.com", "panerabread.com", "einsteinbros.com",
+    "timhortons.com", "biggby.com", "sbarro.com", "cicis.com", "marcos.com", "donatos.com", "eastofchicago.com", "hungryhowies.com",
+    "skylinechili.com", "goldstarchili.com", "frischs.com", "tacotapatiooh.com", "rallys.com", "checkers.com", "a-w.com", "awrestaurants.com",
+    "freddys.com", "cookout.com", "bigboy.com", "friendlys.com", "ruthschris.com", "longhornsteakhouse.com", "redrobin.com",
+    "cheesecakefactory.com", "pfchangs.com", "hooters.com", "twinpeaksrestaurant.com", "ladybirdcafe.com", "sheetz.com", "wawa.com",
+    "caseys.com", "speedway.com", "pilotflyingj.com", "loves.com", "ta-petro.com",
+}
+LOCATOR_HINTS = ("/locations/", "/location/", "/store-locator", "/stores/", "/restaurants/", "/find-", "/l/", "/us/en-us/location/")
+# hosts many unrelated restaurants share (site builders, ordering platforms, social pages): never a chain
+GENERIC_HOSTS = ("facebook.com", "instagram.com", "google.com", "yelp.com", "wixsite.com", "wix.com", "godaddysites.com", "weebly.com",
+                 "squarespace.com", "wordpress.com", "business.site", "linktr.ee", "m.me", "webs.com", "yolasite.com", "sites.google.com",
+                 "menupages.com", "zomato.com", "doordash.com", "grubhub.com", "ubereats.com", "tripadvisor.com", "restaurantji.com",
+                 "allmenus.com", "menuism.com", "untappd.com", "bit.ly", "wa.me", "ohio.gov") + PLATFORM_HOSTS
+
+
+def brand_domain(url: str) -> str:
+    """registered domain of a website url: https://locations.subway.com/x -> subway.com"""
+    h = urlparse(url if url.startswith("http") else "https://" + url).netloc.lower().split(":")[0]
+    parts = [x for x in h.split(".") if x]
+    return ".".join(parts[-2:]) if len(parts) >= 2 else h
 
 
 def now() -> str:
@@ -55,6 +93,7 @@ class Bronze:
     def __init__(self, root: Path):
         self.assets = root / "assets"; self.assets.mkdir(parents=True, exist_ok=True)
         self.manifest = root / "manifest.jsonl"
+        self.lock = threading.Lock()      # several sites write the manifest at once
 
     def put(self, url: str, body: bytes, content_type: str, source_type: str, ext: str, **extra) -> str:
         sha = hashlib.sha256(body).hexdigest()
@@ -62,15 +101,15 @@ class Bronze:
         p = d / f"{sha}.{ext}"
         if not p.exists():
             p.write_bytes(body)
-        with self.manifest.open("a") as f:
+        with self.lock, self.manifest.open("a") as f:
             f.write(json.dumps({"sha256": sha, "url": url, "source_type": source_type, "content_type": content_type, "bytes": len(body),
                                 "fetched_at": now(), "http_status": 200, "ext": ext, **extra}) + "\n")
         return sha
 
 
 class Site:
-    def __init__(self, start: str, bronze: Bronze, restaurant_id: str, pause: float = 1.0, max_pages: int = 30,
-                 budget_s: int = 240, max_images: int = 40):
+    def __init__(self, start: str, bronze: Bronze, restaurant_id: str, pause: float = 0.5, max_pages: int = 20,
+                 budget_s: int = 120, max_images: int = 25):
         self.start = start if start.startswith("http") else "https://" + start
         self.t0, self.budget_s, self.max_images = time.time(), budget_s, max_images
         self.host = urlparse(self.start).netloc.lower().removeprefix("www.")
@@ -115,9 +154,11 @@ class Site:
             if self._pw is None:
                 self._pw = sync_playwright().start()
                 self._browser = self._pw.chromium.launch(headless=True)
+            if time.time() - self.t0 > self.budget_s:
+                return None
             page = self._browser.new_page(user_agent=UA)
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(4000)
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_timeout(3000)
             html = page.content(); page.close()
             return html
         except Exception:
@@ -239,8 +280,10 @@ def main() -> int:
     ap.add_argument("--lake", default=str(REPO / "data-lake"))
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--restaurant", default=None)
-    ap.add_argument("--budget", type=int, default=240, help="seconds per site")
-    ap.add_argument("--max-images", type=int, default=40, help="images per site")
+    ap.add_argument("--budget", type=int, default=120, help="seconds per site")
+    ap.add_argument("--max-pages", type=int, default=20, help="pages per site")
+    ap.add_argument("--max-images", type=int, default=25, help="images per site")
+    ap.add_argument("--workers", type=int, default=8, help="sites crawled at the same time")
     ap.add_argument("--force", action="store_true", help="re-crawl sites already in crawl_log.jsonl")
     args = ap.parse_args()
     lake = Path(args.lake)
@@ -256,15 +299,55 @@ def main() -> int:
         rows = [r for r in rows if r["restaurant_id"] not in done_ids]
         if skipped: print(f"{len(skipped)} sites already crawled (crawl_log.jsonl); --force to redo")
     totals = {"jsonld": 0, "html-menu": 0, "pdf": 0, "image": 0}
-    for i, r in enumerate(rows):
-        print(f"[{i + 1}/{len(rows)}] {r['name']}  {r['website']}", flush=True)
-        site = Site(r["website"], bronze, r["restaurant_id"], budget_s=args.budget, max_images=args.max_images)
+
+    # ── chains: one crawl per brand domain, locations skipped ──────────────────────────────────────────
+    all_rows = [json.loads(l) for l in (lake / "silver" / "restaurants.jsonl").read_text().splitlines() if l.strip()]
+    domain_count: dict[str, int] = {}
+    for r in all_rows:
+        if r.get("website"):
+            d = brand_domain(r["website"]); domain_count[d] = domain_count.get(d, 0) + 1
+    def is_chain(url: str) -> bool:
+        d = brand_domain(url)
+        if any(g == d or g.endswith("." + d) or d.endswith("." + g) or g in url.lower() for g in GENERIC_HOSTS):
+            return False
+        return d in CHAIN_DOMAINS or domain_count.get(d, 0) >= 3 or any(h in urlparse(url).path.lower() + "/" for h in LOCATOR_HINTS)
+    brand_log = lake / "silver" / "brand_crawl.jsonl"
+    brands_done = {json.loads(l)["domain"]: json.loads(l) for l in brand_log.read_text().splitlines() if l.strip()} if brand_log.exists() else {}
+    jobs: list[tuple[dict, str, str | None]] = []       # (row, start url, brand domain or None)
+    skipped_chain = 0
+    claimed: set[str] = set()
+    for r in rows:
+        if not is_chain(r["website"]):
+            jobs.append((r, r["website"], None)); continue
+        d = brand_domain(r["website"])
+        if d in brands_done or d in claimed:
+            skipped_chain += 1
+            with crawl_log.open("a") as f:
+                f.write(json.dumps({"restaurant_id": r["restaurant_id"], "website": r["website"], "pages": 0, "kinds": {},
+                                    "chain_of": d, "finished_at": now()}) + "\n")
+            continue
+        claimed.add(d)
+        jobs.append((r, f"https://{d}/", d))            # the brand's home page, not the store locator
+    if skipped_chain:
+        print(f"{skipped_chain} chain locations skipped (brand crawled once; see brand_crawl.jsonl)")
+    print(f"{len(jobs)} sites to crawl, {args.workers} at a time, {args.budget}s / {args.max_pages} pages each", flush=True)
+
+    def crawl_one(job):
+        r, start_url, brand = job
+        site = Site(start_url, bronze, r["restaurant_id"], budget_s=args.budget, max_pages=args.max_pages, max_images=args.max_images)
+        err = None
         try:
             site.crawl()
         except Exception as e:
-            print(f"    error: {e.__class__.__name__}: {str(e)[:100]}", flush=True)
+            err = f"{e.__class__.__name__}: {str(e)[:100]}"
         finally:
             site.close()
+        return job, site, err
+
+    pool = ThreadPoolExecutor(max_workers=max(1, args.workers))
+    futures = [pool.submit(crawl_one, j) for j in jobs]
+    for i, fut in enumerate(as_completed(futures)):
+        (r, start_url, brand), site, err = fut.result()
         kinds = {}
         for a in site.assets:
             kinds[a["kind"]] = kinds.get(a["kind"], 0) + 1; totals[a["kind"]] += 1
@@ -273,8 +356,16 @@ def main() -> int:
         with out_items.open("a") as f:
             for it in site.jsonld_items: f.write(json.dumps({**it, "restaurant_id": r["restaurant_id"]}) + "\n")
         with crawl_log.open("a") as f:
-            f.write(json.dumps({"restaurant_id": r["restaurant_id"], "website": r["website"], "pages": len(site.visited), "kinds": kinds, "finished_at": now()}) + "\n")
-        print(f"    pages {len(site.visited)} -> {kinds or 'nothing menu-like'}", flush=True)
+            f.write(json.dumps({"restaurant_id": r["restaurant_id"], "website": start_url, "pages": len(site.visited), "kinds": kinds,
+                                **({"brand": brand} if brand else {}), "finished_at": now()}) + "\n")
+        if brand:
+            with brand_log.open("a") as f:
+                f.write(json.dumps({"domain": brand, "restaurant_id": r["restaurant_id"], "pages": len(site.visited), "kinds": kinds,
+                                    "finished_at": now()}) + "\n")
+        tag = f"  [brand {brand}]" if brand else ""
+        print(f"[{i + 1}/{len(jobs)}] {r['name']}  {start_url}{tag}\n    pages {len(site.visited)} -> {kinds or 'nothing menu-like'}"
+              + (f"  (error: {err})" if err else ""), flush=True)
+    pool.shutdown()
     print(f"\nTOTAL {totals} -> {out}")
     return 0
 

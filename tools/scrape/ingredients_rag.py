@@ -41,7 +41,9 @@ import json
 import os
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
@@ -120,6 +122,7 @@ class Bronze:
         self.manifest = root / "bronze" / "manifest.jsonl"
         self.assets.mkdir(parents=True, exist_ok=True)
         self._by_url: dict[str, dict] = {}
+        self.lock = threading.Lock()      # dishes are researched in parallel; one writer to the manifest
         if self.manifest.exists():
             for line in self.manifest.read_text().splitlines():
                 if line.strip():
@@ -145,9 +148,10 @@ class Bronze:
             p.write_bytes(body)
         row = {"sha256": sha, "url": url, "source_type": source_type, "content_type": content_type, "bytes": len(body),
                "fetched_at": datetime.now(timezone.utc).isoformat(), "http_status": status, "ext": ext, **extra}
-        with self.manifest.open("a") as f:
-            f.write(json.dumps(row) + "\n")
-        self._by_url[url] = row
+        with self.lock:
+            with self.manifest.open("a") as f:
+                f.write(json.dumps(row) + "\n")
+            self._by_url[url] = row
         return row
 
 
@@ -526,6 +530,7 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="re-research dishes already in the catalog")
     ap.add_argument("--only", nargs="*", default=None, help="only these dish names")
     ap.add_argument("--pause", type=float, default=0.7, help="seconds between web requests")
+    ap.add_argument("--workers", type=int, default=3, help="dishes researched at the same time")
     ap.add_argument("--dry-run", action="store_true", help="research and print, write nothing to the catalog")
     args = ap.parse_args()
 
@@ -570,6 +575,8 @@ def main() -> int:
             if q.get("kind") == "dish_unknown" and q.get("created_at", "") >= cutoff:
                 recent_unknown.add(q.get("canonical") or "")
     added = hits = unknown = simple = junk = cached_unknown = 0
+    todo: list[tuple] = []        # (restaurant, dish, key, cuisine, description, existing entry)
+    queued: set[str] = set()
     for r in restaurants:
         cuisine = args.cuisine or (str(r.get("cuisine") or "").split(";")[0].replace("_", " ") or None)
         for dish in r["dishes"]:
@@ -597,48 +604,67 @@ def main() -> int:
                 existing["last_seen"] = today
                 hits += 1
                 continue
-            print(f"\n  {dish['name']}  ->  '{key}'")
-            res = research(dish["name"], cuisine, desc, bronze, searcher, args.n, args.min_recipes, args.judge_model, args.pause)
-            if res.status == "unknown" and cuisine and res.accepted < args.min_recipes:
-                # the cuisine hint ("bbq") pulled in variants of other dishes; try the plain dish name once
-                print(f"    retry without the '{cuisine}' hint")
-                res = research(dish["name"], None, desc, bronze, searcher, args.n, args.min_recipes, args.judge_model, args.pause)
-            if res.status == "unknown":
-                unknown += 1
-                if res.accepted >= args.min_recipes:
-                    print(f"    UNKNOWN: {res.accepted} same-dish recipes agree on no ingredient (none at >=50% support after the skip list)")
-                else:
-                    print(f"    UNKNOWN: {res.accepted} same-dish recipes of {res.considered} with structured ingredients (need {args.min_recipes})")
-                if not args.dry_run:
-                    with queue_path.open("a") as f:
-                        f.write(json.dumps({"kind": "dish_unknown", "dish": dish["name"], "canonical": key, "restaurant": r.get("id"),
-                                            "recipes_considered": res.considered, "recipes_accepted": res.accepted, "created_at": today}) + "\n")
+            if key in queued:
+                hits += 1          # same dish at another restaurant in this run: researched once, matched below
                 continue
-            typical = [k for k, v in res.ingredients.items() if v["class"] == "typical"]
-            entry = {
-                "name": key, "aliases": sorted({dish["name"].lower()} - {key}), "cuisine": (cuisine or "").lower() or None,
-                "status": res.status,
-                "typicalIngredients": typical,
-                "evidence": res.ingredients,
-                "recipes_considered": res.considered, "recipes_accepted": res.accepted,
-                "seen_count": (existing or {}).get("seen_count", 0) + 1, "last_seen": today,
-                "source": {"type": "recipes", "collected": today, "search": args.search, "urls": res.accepted_urls},
-            }
-            if existing:  # keep hand-curated extras
-                for keep in ("shares", "substitutes"):
-                    if existing.get(keep):
-                        entry[keep] = existing[keep]
-                entry["aliases"] = sorted(set(entry["aliases"]) | set(existing.get("aliases", [])) | ({existing["name"]} - {key}))
-            shown = ", ".join(f"{k} {int(v['support']*100)}%" for k, v in list(res.ingredients.items())[:8])
-            print(f"    {res.status.upper()} from {res.accepted}/{res.considered} recipes: {shown}")
-            if args.dry_run:
-                continue
-            if existing:
-                kb["dishes"] = [d for d in kb["dishes"] if d is not existing]
-            kb["dishes"].append(entry)
-            for k in [entry["name"], *entry["aliases"]]:
-                by_key[canonical_name(k)] = entry
-            added += 1
+            queued.add(key)
+            todo.append((r, dish, key, cuisine, desc, existing))
+
+    def do_research(item):
+        r, dish, key, cuisine, desc, existing = item
+        print(f"\n  {dish['name']}  ->  '{key}'", flush=True)
+        res = research(dish["name"], cuisine, desc, bronze, searcher, args.n, args.min_recipes, args.judge_model, args.pause)
+        if res.status == "unknown" and cuisine and res.accepted < args.min_recipes:
+            # the cuisine hint ("bbq") pulled in variants of other dishes; try the plain dish name once
+            print(f"    retry '{dish['name']}' without the '{cuisine}' hint", flush=True)
+            res = research(dish["name"], None, desc, bronze, searcher, args.n, args.min_recipes, args.judge_model, args.pause)
+        return item, res
+
+    print(f"\n{len(todo)} dishes to research, {args.workers} at a time", flush=True)
+    results = []
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        for fut in as_completed([pool.submit(do_research, it) for it in todo]):
+            try:
+                results.append(fut.result())
+            except Exception as e:       # one dish must not stop the county
+                print(f"    research failed: {e.__class__.__name__}: {str(e)[:120]}", flush=True)
+    for (r, dish, key, cuisine, desc, existing), res in sorted(results, key=lambda x: x[0][2]):
+        if res.status == "unknown":
+            unknown += 1
+            if res.accepted >= args.min_recipes:
+                print(f"    UNKNOWN: {res.accepted} same-dish recipes agree on no ingredient (none at >=50% support after the skip list)")
+            else:
+                print(f"    UNKNOWN: {res.accepted} same-dish recipes of {res.considered} with structured ingredients (need {args.min_recipes})")
+            if not args.dry_run:
+                with queue_path.open("a") as f:
+                    f.write(json.dumps({"kind": "dish_unknown", "dish": dish["name"], "canonical": key, "restaurant": r.get("id"),
+                                        "recipes_considered": res.considered, "recipes_accepted": res.accepted, "created_at": today}) + "\n")
+            continue
+        typical = [k for k, v in res.ingredients.items() if v["class"] == "typical"]
+        entry = {
+            "name": key, "aliases": sorted({dish["name"].lower()} - {key}), "cuisine": (cuisine or "").lower() or None,
+            "status": res.status,
+            "typicalIngredients": typical,
+            "evidence": res.ingredients,
+            "recipes_considered": res.considered, "recipes_accepted": res.accepted,
+            "seen_count": (existing or {}).get("seen_count", 0) + 1, "last_seen": today,
+            "source": {"type": "recipes", "collected": today, "search": args.search, "urls": res.accepted_urls},
+        }
+        if existing:  # keep hand-curated extras
+            for keep in ("shares", "substitutes"):
+                if existing.get(keep):
+                    entry[keep] = existing[keep]
+            entry["aliases"] = sorted(set(entry["aliases"]) | set(existing.get("aliases", [])) | ({existing["name"]} - {key}))
+        shown = ", ".join(f"{k} {int(v['support']*100)}%" for k, v in list(res.ingredients.items())[:8])
+        print(f"    {res.status.upper()} from {res.accepted}/{res.considered} recipes: {shown}")
+        if args.dry_run:
+            continue
+        if existing:
+            kb["dishes"] = [d for d in kb["dishes"] if d is not existing]
+        kb["dishes"].append(entry)
+        for k in [entry["name"], *entry["aliases"]]:
+            by_key[canonical_name(k)] = entry
+        added += 1
 
     if not args.dry_run:
         kb["dishes"].sort(key=lambda d: d["name"])
