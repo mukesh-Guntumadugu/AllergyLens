@@ -536,7 +536,7 @@ def main() -> int:
     queue_path.parent.mkdir(parents=True, exist_ok=True)
 
     src = json.loads(Path(args.menu_json).read_text())
-    restaurants = src.get("restaurants") or [src]
+    restaurants = src["restaurants"] if isinstance(src, dict) and "restaurants" in src else [src]   # an empty county file is not a restaurant
     if args.restaurant:
         restaurants = [r for r in restaurants if r["id"] == args.restaurant]
     # The written catalog lives in the gitignored lake; the committed seed is only read, so nothing the
