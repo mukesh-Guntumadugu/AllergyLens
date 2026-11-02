@@ -11,6 +11,24 @@ Pipeline 1  restaurants   photo/web menu -> dish lines with positions -> ingredi
 Pipeline 2  groceries     barcode / search / category -> ingredients, allergen tags, nutrition, fitness flags
 ```
 
+## Run the whole thing (three commands, no Claude needed)
+
+```bash
+tools/scrape/start_all.sh      # starts the vision server, waits for it, starts ONE driver (safe to re-run; never doubles up)
+tools/scrape/watch.sh          # live view: driver state, current stage log, totals (Ctrl+C to leave; the scraper keeps going)
+tools/scrape/stop_all.sh       # stops the driver (add --vllm to stop the vision server too)
+```
+
+The driver walks every county in `tools/scrape/counties.txt`, stage by stage, and starts over after a pass
+(`LOOP=1`). Every stage is resumable: if anything dies, run `start_all.sh` again and it continues where it was.
+Results: `data-lake/review/index.html` (open in a browser, or `python3 -m http.server 8765 --bind 127.0.0.1 -d data-lake/review`),
+`data-lake/gold/` (per-county menus, dish catalog, products), `Assets/Data/AllergyData.ts` after `node tools/build-data.js --with-lake`.
+Optional keys go in `.env` at the repo root (`GOOGLE_PLACES_API_KEY=...`); the driver re-reads it every county.
+
+Why it can stop: the vision server and the driver are ordinary processes. If they were started from a chat
+session or a terminal that later closed, they die with it. `start_all.sh` starts them detached (setsid + nohup),
+so only a reboot or `stop_all.sh` stops them. After a reboot, run `start_all.sh` once.
+
 ## Setup on the GX10 (once)
 
 ```bash
