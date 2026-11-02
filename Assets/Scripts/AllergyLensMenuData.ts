@@ -171,6 +171,9 @@ export function validateMenus(json: unknown): RestaurantDef[] | null {
         substitutes: parseStringMap<string | null>(d.substitutes, (x): x is string | null => x === null || typeof x === "string"),
         layout: parseLayout(d.layout),
         category: "unknown",
+        price: typeof d.price === "number" && isFinite(d.price) ? d.price : null,
+        section: typeof d.section === "string" ? d.section : null,
+        markers: Array.isArray(d.markers) ? (d.markers as unknown[]).filter((x) => typeof x === "string").map((x) => String(x)) : [],
         notes: typeof d.notes === "string" ? d.notes : undefined,
       })
       const last = dishes[dishes.length - 1]
@@ -193,6 +196,7 @@ export function validateMenus(json: unknown): RestaurantDef[] | null {
       menuImage: parseMenuImage(r.menuImage),
       id: r.id,
       name: r.name,
+      cuisine: typeof r.cuisine === "string" ? r.cuisine : null,
       source: {
         type: typeof src.type === "string" ? src.type : "remote",
         url: typeof src.url === "string" ? src.url : null,

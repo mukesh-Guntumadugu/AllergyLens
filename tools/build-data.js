@@ -19,7 +19,17 @@ const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
 
 const allergens = read("data/allergens.json");
 const dishKb = read("data/dishes.json");
-const menus = read("data/menus.json");
+const menus = read("data/menus.json");                       // committed, hand-curated seed only
+// Scraped restaurants live in the gitignored lake; join them in for a local Lens build, never for a commit.
+const withLake = process.argv.includes("--with-lake") || process.env.ALLERGY_WITH_LAKE === "1";
+const lakePath = path.join(root, "data-lake", "gold", "lens", "menus.json");
+if (withLake && fs.existsSync(lakePath)) {
+  const lake = JSON.parse(fs.readFileSync(lakePath, "utf8"));
+  const byId = new Map(menus.restaurants.map((r) => [r.id, r]));
+  for (const r of lake.restaurants) byId.set(r.id, r);        // lake entry wins over the seed
+  menus.restaurants = [...byId.values()];
+  console.log(`+ ${lake.restaurants.length} scraped restaurants from ${path.relative(root, lakePath)} (local build; do not commit the result)`);
+}
 
 const errors = [];
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -124,6 +134,7 @@ const restaurants = menus.restaurants.map((r) => {
         if (typeof v !== "number" || v < 0 || v > 1) errors.push(`${key}: layout.${k} must be a 0..1 fraction`);
       }
     }
+    if (d.price != null && (typeof d.price !== "number" || d.price < 0 || d.price > 500)) errors.push(`${key}: price must be a number 0-500 or null`);
     return {
       id: d.id,
       name: d.name,
@@ -135,6 +146,9 @@ const restaurants = menus.restaurants.map((r) => {
       shares,
       substitutes,
       layout: d.layout || null,
+      price: typeof d.price === "number" ? d.price : null,
+      section: d.section || null,
+      markers: Array.isArray(d.markers) ? d.markers : [],
       ...(d.notes ? { notes: d.notes } : {}),
     };
   });
@@ -147,6 +161,7 @@ const restaurants = menus.restaurants.map((r) => {
     id: r.id,
     name: r.name,
     source: r.source,
+    cuisine: r.cuisine || null,
     rating: r.rating || null,
     menuImage: r.menuImage || null,
     dishes,
@@ -217,6 +232,12 @@ export interface DishDef {
   /** common kitchen substitute per ingredient, or null when there is none (may be empty) */
   substitutes: { [ingredient: string]: string | null }
   layout: DishLayout | null
+  /** printed price in the menu's currency, or null when not read (price filter in the Lens) */
+  price: number | null
+  /** section heading as printed on the menu ("Tandoori Breads"), or null */
+  section: string | null
+  /** printed dietary markers next to the line, e.g. ["V", "GF", "spicy:2"] */
+  markers: string[]
   notes?: string
 }
 
@@ -243,6 +264,8 @@ export interface RestaurantDef {
   id: string
   name: string
   source: { type: string; url: string | null; collected: string }
+  /** cuisine tag from discovery (OpenStreetMap), e.g. "indian"; null when unknown */
+  cuisine: string | null
   rating: RestaurantRating | null
   /** null for restaurants without a tracked menu image */
   menuImage: MenuImageDef | null

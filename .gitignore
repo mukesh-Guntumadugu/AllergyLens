@@ -36,3 +36,15 @@ agent/
 .agents/
 skills-lock.json
 *.esproj.*.lock
+
+# AllergyLens scraper: raw fetched pages/images and the processed lake (see tools/scrape/DESIGN.md §12)
+data-lake/
+__pycache__/
+.venv/
+
+# local secrets for the scraper driver (GOOGLE_PLACES_API_KEY etc.)
+.env
+
+# scraped menu images/extractions stay local; only the hand-checked seed folder is committed
+data/menus/*/
+!data/menus/star-of-india/
