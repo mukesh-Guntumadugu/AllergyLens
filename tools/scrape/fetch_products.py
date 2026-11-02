@@ -204,11 +204,18 @@ def main() -> int:
     cats = [args.category] if args.category else []
     if args.categories_file:
         cats += [l.strip() for l in Path(args.categories_file).read_text().splitlines() if l.strip() and not l.startswith("#")]
+    failures = 0
     for cat in cats:
         try:
             res = search(None, cat, args.n, args.country)
+            failures = 0
         except requests.RequestException as ex:
-            print(f"  category {cat}: failed ({ex.__class__.__name__})"); continue
+            failures += 1
+            print(f"  category {cat}: failed ({ex.__class__.__name__})", flush=True)
+            if failures >= 2:
+                print("Open Food Facts is not answering (two categories in a row); stopping this pass, the driver retries next pass")
+                break
+            time.sleep(30); continue
         print(f"  category {cat}: {len(res)} products, {sum(1 for e in res if e.get('labelImage'))} with a label photo", flush=True)
         for e in res:
             by_code[e["barcode"]] = e

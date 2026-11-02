@@ -93,6 +93,12 @@ def main() -> int:
         action = "replaced" if r["id"] in by_id else "added"
         by_id[r["id"]] = r
         print(f"  {action} {r['id']}: {len(r['dishes'])} dishes, image {r['menuImage']['path'] if r['menuImage'] else '-'}")
+    if not sys.argv[1:]:
+        # full merge: a restaurant whose gold file is gone (its images were re-judged as not menus) leaves the snapshot too
+        current = {f.stem for f in files}
+        gone = [k for k in by_id if k not in current]
+        for k in gone:
+            print(f"  removed {k}: no gold entry any more"); del by_id[k]
     menus["restaurants"] = [by_id[k] for k in by_id]
     menus_path.write_text(json.dumps(menus, indent=2, ensure_ascii=False) + "\n")
     print(f"{len(menus['restaurants'])} scraped restaurants in {menus_path.relative_to(REPO)} (local, not committed). "
