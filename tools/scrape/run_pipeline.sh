@@ -81,6 +81,7 @@ PYEOF
     fi
     stage merge      $PY tools/scrape/merge_gold.py
     stage build      node tools/build-data.js --with-lake
+    stage db         $PY tools/scrape/build_db.py
   done
   if [ ${#RETRY[@]} -gt 0 ] && [ "${LOOP:-0}" != "1" ]; then
     log "retrying ${#RETRY[@]} counties whose discovery failed"

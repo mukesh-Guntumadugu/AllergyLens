@@ -29,6 +29,26 @@ Why it can stop: the vision server and the driver are ordinary processes. If the
 session or a terminal that later closed, they die with it. `start_all.sh` starts them detached (setsid + nohup),
 so only a reboot or `stop_all.sh` stops them. After a reboot, run `start_all.sh` once.
 
+## Query the data with SQL (DuckDB)
+
+Every stage still writes its JSON/JSONL files, and `build_db.py` folds them into one database file,
+`data-lake/silver/allergylens.duckdb` (the driver rebuilds it after every county; seconds). Tables follow DESIGN.md §12:
+`restaurants`, `menu_assets`, `menu_gate`, `menu_items` (+ view `menu_dishes` = lines from accepted images),
+`dish_catalog`, `dish_ingredients`, `ingredient_sources`, `products`, `product_ingredients`, `review_queue`,
+`bronze_manifest`, `crawl_log`.
+
+```bash
+.venv/bin/python tools/scrape/build_db.py            # rebuild now
+.venv/bin/python tools/scrape/build_db.py --sqlite   # same tables as data-lake/silver/allergylens.sqlite, for tools without DuckDB
+.venv/bin/python tools/scrape/build_db.py --query "SELECT r.name, d.name_clean, d.price, string_agg(i.ingredient, ', ') AS ingredients
+   FROM menu_dishes d JOIN restaurants r USING (restaurant_id) JOIN dish_ingredients i ON i.dish_id = d.dish_id
+   WHERE r.county = 'Athens' GROUP BY 1,2,3 ORDER BY 1,2"
+```
+
+Allergen lookup across every restaurant: `SELECT r.name, d.name_clean FROM menu_dishes d JOIN restaurants r USING (restaurant_id)
+JOIN dish_ingredients i ON i.dish_id = d.dish_id WHERE i.ingredient IN ('peanut','peanuts')`. Citations: `ingredient_sources`.
+`pip install duckdb` in the venv (done on the GX10); the Python `duckdb` module also opens the file from pandas or a notebook.
+
 ## Setup on the GX10 (once)
 
 ```bash
