@@ -90,14 +90,27 @@ SIMPLE_ITEMS = {"milk", "water", "soft drink", "soft drinks", "soda", "coke", "p
                 "wheat", "white", "rye", "sourdough", "pumpernickel", "everything", "plain", "sesame", "ciabatta", "croissant",
                 "raspberry", "strawberry", "blueberry", "vanilla", "chocolate", "caramel", "hazelnut", "butter", "honey", "sugar", "salt"}
 # words in a menu name that say nothing about the dish
-NAME_STOPWORDS = {"regular", "plain", "special", "house", "chef", "chefs", "our", "the", "with", "and", "style",
+NAME_STOPWORDS = {"regular", "plain", "special", "house", "our", "the", "with", "and", "style",
                   "fresh", "homemade", "classic", "traditional", "famous", "mixed", "combo"}
+
+
+_ALIAS_IN_TEXT = sorted(ALIAS_PHRASES.items(), key=lambda kv: -len(kv[0]))   # longest phrase first
+# bare words that name a whole category, not a dish: nothing to research ("Chicken", "Salad", "Pizza" as a menu line)
+GENERIC_BARE = {"chicken", "beef", "pork", "steak", "fish", "shrimp", "seafood", "salad", "salads", "sandwich", "sandwiches", "pizza",
+                "pizzas", "burger", "burgers", "pasta", "soup", "soups", "sides", "side", "wrap", "wraps", "sub", "subs", "bowl", "bowls",
+                "dessert", "desserts", "appetizer", "appetizers", "entree", "entrees", "lunch", "dinner", "breakfast", "meal", "meals",
+                "platter", "platters", "basket", "baskets", "dinners", "lunches", "snacks", "snack", "blend", "loaded", "spicy", "sweet",
+                "square", "deluxe", "fluff", "italian", "hawaiian", "philly", "single", "double", "triple", "lemon", "coconut", "pineapple",
+                "pineapples", "mushroom", "mushrooms", "sausage", "reaper", "straws", "mexican", "american", "asian", "greek", "veggie",
+                "vegetable", "vegetables", "fruit", "fruits", "meat", "meats", "cheese", "cheeses", "egg", "eggs", "rice", "noodle", "noodles"}
 
 
 def norm_tokens(name: str) -> list[str]:
     s = re.sub(r"\(.*?\)", " ", name.lower())
     s = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]+", " ", s)).strip()
-    s = ALIAS_PHRASES.get(s, s)
+    for phrase, full in _ALIAS_IN_TEXT:          # "baked mac n cheese" -> "baked macaroni and cheese"; never twice
+        if full not in s:
+            s = re.sub(rf"\b{re.escape(phrase)}\b", full, s)
     s = re.sub(r"[^a-z0-9 ]+", " ", s)
     toks = [TRANSLITERATION.get(t, t) for t in s.split()]
     return [t for t in toks if t and t not in NAME_STOPWORDS]
@@ -267,12 +280,46 @@ def recipes_from_html(html: bytes, url: str) -> list[dict]:
 
 
 # ─── same-dish check ─────────────────────────────────────────────────────────
+# words that name a kind of dish: a recipe title carrying one the menu name lacks is a different dish
+# ("Cheddar" vs "BBQ Cheddar Burger", "Baked Potato" vs "Baked Potato Soup"). Stored singular (trailing s removed).
+DISH_HEADS = {w.rstrip("s") for w in """burger burgers pizza pizzas soup soups salad salads sandwich sandwiches sub subs hoagie taco
+    tacos burrito burritos wrap wraps pasta curry stew casserole cake cakes pie pies bread cookie cookies muffin muffins pancake pancakes
+    waffle waffles omelet omelette quesadilla quesadillas enchilada enchiladas lasagna risotto chowder chili dip sauce dressing marinade
+    smoothie cocktail latte nachos fries wings bake skillet bowl bowls roll rolls biscuit biscuits bites balls sticks pudding cheesecake
+    brownie brownies fritter fritters dumpling dumplings noodles ramen pho sushi salsa spread jam calzone stromboli flatbread toast bagel
+    bagels donut donuts doughnut doughnuts milkshake shake frappe pilaf gratin frittata quiche tart tarts crumble cobbler scone scones
+    kebab kebabs skewers meatballs meatloaf pot pie hash slider sliders melt melts panini gyro gyros shawarma tikka pakora samosa
+    bhaji biryani dosa idli naan paratha chutney raita kulfi halwa ladoo wonton wontons eggroll eggrolls dumplings tempura teriyaki
+    katsu poke bibimbap kimchi pierogi goulash schnitzel paella empanada empanadas tamale tamales tostada tostadas chimichanga
+    fajita fajitas nacho crepe crepes souffle mousse parfait sundae popsicle sorbet gelato""".split()}
+# title words that do not change what dish it is
+NEUTRAL_WORDS = {"easy", "best", "simple", "quick", "homemade", "classic", "recipe", "recipes", "perfect", "ultimate", "healthy", "the",
+                 "my", "favorite", "favourite", "authentic", "old", "fashioned", "ever", "crispy", "creamy", "cheesy", "loaded", "slow",
+                 "cooker", "instant", "pot", "air", "fryer", "minute", "one", "oven", "stovetop", "vegan", "vegetarian", "keto",
+                 "gluten", "free", "low", "carb", "and", "with", "style", "how", "to", "make", "video", "sharp", "aged", "mild", "extra",
+                 "mom", "moms", "grandma", "grandmas", "restaurant", "copycat", "southern", "traditional", "famous", "world", "amazing"}
+
+
 def same_dish(menu_name: str, recipe_name: str) -> str:
     """same | variant | different, from name tokens only (deterministic)."""
-    a, b = set(norm_tokens(menu_name)), set(norm_tokens(recipe_name))
+    a_list = norm_tokens(menu_name)
+    b_list = norm_tokens(recipe_name)
+    a, b = set(a_list), set(b_list)
     b |= {t.rstrip("s") for t in b}
     if not a or not b:
         return "different"
+    # a recipe for a different kind of dish that merely contains the menu item's words
+    a_heads = {t.rstrip("s") for t in a} & DISH_HEADS
+    b_heads = {t.rstrip("s") for t in b_list} & DISH_HEADS
+    if b_heads - a_heads - {t.rstrip("s") for t in a}:
+        return "different"
+    if len(a_list) == 1:
+        # one-word names ("cheddar", "nachos", "falafel"): the title must be ABOUT that word, i.e. it is the
+        # title's last meaningful word ("Loaded Beef Nachos", "Sharp Cheddar"), not one ingredient among others
+        meaningful = [t for t in b_list if t not in NEUTRAL_WORDS]
+        t = a_list[0]
+        if not meaningful or meaningful[-1] not in (t, t.rstrip("s"), t + "s"):
+            return "different"
     hit = sum(1 for t in a if t in b or t.rstrip("s") in b)
     ratio = hit / len(a)
     if ratio == 1.0:
@@ -591,7 +638,7 @@ def main() -> int:
                     or any(low == w or low.startswith(w + " ") or low.endswith(" " + w) for w in MENU_SCAFFOLD)):
                 junk += 1          # OCR noise ("Fapdias", "kyfas0Ng [) @8"), a whole sentence, or menu scaffolding ("Choose One Meat")
                 continue
-            if key in SIMPLE_ITEMS or dish["name"].lower() in SIMPLE_ITEMS:
+            if key in SIMPLE_ITEMS or dish["name"].lower() in SIMPLE_ITEMS or (len(key.split()) == 1 and key in GENERIC_BARE):
                 print(f"  {dish['name']}: generic item, not a dish -> no research (restaurant ingredients or unverified)")
                 simple += 1
                 continue
