@@ -185,3 +185,26 @@ and the local Lens snapshot `data-lake/gold/lens/menus.json` + `data-lake/gold/l
 `data/` is the committed, hand-curated seed only. `Assets/Data/AllergyData.ts` is committed as the seed-only build;
 for a local Lens build with the scraped restaurants run `node tools/build-data.js --with-lake` and do not commit the result.
 `.gitignore` blocks `data/menus/*/` (except the hand-checked `star-of-india`) as a backstop.
+
+## Quality rules (tools/scrape/text_quality.py)
+
+One rule set, used by the gate, the labeller, the merge and the ingredient researcher:
+
+- an image is extracted only if its long side is >= 700 px, RapidOCR finds >= 6 lines and the mean
+  OCR confidence is >= 0.70; otherwise the gate records `not_menu` with the reason
+  (`low-resolution`, `too-little-text`, `unreadable-ocr`). Thumbnails of real menus are rejected on purpose:
+  what we cannot read we must not guess.
+- a labelled "dish" line is dropped when it is a size (`6"`), mostly symbols or digits (`B.Y.O.B`, `Blt - $9`),
+  has no vowel, is only menu scaffolding (`Build Your Own`, `Large`), is a sentence, or carries a price.
+- `rebuild_gold.py` re-applies both rules to everything already extracted without re-running the vision model.
+- `review_export.py` writes `index.html` (accepted menus and their dishes only) and `index-all.html`
+  (every collected image, red = rejected, with the reason in the tooltip).
+
+## Groceries (tools/scrape/fetch_products.py)
+
+Packaged products come from Open Food Facts (open data, ODbL, attribution required). For each product we keep
+the ingredient list, allergen and trace tags, nutrition, and the **photo of the printed ingredient label**
+(`labelImage`, downloaded to `data-lake/bronze/products/<barcode>-ingredients.jpg`) as the evidence behind it.
+The driver runs one pass over `tools/scrape/product_categories.txt` per loop. Store sites such as Walmart sit
+behind bot detection, which we do not evade (DESIGN.md §14); scanning a barcode in the store and
+`--barcode <code>` reaches the same record.

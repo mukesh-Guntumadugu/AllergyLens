@@ -1,0 +1,32 @@
+# Open Food Facts category tags fetched by the driver's products stage (US products, most-scanned first).
+# One tag per line. Add more: https://world.openfoodfacts.org/categories
+en:snacks
+en:breakfast-cereals
+en:cookies
+en:crackers
+en:chips-and-fries
+en:chocolates
+en:candies
+en:ice-creams
+en:yogurts
+en:cheeses
+en:breads
+en:pastas
+en:sauces
+en:soups
+en:frozen-meals
+en:frozen-pizzas
+en:plant-based-milks
+en:dairy-milks
+en:nut-butters
+en:granola-bars
+en:beverages
+en:sodas
+en:fruit-juices
+en:baby-foods
+en:salad-dressings
+en:condiments
+en:canned-foods
+en:meats
+en:seafood
+en:plant-based-foods

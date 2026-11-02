@@ -34,6 +34,8 @@ if [ ${#COUNTIES[@]} -eq 0 ]; then
 fi
 
 while :; do
+  # groceries once per pass: packaged products with their ingredient-label photos (Open Food Facts, open data)
+  stage products $PY tools/scrape/fetch_products.py --categories-file tools/scrape/product_categories.txt --n ${PRODUCTS_PER_CATEGORY:-100} --out data-lake/gold/products.json
   for spec in "${COUNTIES[@]}"; do
     # secrets and switches live in .env at the repo root (gitignored); re-read every county so a key
     # added while the driver runs takes effect without a restart. Lines: NAME=value, no quotes needed.
@@ -69,6 +71,7 @@ PYEOF
     else
       log "skip  research (no gold file yet: $GOLD)"
     fi
+    stage merge      $PY tools/scrape/merge_gold.py
     stage build      node tools/build-data.js --with-lake
   done
   [ "${LOOP:-0}" = "1" ] || break

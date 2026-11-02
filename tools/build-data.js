@@ -179,6 +179,15 @@ const restaurants = menus.restaurants.map((r) => {
 // --- packaged products (pipeline 2, optional) ------------------------------
 const productsPath = path.join(root, "data", "products.json");
 const products = fs.existsSync(productsPath) ? read("data/products.json") : { version: 0, attribution: "", products: [] };
+const lakeProducts = path.join(root, "data-lake", "gold", "products.json");
+if (withLake && fs.existsSync(lakeProducts)) {
+  const lake = JSON.parse(fs.readFileSync(lakeProducts, "utf8"));
+  const byCode = new Map(products.products.map((p) => [p.barcode, p]));
+  for (const p of lake.products || []) byCode.set(p.barcode, p);
+  products.products = [...byCode.values()];
+  console.log(`+ ${(lake.products || []).length} scraped products from data-lake/gold/products.json (local build; do not commit the result)`);
+}
+
 const seenCodes = new Set();
 for (const p of products.products) {
   if (!p.barcode || seenCodes.has(p.barcode)) errors.push(`product barcode missing or duplicated: ${p.barcode}`);

@@ -6,8 +6,9 @@ Input : images in the bronze store listed in data-lake/silver/menu_assets.jsonl 
 Output: data-lake/silver/menu_gate.jsonl  {sha256, restaurant_id, verdict: menu|not_menu, price_count, ocr_lines, method}
 
 Gates (DESIGN.md §7.1):
+  0. readability (text_quality.image_quality): long side < 700 px, < 6 OCR lines, or mean OCR
+     confidence < 0.70                                                                           -> not_menu
   1. price density: RapidOCR text with >= 5 price patterns, or >= 25 text lines with >= 2 prices  -> menu
-     fewer than 6 text lines                                                                    -> not_menu
   2. otherwise ask the local vision model MENU / NOT_MENU (same fallback list as label_menu_lines)
 Images already judged are skipped (idempotent).
 
@@ -30,6 +31,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ocr_engines import ocr_lines  # noqa: E402
 from label_menu_lines import resolve_model  # noqa: E402
+from text_quality import image_quality  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 PRICE_RE = re.compile(r"(?:\$\s?\d{1,3}(?:[.,]\d{2})?|\b\d{1,3}[.,]\d{2}\b)")
@@ -65,9 +67,12 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--vision-model", default="auto")
     ap.add_argument("--no-vision", action="store_true", help="price-density gate only")
+    ap.add_argument("--rejudge", action="store_true", help="judge every image again (rules changed); rewrites menu_gate.jsonl")
     args = ap.parse_args()
     lake = Path(args.lake); silver = lake / "silver"
     out = silver / "menu_gate.jsonl"
+    if args.rejudge and out.exists():
+        out.rename(out.with_suffix(".jsonl.bak"))
     done = {json.loads(l)["sha256"] for l in out.read_text().splitlines() if l.strip()} if out.exists() else set()
     todo = {}
     for fn, kind_filter in (("menu_assets.jsonl", "image"), ("menu_photos.jsonl", None)):
@@ -91,25 +96,27 @@ def main() -> int:
             if not path.exists():
                 continue
             try:
-                lines, _ = ocr_lines(path)
+                lines, (W, H) = ocr_lines(path)
             except Exception as e:
                 print(f"  OCR failed {path.name}: {e.__class__.__name__}"); continue
             text = " ".join(l["text"] for l in lines)
             prices = len(PRICE_RE.findall(text))
-            if prices >= 5 or (len(lines) >= 25 and prices >= 2):
+            ok, why, mean_conf = image_quality(lines, W, H)
+            if not ok:
+                # a menu we cannot read is not worth extracting: thumbnails, blurry phone shots, decorative text
+                verdict, method = "not_menu", why
+            elif prices >= 5 or (len(lines) >= 25 and prices >= 2):
                 verdict, method = "menu", "price-density"
-            elif len(lines) < 6:
-                verdict, method = "not_menu", "too-little-text"
             elif args.no_vision:
                 verdict, method = "not_menu", "undecided-no-vision"
             else:
                 verdict, m = vision_verdict(path, args.vision_model); method = f"vision:{m}"
             counts[verdict] += 1
             f.write(json.dumps({"sha256": row["sha256"], "ext": row.get("ext", "jpg"), "restaurant_id": row["restaurant_id"], "verdict": verdict,
-                                "price_count": prices, "ocr_lines": len(lines), "method": method, "source_type": row.get("source_type", "website"),
+                                "price_count": prices, "ocr_lines": len(lines), "w": W, "h": H, "mean_conf": mean_conf, "method": method, "source_type": row.get("source_type", "website"),
                                 "page_url": row.get("page_url") or row.get("maps_url"), "judged_at": datetime.now(timezone.utc).isoformat()}) + "\n")
             f.flush()
-            print(f"  [{i + 1}/{len(items)}] {verdict:<8} {method:<22} prices={prices:<3} lines={len(lines):<3} {row['restaurant_id']}")
+            print(f"  [{i + 1}/{len(items)}] {verdict:<8} {method:<22} prices={prices:<3} lines={len(lines):<3} {W}x{H} conf={mean_conf:.2f} {row['restaurant_id']}")
     print(f"menus: {counts['menu']}, not menus: {counts['not_menu']} -> {out}")
     return 0
 

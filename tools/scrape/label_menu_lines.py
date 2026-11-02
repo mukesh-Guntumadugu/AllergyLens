@@ -189,6 +189,9 @@ def slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40] or "dish"
 
 
+from text_quality import is_junk_name  # noqa: E402
+
+
 def build_entry(lines: list[dict], labels: list[dict], W: int, H: int, rid: str, rname: str, image_path: Path, model: str, engine: str, width_cm: float) -> dict:
     by_id = {l["line"]: l for l in labels if isinstance(l.get("line"), int) and 0 <= l["line"] < len(lines)}
     dishes, seen = [], set()
@@ -204,7 +207,7 @@ def build_entry(lines: list[dict], labels: list[dict], W: int, H: int, rid: str,
             desc_paren = m.group(1).strip().lower(); name = (name[: m.start()] + name[m.end():]).strip()
         name = re.sub(r"\s+", " ", name).strip()
         name = name.title() if name.isupper() else name
-        if not name or name.lower() in seen:
+        if not name or name.lower() in seen or is_junk_name(name, l.get("conf")):
             continue
         seen.add(name.lower())
         descs = [by_id[j].get("text_corrected") or lines[j]["text"] for j in by_id if by_id[j]["role"] == "description" and by_id[j].get("dish_of") == i]
@@ -228,6 +231,7 @@ def build_entry(lines: list[dict], labels: list[dict], W: int, H: int, rid: str,
             "markers": lab.get("markers") or [],
             "layout": {"x": round(l["x"] / W, 4), "y": round(l["y"] / H, 4), "w": round(l["w"] / W, 4), "h": round(l["h"] / H, 4)},
             "ocr": l["text"],
+            "ocr_conf": round(float(l.get("conf", 1.0)), 3),
             **({"notes": " ".join(descs)} if descs else {}),
         })
     return {"id": rid, "name": rname, "source": {"type": "photo", "url": None, "collected": date.today().isoformat()}, "rating": None,

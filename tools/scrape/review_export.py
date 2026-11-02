@@ -38,15 +38,23 @@ def main() -> int:
     for a in assets:
         if a.get("kind", "image") in ("image", None) or "gallery_category" in a:
             by_rest.setdefault(a["restaurant_id"], []).append(a)
+    show_all = "--all" in sys.argv
     parts = ["<!doctype html><meta charset=utf-8><title>AllergyLens data review</title>",
              "<style>body{font-family:sans-serif;margin:20px}img{height:150px;margin:4px;border:3px solid #ccc}img.menu{border-color:#2a2}img.not_menu{border-color:#c33}"
              "table{border-collapse:collapse;font-size:13px}td,th{border:1px solid #ddd;padding:2px 6px}h2{margin-top:36px}.meta{color:#666;font-size:13px}</style>",
-             f"<h1>AllergyLens data review</h1><p class=meta>{len(restaurants)} restaurants discovered, {len(by_rest)} with images, {sum(1 for g in gate.values() if g['verdict']=='menu')} images judged menus, {len(gold)} with extracted dishes. Green border = menu, red = not a menu, grey = not judged yet.</p>"]
+             f"<h1>AllergyLens data review</h1><p class=meta>{len(restaurants)} restaurants discovered, {len(by_rest)} with images, {sum(1 for g in gate.values() if g['verdict']=='menu')} images judged menus, {len(gold)} with extracted dishes. "
+             + ("Showing every collected image: green border = menu, red = not a menu, grey = not judged yet. <a href='index.html'>Menus only</a>" if show_all
+                else "Showing only images the gate accepted as menus and the dishes extracted from them. <a href='index-all.html'>Show every image, including rejected ones</a>") + "</p>"]
     for rid, imgs in sorted(by_rest.items()):
+        if not show_all:
+            imgs = [a for a in imgs if (gate.get(a["sha256"]) or {}).get("verdict") == "menu"]
+            if not imgs and rid not in gold:
+                continue
         r = restaurants.get(rid) or next((g for g in gold.values() if g["id"] == rid), None) or {"name": rid}
         d = out / rid; d.mkdir(exist_ok=True)
-        for stale in d.iterdir():   # verdicts change between runs; rebuild the folder's copies from scratch
-            stale.unlink()
+        if show_all:
+            for stale in d.iterdir():   # verdicts change between runs; rebuild the folder's copies from scratch
+                stale.unlink()
         parts.append(f"<h2>{html.escape(r['name'])} <span class=meta>{rid} · {html.escape(str(r.get('cuisine') or ''))} · <a href='{html.escape(str(r.get('website') or ''))}'>site</a></span></h2>")
         seen = set()
         for n, a in enumerate(imgs):
@@ -55,7 +63,7 @@ def main() -> int:
             src = (REPO / a["repo_path"]) if a.get("repo_path") else lake / "bronze" / "assets" / a["sha256"][:2] / f"{a['sha256']}.{a.get('ext','jpg')}"
             if not src.exists(): continue
             g = gate.get(a["sha256"]); cls = g["verdict"] if g else ""
-            dst = d / f"{n:02d}-{cls or 'unjudged'}.{a.get('ext','jpg')}"
+            dst = d / f"{a['sha256'][:12]}-{cls or 'unjudged'}.{a.get('ext','jpg')}"
             if not dst.exists():
                 dst.write_bytes(src.read_bytes())   # real copies, not hard links: viewers (and this app) refuse multi-linked files
             title = f"{cls or 'not judged'}; {g['method'] if g else ''}; prices={g['price_count'] if g else '?'}; from {a.get('page_url') or a.get('maps_url') or ''}"
@@ -66,8 +74,12 @@ def main() -> int:
             for dsh in e["dishes"]:
                 parts.append(f"<tr><td>{html.escape(dsh['name'])}</td><td>{dsh.get('price') or ''}</td><td>{dsh.get('category_printed','')}</td><td>{html.escape(str(dsh.get('section_text') or ''))}</td><td>{', '.join(dsh.get('markers',[]))}</td><td>{html.escape(str(dsh.get('notes') or ''))}</td></tr>")
             parts.append("</table>")
-    (out / "index.html").write_text("\n".join(parts))
-    print(f"{len(by_rest)} restaurant folders -> {out}/  (open {out / 'index.html'})")
+    page = out / ("index-all.html" if show_all else "index.html")
+    page.write_text("\n".join(parts))
+    print(f"{len(by_rest)} restaurant folders -> {out}/  (open {page})")
+    if not show_all and "--no-all" not in sys.argv:
+        import subprocess
+        subprocess.run([sys.executable, __file__, "--all", "--no-all"], check=False)
     return 0
 
 

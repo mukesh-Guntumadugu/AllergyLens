@@ -51,7 +51,8 @@ import requests
 UA = {"User-Agent": "AllergyLens/0.1 (hackathon project; github.com/mukesh-Guntumadugu/AllergyLens)"}
 PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
 SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl"
-FIELDS = "code,product_name,brands,ingredients_text,ingredients,allergens_tags,traces_tags,nutriments,image_front_url,countries_tags"
+FIELDS = "code,product_name,brands,ingredients_text,ingredients,allergens_tags,traces_tags,nutriments,image_front_url,image_ingredients_url,countries_tags,last_modified_t"
+BRONZE = Path(__file__).resolve().parents[2] / "data-lake" / "bronze" / "products"   # label photos, by barcode
 
 # per 100 g thresholds (FDA "high" ≈ 20 % DV; sugar per WHO guidance)
 HIGH_SUGAR_G = 15.0
@@ -96,8 +97,29 @@ def normalize(p: dict) -> dict | None:
             "highSodium": sodium_mg is not None and sodium_mg >= HIGH_SODIUM_MG,
         },
         "image": p.get("image_front_url"),
+        # the photo of the printed ingredient list on the pack: the evidence behind "ingredients" (OFF transcribes from it)
+        "labelImage": p.get("image_ingredients_url"),
+        "ingredientsText": (p.get("ingredients_text") or "").strip() or None,
         "source": {"type": "openfoodfacts", "url": f"https://world.openfoodfacts.org/product/{code}", "collected": date.today().isoformat()},
     }
+
+
+def keep_label_photo(e: dict) -> None:
+    """Download the ingredient-label photo (and front photo) into the lake so the evidence is local."""
+    for key, suffix in (("labelImage", "ingredients"), ("image", "front")):
+        url = e.get(key)
+        if not url:
+            continue
+        dst = BRONZE / f"{e['barcode']}-{suffix}.jpg"
+        if dst.exists():
+            e[key + "Path"] = str(dst); continue
+        try:
+            r = requests.get(url, headers=UA, timeout=60)
+            if r.status_code == 200 and r.content[:3] == b"\xff\xd8\xff":
+                dst.parent.mkdir(parents=True, exist_ok=True); dst.write_bytes(r.content); e[key + "Path"] = str(dst)
+        except requests.RequestException:
+            pass
+        time.sleep(0.3)
 
 
 def by_barcode(code: str) -> dict | None:
@@ -142,6 +164,8 @@ def main() -> int:
     ap.add_argument("--barcode", nargs="*", default=[])
     ap.add_argument("--search", default=None)
     ap.add_argument("--category", default=None, help="OFF category tag, e.g. en:snacks, en:cookies, en:sodas")
+    ap.add_argument("--categories-file", default=None, help="one OFF category tag per line (the driver uses tools/scrape/product_categories.txt)")
+    ap.add_argument("--no-photos", action="store_true", help="do not download label photos into data-lake/bronze/products")
     ap.add_argument("--file", default=None, help="file with one barcode or search term per line")
     ap.add_argument("--n", type=int, default=25)
     ap.add_argument("--country", default="united-states")
@@ -177,12 +201,22 @@ def main() -> int:
         for e in res:
             by_code[e["barcode"]] = e
         added += len(res)
-    if args.category:
-        res = search(None, args.category, args.n, args.country)
-        print(f"  category {args.category}: {len(res)} products")
+    cats = [args.category] if args.category else []
+    if args.categories_file:
+        cats += [l.strip() for l in Path(args.categories_file).read_text().splitlines() if l.strip() and not l.startswith("#")]
+    for cat in cats:
+        try:
+            res = search(None, cat, args.n, args.country)
+        except requests.RequestException as ex:
+            print(f"  category {cat}: failed ({ex.__class__.__name__})"); continue
+        print(f"  category {cat}: {len(res)} products, {sum(1 for e in res if e.get('labelImage'))} with a label photo", flush=True)
         for e in res:
             by_code[e["barcode"]] = e
         added += len(res)
+    if not args.no_photos:
+        for e in by_code.values():
+            if e.get("labelImage") and not e.get("labelImagePath"):
+                keep_label_photo(e)
 
     db["products"] = sorted(by_code.values(), key=lambda p: p["name"].lower())
     out_path.parent.mkdir(parents=True, exist_ok=True)

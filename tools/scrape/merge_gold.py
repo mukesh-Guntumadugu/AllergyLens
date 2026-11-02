@@ -34,6 +34,9 @@ def slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40] or "dish"
 
 
+from text_quality import is_junk_name  # noqa: E402
+
+
 def convert(entry: dict) -> dict:
     rid = entry["id"]
     img_dir = LENS_DIR / "menus" / rid; img_dir.mkdir(parents=True, exist_ok=True)
@@ -51,6 +54,8 @@ def convert(entry: dict) -> dict:
             menu_image = {**mi, "path": rel}
     dishes, seen = [], set()
     for d in entry["dishes"]:
+        if is_junk_name(d["name"], d.get("ocr_conf")):
+            continue
         did = slug(d["name"]); k = did
         while k in seen:
             k = f"{did}-{len(seen)}"
