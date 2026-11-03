@@ -295,46 +295,55 @@ def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bo
         browser = pw.chromium.launch(headless=headless, args=args)
         ctx = browser.new_context(locale="en-US", viewport={"width": 1400, "height": 900})
         page = ctx.new_page()
-        for i, job in enumerate(jobs):
-            if STOP.is_set():
-                print(f"    {tag}stopping: another worker was blocked", file=sys.stderr); break
-            print(f"[{tag}{i + 1}/{len(jobs)}] {job['query']}")
-            LIMITED.seen = False
-            try:
-                res = scrape_listing(page, job["query"], job["restaurant_id"], lake, max_photos, debug)
-                print(f"    -> {res['photos']} photos from the '{res['category']}' gallery" + (" (Google limited view: top photos only, no Menu category)" if getattr(LIMITED, "seen", False) else ""))
-                if getattr(LIMITED, "seen", False) and res["photos"] == 0 and headless:
-                    print("    limited view in HEADLESS mode exposes no photos at all; run with --headed on a machine with a display", file=sys.stderr)
-                    record_block(lake, "limited view, headless: no photos; use --headed")
-                    break
-                results.append(res)
-                log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": res["photos"], "category": res["category"]})
-            except Blocked as e:
-                print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
-                record_block(lake, str(e)); STOP.set()
-                break
-            except Blocked as e:  # pragma: no cover
-                print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
-                record_block(lake, str(e))
-                if debug:
-                    page.screenshot(path=str(lake / "blocked.png"))
-                break
-            except NotFound as e:
-                print(f"    not found: {e}")
-                results.append({"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)})
-                log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)[:200]})
-            except Exception as e:  # keep going on one bad listing
-                print(f"    error: {e.__class__.__name__}: {str(e)[:120]}")
-                if debug:
-                    page.screenshot(path=str(lake / f"error-{job['restaurant_id']}.png"))
-                results.append({"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)[:200]})
-            if i + 1 < len(jobs):
-                time.sleep(random.uniform(4, 9))
-        browser.close()
+        try:
+          for i, job in enumerate(jobs):
+              if STOP.is_set():
+                  print(f"    {tag}stopping: another worker was blocked", file=sys.stderr); break
+              print(f"[{tag}{i + 1}/{len(jobs)}] {job['query']}")
+              LIMITED.seen = False
+              try:
+                  res = scrape_listing(page, job["query"], job["restaurant_id"], lake, max_photos, debug)
+                  print(f"    -> {res['photos']} photos from the '{res['category']}' gallery" + (" (Google limited view: top photos only, no Menu category)" if getattr(LIMITED, "seen", False) else ""))
+                  if getattr(LIMITED, "seen", False) and res["photos"] == 0 and headless:
+                      print("    limited view in HEADLESS mode exposes no photos at all; run with --headed on a machine with a display", file=sys.stderr)
+                      record_block(lake, "limited view, headless: no photos; use --headed")
+                      break
+                  results.append(res)
+                  log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": res["photos"], "category": res["category"]})
+              except Blocked as e:
+                  print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
+                  record_block(lake, str(e)); STOP.set()
+                  break
+              except Blocked as e:  # pragma: no cover
+                  print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
+                  record_block(lake, str(e))
+                  if debug:
+                      page.screenshot(path=str(lake / "blocked.png"))
+                  break
+              except NotFound as e:
+                  print(f"    not found: {e}")
+                  results.append({"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)})
+                  log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)[:200]})
+              except Exception as e:  # keep going on one bad listing
+                  print(f"    error: {e.__class__.__name__}: {str(e)[:120]}")
+                  if debug:
+                      page.screenshot(path=str(lake / f"error-{job['restaurant_id']}.png"))
+                  results.append({"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)[:200]})
+              if i + 1 < len(jobs):
+                  time.sleep(random.uniform(4, 9))
+        finally:
+            browser.close()      # also on SIGTERM: no Chromium left behind
     return results
 
 
+def _on_term(signum, frame):
+    STOP.set()
+    raise SystemExit(143)
+
+
 def main() -> int:
+    import signal
+    signal.signal(signal.SIGTERM, _on_term)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--allow-google-maps-web", action="store_true", help="required; see DESIGN.md §0.8")
     ap.add_argument("--query", help='e.g. "Star of India, Athens, OH"')

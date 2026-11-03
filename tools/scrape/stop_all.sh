@@ -13,6 +13,10 @@ done
 # anything started before the pid files existed
 for p in $(pgrep -f "^bash tools/scrape/run_pipeline.sh$"); do kill -TERM -- "-$p" 2>/dev/null || { pkill -P "$p"; kill "$p"; }; echo "stopped stray driver $p"; done
 sleep 2
-# browsers nobody owns any more (parent is init): Playwright Chromium left behind by a killed stage
-for p in $(ps -eo pid,ppid,args | awk '$2==1 && /ms-playwright/ {print $1}'); do kill -9 "$p" 2>/dev/null; done
+# browsers left behind by killed stages: every Playwright Chromium whose session is not a live driver
+# (drivers are session leaders via setsid; Chromium re-parents itself so a parent check alone misses them)
+LIVE=" $(cat data-lake/logs/driver-*.pid 2>/dev/null | tr '\n' ' ') "
+ps -eo pid,sid,args | awk '/ms-playwright/ && !/awk/ {print $1, $2}' | while read -r pid sid; do
+  case "$LIVE" in *" $sid "*) ;; *) kill -9 "$pid" 2>/dev/null;; esac
+done
 if [ "${1:-}" = "--vllm" ]; then pkill -f "vllm serve" && echo "stopped vLLM"; fi
