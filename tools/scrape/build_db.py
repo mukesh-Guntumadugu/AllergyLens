@@ -140,17 +140,7 @@ def connect(sqlite: bool, path: Path):
         return sqlite3.connect(path.with_suffix(".sqlite")), "sqlite"
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--sqlite", action="store_true", help="write SQLite instead of DuckDB")
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--query", default=None, help="run one SQL statement against the (re)built database and print it")
-    args = ap.parse_args()
-    path = Path(args.out) if args.out else LAKE / "silver" / ("allergylens.sqlite" if args.sqlite else "allergylens.duckdb")
-    tmp = path.with_name(path.name + ".building")
-    if tmp.exists(): tmp.unlink()
-    con, engine = connect(args.sqlite, tmp)
-    data = load_all()
+def write(con, engine: str, data: dict[str, list[tuple]]) -> None:
     for name, cols in TABLES.items():
         con.execute(f"CREATE TABLE {name} ({cols})")
         rows_ = data.get(name, [])
@@ -177,11 +167,43 @@ def main() -> int:
     con.execute("INSERT INTO build_info VALUES (?, ?)", (datetime.now(timezone.utc).isoformat(), engine))
     con.commit() if engine == "sqlite" else None
     con.close()
+
+
+def build(sqlite: bool, path: Path, data: dict[str, list[tuple]]) -> str:
+    """Write the database to <path>.building, then swap it in (readers never see a half-written file)."""
+    tmp = path.with_name(path.name + ".building")
+    for p in (tmp, tmp.with_name(tmp.name + ".wal"), tmp.with_name(tmp.name + "-journal")):
+        if p.exists(): p.unlink()
+    con, engine = connect(sqlite, tmp)
+    write(con, engine, data)
     if path.exists(): path.unlink()
     tmp.rename(path)
+    return engine
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--sqlite", action="store_true", help="write only the SQLite file (default: DuckDB plus a SQLite copy)")
+    ap.add_argument("--no-sqlite", action="store_true", help="skip the SQLite copy")
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--query", default=None, help="run one SQL statement against the (re)built database and print it")
+    args = ap.parse_args()
+    data = load_all()
+    built = []
+    if args.sqlite:
+        path = Path(args.out) if args.out else LAKE / "silver" / "allergylens.sqlite"
+        built.append((build(True, path, data), path))
+    else:
+        path = Path(args.out) if args.out else LAKE / "silver" / "allergylens.duckdb"
+        built.append((build(False, path, data), path))
+        if not args.no_sqlite:   # same tables in SQLite: opens in DB Browser for SQLite, sqlite3, any SQLite client
+            sq = path.with_suffix(".sqlite")
+            built.append((build(True, sq, data), sq))
     counts = {k: len(v) for k, v in data.items()}
-    print(f"{engine} -> {path.relative_to(REPO)}: " + ", ".join(f"{k} {v}" for k, v in counts.items()))
+    for engine, p in built:
+        print(f"{engine} -> {p.relative_to(REPO) if p.is_relative_to(REPO) else p}: " + ", ".join(f"{k} {v}" for k, v in counts.items()))
     if args.query:
+        engine, path = built[0]
         con, _ = connect(engine == "sqlite", path)
         cur = con.execute(args.query)
         cols = [d[0] for d in cur.description]

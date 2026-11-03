@@ -254,3 +254,23 @@ the ingredient list, allergen and trace tags, nutrition, and the **photo of the 
 The driver runs one pass over `tools/scrape/product_categories.txt` per loop. Store sites such as Walmart sit
 behind bot detection, which we do not evade (DESIGN.md §14); scanning a barcode in the store and
 `--barcode <code>` reaches the same record.
+
+### Open the database directly (no web page needed)
+
+`build_db.py` writes the same tables twice, both under `data-lake/silver/`:
+
+| file | opens in |
+|---|---|
+| `allergylens.duckdb` | `tools/scrape/db.sh` (terminal SQL prompt), DBeaver (DuckDB driver), Python `duckdb.connect(path, read_only=True)` |
+| `allergylens.sqlite` | DB Browser for SQLite (`sqlitebrowser -R data-lake/silver/allergylens.sqlite`), `sqlite3`, any SQLite client |
+
+```bash
+tools/scrape/db.sh                                   # interactive: .tables, .schema restaurants, SQL ending in ;
+tools/scrape/db.sh "SELECT count(*) FROM menu_dishes"
+sqlitebrowser -R data-lake/silver/allergylens.sqlite  # GUI, read-only
+```
+
+Both files are snapshots of the lake, rebuilt at the end of every research pass and by the viewer when its copy is older than
+15 minutes; rebuild by hand with `.venv/bin/python tools/scrape/build_db.py` (about 20 s). A rebuild writes a new file and
+renames it over the old one, so a client that has the file open keeps seeing the old snapshot until it reopens it. Open
+them read-only: a client holding a write lock makes the next rebuild fail.
