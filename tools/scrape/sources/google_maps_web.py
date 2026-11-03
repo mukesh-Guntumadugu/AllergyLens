@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import random
 import re
 import sys
@@ -345,7 +346,7 @@ def main() -> int:
     ap.add_argument("--headed", action="store_true", help="show the browser window (needs a display)")
     ap.add_argument("--force", action="store_true", help="retry listings done in the last 30 days too")
     ap.add_argument("--limit", type=int, default=None, help="at most this many listings this run")
-    ap.add_argument("--parallel", type=int, default=4, help="browser windows at the same time, each on its own slice of the list")
+    ap.add_argument("--parallel", type=int, default=int(os.environ.get("MAPS_PARALLEL", "8")), help="browser windows at the same time, each on its own slice of the list; env MAPS_PARALLEL")
     args = ap.parse_args()
     if not args.allow_google_maps_web:
         sys.exit("refusing: this adapter breaches Google Maps' terms (DESIGN.md §0.8). Pass --allow-google-maps-web to run it knowingly.")
