@@ -9,7 +9,9 @@ Output: raw pages / PDFs / images in data-lake/bronze/ and one row per menu asse
 
 Polite: robots.txt honoured, one request every 0.5 s per host, <= 20 pages and 120 s per site,
 depth <= 2, identifies itself. JS-only sites are rendered once with Playwright (stock Chromium).
-Sites are crawled 8 at a time (one thread per site; the pause is per site, so per host).
+Sites are crawled 8 at a time (4 when ACQUIRE_SHARD is set; CRAWL_WORKERS overrides), one thread per
+site, so the pause is per host. JS-only pages are rendered by ONE Chromium per process (a render thread
+owns it; crawler threads queue pages to it, each in a fresh browser context), closed on exit or SIGTERM.
 
 Chains: a brand domain (mcdonalds.com, subway.com, ...; known list plus any domain shared by
 3+ restaurants) is crawled once, from its home page, and recorded in
@@ -33,6 +35,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
+import atexit
+import os
+import queue
+import signal
 import socket
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -89,6 +95,89 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class Renderer:
+    """One headless Chromium for the whole process. Playwright's sync API is bound to the thread that started
+    it, so a single render thread owns the browser and serves the crawler threads through a queue; every page
+    gets its own context (cookies, cache) and the browser is closed on normal exit and on SIGTERM."""
+
+    def __init__(self):
+        self.q: queue.Queue = queue.Queue()
+        self.thread: threading.Thread | None = None
+        self.lock = threading.Lock()
+        self._browser = None
+
+    def _ensure(self):
+        with self.lock:
+            if self.thread is None:
+                self.thread = threading.Thread(target=self._run, name="renderer", daemon=True)
+                self.thread.start()
+
+    def _run(self):
+        try:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as pw:
+                self._browser = pw.chromium.launch(headless=True)
+                while True:
+                    item = self.q.get()
+                    if item is None:
+                        break
+                    url, done, box = item
+                    ctx = None
+                    try:
+                        ctx = self._browser.new_context(user_agent=UA)
+                        page = ctx.new_page()
+                        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+                        page.wait_for_timeout(3000)
+                        box["html"] = page.content()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            if ctx: ctx.close()
+                        except Exception:
+                            pass
+                        done.set()
+                try:
+                    self._browser.close()
+                except Exception:
+                    pass
+        except Exception as e:      # playwright missing or chromium failed to start: renders return None
+            print(f"    renderer unavailable: {e.__class__.__name__}: {str(e)[:80]}", flush=True)
+            while True:
+                item = self.q.get()
+                if item is None: break
+                item[1].set()
+
+    def render(self, url: str, seconds_left: float) -> str | None:
+        if seconds_left <= 5:
+            return None
+        self._ensure()
+        done, box = threading.Event(), {}
+        self.q.put((url, done, box))
+        done.wait(timeout=min(45.0, seconds_left))
+        return box.get("html")
+
+    def stop(self):
+        if self.thread is not None:
+            self.q.put(None)
+            self.thread.join(timeout=15)
+
+
+RENDERER = Renderer()
+atexit.register(RENDERER.stop)
+
+
+def _on_term(signum, frame):      # the driver (or stop_all) stops a stage: close Chromium, leave no browsers behind
+    try:
+        RENDERER.stop()
+    finally:
+        os._exit(128 + signum)
+
+
+signal.signal(signal.SIGTERM, _on_term)
+signal.signal(signal.SIGINT, _on_term)
+
+
 class Bronze:
     def __init__(self, root: Path):
         self.assets = root / "assets"; self.assets.mkdir(parents=True, exist_ok=True)
@@ -126,7 +215,6 @@ class Site:
         self.visited: set[str] = set()
         self.assets: list[dict] = []
         self.jsonld_items: list[dict] = []
-        self._pw = None
 
     def allowed(self, url: str) -> bool:
         try:
@@ -148,28 +236,11 @@ class Site:
             return None
 
     def render(self, url: str) -> str | None:
-        """JS-only page: render once with stock Chromium."""
-        try:
-            from playwright.sync_api import sync_playwright
-            if self._pw is None:
-                self._pw = sync_playwright().start()
-                self._browser = self._pw.chromium.launch(headless=True)
-            if time.time() - self.t0 > self.budget_s:
-                return None
-            page = self._browser.new_page(user_agent=UA)
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_timeout(3000)
-            html = page.content(); page.close()
-            return html
-        except Exception:
-            return None
+        """JS-only page: rendered once by the process-wide Chromium (see Renderer)."""
+        return RENDERER.render(url, self.budget_s - (time.time() - self.t0))
 
     def close(self):
-        if self._pw:
-            try:
-                self._browser.close(); self._pw.stop()
-            except Exception:
-                pass
+        pass
 
     # ---- extraction -------------------------------------------------------
     def jsonld_menu(self, soup: BeautifulSoup, page_url: str) -> list[dict]:
@@ -283,7 +354,8 @@ def main() -> int:
     ap.add_argument("--budget", type=int, default=120, help="seconds per site")
     ap.add_argument("--max-pages", type=int, default=20, help="pages per site")
     ap.add_argument("--max-images", type=int, default=25, help="images per site")
-    ap.add_argument("--workers", type=int, default=8, help="sites crawled at the same time")
+    ap.add_argument("--workers", type=int, default=int(os.environ.get("CRAWL_WORKERS", "4" if os.environ.get("ACQUIRE_SHARD") else "8")),
+                    help="sites crawled at the same time (default 8, or 4 under an ACQUIRE_SHARD; env CRAWL_WORKERS)")
     ap.add_argument("--force", action="store_true", help="re-crawl sites already in crawl_log.jsonl")
     args = ap.parse_args()
     lake = Path(args.lake)

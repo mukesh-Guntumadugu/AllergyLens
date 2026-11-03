@@ -27,7 +27,9 @@
 # Optional env: GOOGLE_PLACES_API_KEY (Places API photo lane), VISION_MODEL (default auto), PROCESS_WORKERS,
 # OCR_WORKERS, VISION_WORKERS (see process_menus.py / gate_menu_images.py), RESEARCH_WORKERS (default 4),
 # ALLOW_GOOGLE_MAPS_WEB=1 (the web adapter; see DESIGN.md §0.8), SKIP="stage names" to skip stages,
-# IDLE_SLEEP (seconds an extract/research loop waits when it finds nothing to do; default 120).
+# IDLE_SLEEP (seconds an extract/research loop waits when it finds nothing to do; default 120),
+# COUNTY_RECHECK_DAYS (a county finished within this many days is skipped; default 30; FORCE_COUNTY=1 redoes it).
+# Finished counties: data-lake/silver/county_done.jsonl {state, county, finished_at, restaurants, assets}.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 PY=".venv/bin/python -u"   # -u: unbuffered, so logs are live
@@ -67,10 +69,53 @@ load_env() {  # secrets and switches live in .env at the repo root (gitignored);
 }
 
 # ── stage groups ─────────────────────────────────────────────────────────────────────────────────────
+county_last_done() {  # <code> <county-without-County>  prints the finish date if within COUNTY_RECHECK_DAYS, else nothing
+  $PY - "$1" "$2" "${COUNTY_RECHECK_DAYS:-30}" <<'PYEOF'
+import json, sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+code, county, days = sys.argv[1].lower(), sys.argv[2].lower(), int(sys.argv[3])
+p = Path("data-lake/silver/county_done.jsonl"); last = ""
+if p.exists():
+    for l in p.read_text().splitlines():
+        if not l.strip(): continue
+        r = json.loads(l)
+        if r.get("state", "").lower() == code and r.get("county", "").lower() == county and r.get("finished_at", "") > last:
+            last = r["finished_at"]
+if last and last >= (datetime.now(timezone.utc) - timedelta(days=days)).isoformat():
+    print(last[:10])
+PYEOF
+}
+
+county_mark_done() {  # <code> <county-without-County>  appends the completion row with this county's counts
+  $PY - "$1" "$2" <<'PYEOF'
+import json, sys
+from datetime import datetime, timezone
+from pathlib import Path
+code, county = sys.argv[1], sys.argv[2]
+lake = Path("data-lake/silver")
+ids = set()
+for l in (lake / "restaurants.jsonl").read_text().splitlines():
+    if l.strip():
+        r = json.loads(l)
+        if (r.get("state") or "").lower() == code.lower() and (r.get("county") or "").lower() == county.lower(): ids.add(r["restaurant_id"])
+assets = 0
+if (lake / "menu_assets.jsonl").exists():
+    assets = sum(1 for l in (lake / "menu_assets.jsonl").read_text().splitlines() if l.strip() and json.loads(l).get("restaurant_id") in ids)
+row = {"state": code, "county": county, "finished_at": datetime.now(timezone.utc).isoformat(), "restaurants": len(ids), "assets": assets}
+with (lake / "county_done.jsonl").open("a") as f: f.write(json.dumps(row) + "\n")
+print(f"{county}, {code}: {len(ids)} restaurants, {assets} menu assets")
+PYEOF
+}
+
 acquire_county() {  # <spec>  returns 1 when discovery failed (caller re-queues the county)
-  local spec=$1 STATE CODE COUNTY FIPS ok attempt
+  local spec=$1 STATE CODE COUNTY FIPS ok attempt last
   load_env
   IFS="|" read -r STATE CODE COUNTY FIPS <<<"$spec"
+  if [ "${FORCE_COUNTY:-0}" != "1" ]; then
+    last=$(county_last_done "$CODE" "${COUNTY% County}")
+    if [ -n "$last" ]; then log "skip  $COUNTY, $CODE (done $last; rechecked after ${COUNTY_RECHECK_DAYS:-30} days, or FORCE_COUNTY=1)"; return 0; fi
+  fi
   log "=== $COUNTY, $CODE ==="
   # Overpass (OpenStreetMap) mirrors time out now and then: retry a few times, then put the county at the
   # end of the queue instead of recording it as a county with no restaurants
@@ -87,6 +132,7 @@ acquire_county() {  # <spec>  returns 1 when discovery failed (caller re-queues 
   else
     log "skip  places (no GOOGLE_PLACES_API_KEY)"
   fi
+  log "done  $(county_mark_done "$CODE" "${COUNTY% County}")"
   # maps photos and the gate run in their own loops (ROLE=maps, ROLE=gate): the maps lane is 6 s a listing and
   # must not hold up discovery, and N acquire shards must never judge the same image twice
   if [ "$ROLE" = all ]; then
