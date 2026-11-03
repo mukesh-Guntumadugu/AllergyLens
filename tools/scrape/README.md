@@ -37,6 +37,12 @@ Every stage still writes its JSON/JSONL files, and `build_db.py` folds them into
 `dish_catalog`, `dish_ingredients`, `ingredient_sources`, `products`, `product_ingredients`, `review_queue`,
 `bronze_manifest`, `crawl_log`.
 
+**See the data in a browser** (tables on the left, rows on the right, SQL box on top, a few ready-made questions):
+
+```bash
+.venv/bin/python tools/scrape/db_viewer.py      # then open http://127.0.0.1:8766
+```
+
 ```bash
 .venv/bin/python tools/scrape/build_db.py            # rebuild now
 .venv/bin/python tools/scrape/build_db.py --sqlite   # same tables as data-lake/silver/allergylens.sqlite, for tools without DuckDB
