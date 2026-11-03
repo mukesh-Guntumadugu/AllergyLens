@@ -61,6 +61,11 @@ def vision_verdict(image_path: Path, model: str) -> tuple[str, str]:
     return "not_menu", "none"
 
 
+def _ocr(path: str):
+    """runs in a worker process: RapidOCR loads once per process"""
+    return ocr_lines(Path(path))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lake", default=str(REPO / "data-lake"))
@@ -90,33 +95,57 @@ def main() -> int:
     items = list(todo.values())[: args.limit] if args.limit else list(todo.values())
     print(f"{len(items)} images to judge ({len(done)} already done)")
     counts = {"menu": 0, "not_menu": 0}
-    with out.open("a") as f:
-        for i, row in enumerate(items):
-            path = lake / "bronze" / "assets" / row["sha256"][:2] / f"{row['sha256']}.{row.get('ext', 'jpg')}"
-            if not path.exists():
-                continue
+    # OCR is CPU work: run it on every core at once (one process each), then decide; vision calls go to vLLM a few at a time
+    import os
+    from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+    ocr_workers = max(1, int(os.environ.get("OCR_WORKERS", str(max(2, (os.cpu_count() or 4) - 2)))))
+    vision_workers = max(1, int(os.environ.get("VISION_WORKERS", "8")))
+    paths = {row["sha256"]: lake / "bronze" / "assets" / row["sha256"][:2] / f"{row['sha256']}.{row.get('ext', 'jpg')}" for row in items}
+    items = [row for row in items if paths[row["sha256"]].exists()]
+    print(f"OCR on {ocr_workers} processes, vision on {vision_workers} threads", flush=True)
+    ocr_out: dict[str, tuple] = {}
+    with ProcessPoolExecutor(max_workers=ocr_workers) as pool:
+        futs = {pool.submit(_ocr, str(paths[row["sha256"]])): row["sha256"] for row in items}
+        for n, fut in enumerate(as_completed(futs)):
+            sha = futs[fut]
             try:
-                lines, (W, H) = ocr_lines(path)
+                ocr_out[sha] = fut.result()
             except Exception as e:
-                print(f"  OCR failed {path.name}: {e.__class__.__name__}"); continue
-            text = " ".join(l["text"] for l in lines)
-            prices = len(PRICE_RE.findall(text))
-            ok, why, mean_conf = image_quality(lines, W, H)
-            if not ok:
-                # a menu we cannot read is not worth extracting: thumbnails, blurry phone shots, decorative text
-                verdict, method = "not_menu", why
-            elif prices >= 5 or (len(lines) >= 25 and prices >= 2):
-                verdict, method = "menu", "price-density"
-            elif args.no_vision:
-                verdict, method = "not_menu", "undecided-no-vision"
-            else:
-                verdict, m = vision_verdict(path, args.vision_model); method = f"vision:{m}"
+                print(f"  OCR failed {sha[:12]}: {e.__class__.__name__}")
+            if (n + 1) % 25 == 0:
+                print(f"  OCR {n + 1}/{len(items)}", flush=True)
+
+    def decide(row):
+        sha = row["sha256"]
+        if sha not in ocr_out:
+            return None
+        lines, (W, H) = ocr_out[sha]
+        text = " ".join(l["text"] for l in lines)
+        prices = len(PRICE_RE.findall(text))
+        ok, why, mean_conf = image_quality(lines, W, H)
+        if not ok:
+            verdict, method = "not_menu", why
+        elif prices >= 5 or (len(lines) >= 25 and prices >= 2):
+            verdict, method = "menu", "price-density"
+        elif args.no_vision:
+            verdict, method = "not_menu", "undecided-no-vision"
+        else:
+            verdict, m = vision_verdict(paths[sha], args.vision_model); method = f"vision:{m}"
+        return row, verdict, method, prices, len(lines), W, H, mean_conf
+
+    with out.open("a") as f, ThreadPoolExecutor(max_workers=vision_workers) as pool:
+        for i, fut in enumerate(as_completed([pool.submit(decide, row) for row in items])):
+            res = fut.result()
+            if res is None:
+                continue
+            row, verdict, method, prices, nlines, W, H, mean_conf = res
             counts[verdict] += 1
             f.write(json.dumps({"sha256": row["sha256"], "ext": row.get("ext", "jpg"), "restaurant_id": row["restaurant_id"], "verdict": verdict,
-                                "price_count": prices, "ocr_lines": len(lines), "w": W, "h": H, "mean_conf": mean_conf, "method": method, "source_type": row.get("source_type", "website"),
-                                "page_url": row.get("page_url") or row.get("maps_url"), "judged_at": datetime.now(timezone.utc).isoformat()}) + "\n")
+                                "price_count": prices, "ocr_lines": nlines, "w": W, "h": H, "mean_conf": mean_conf, "method": method,
+                                "source_type": row.get("source_type", "website"), "page_url": row.get("page_url") or row.get("maps_url"),
+                                "judged_at": datetime.now(timezone.utc).isoformat()}) + "\n")
             f.flush()
-            print(f"  [{i + 1}/{len(items)}] {verdict:<8} {method:<22} prices={prices:<3} lines={len(lines):<3} {W}x{H} conf={mean_conf:.2f} {row['restaurant_id']}")
+            print(f"  [{i + 1}/{len(items)}] {verdict:<8} {method:<22} prices={prices:<3} lines={nlines:<3} {W}x{H} conf={mean_conf:.2f} {row['restaurant_id']}")
     print(f"menus: {counts['menu']}, not menus: {counts['not_menu']} -> {out}")
     return 0
 

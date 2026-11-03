@@ -45,7 +45,7 @@ def main() -> int:
     ap.add_argument("--vision-model", default="auto")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--state", default="OH"); ap.add_argument("--county", default="Athens")
-    ap.add_argument("--workers", type=int, default=int(os.environ.get("PROCESS_WORKERS", "8")), help="images labelled concurrently (vLLM batches them; use 1 for Ollama); env PROCESS_WORKERS")
+    ap.add_argument("--workers", type=int, default=int(os.environ.get("PROCESS_WORKERS", "16")), help="images labelled concurrently (vLLM batches them; use 1 for Ollama); env PROCESS_WORKERS")
     args = ap.parse_args()
     lake = Path(args.lake); silver, gold = lake / "silver", lake / "gold" / "menus"
     gold.mkdir(parents=True, exist_ok=True)

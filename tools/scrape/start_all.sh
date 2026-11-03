@@ -22,7 +22,9 @@ else
     echo "vLLM is starting (process exists, not answering yet)"
   else
     echo "starting vLLM ($MODEL) -> $LOGS/vllm.log"
-    setsid nohup vllm serve "$MODEL" --port "$PORT" --max-model-len 16384 --gpu-memory-utilization "${VLLM_GPU_FRACTION:-0.40}" \
+    # 0.60 of the 121 GB unified memory: ~17 GB weights, the rest KV cache so 16-32 menu images can be labelled at once
+    setsid nohup vllm serve "$MODEL" --port "$PORT" --max-model-len 16384 --gpu-memory-utilization "${VLLM_GPU_FRACTION:-0.60}" \
+      --max-num-seqs "${VLLM_MAX_SEQS:-32}" \
       >> "$LOGS/vllm.log" 2>&1 < /dev/null &
   fi
   for i in $(seq 1 120); do          # up to 10 minutes for the model to load
