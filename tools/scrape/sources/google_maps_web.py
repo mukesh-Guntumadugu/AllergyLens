@@ -45,7 +45,8 @@ from pathlib import Path
 from urllib.parse import quote
 
 REPO = Path(__file__).resolve().parents[3]
-PHOTO_RE = re.compile(r"https://lh\d\.googleusercontent\.com/(?:p/|gps-cs-s/)[A-Za-z0-9_\-]+(?:=[A-Za-z0-9\-]+)?")
+# user photos come from lh*.googleusercontent.com under a path prefix Google changes now and then: /p/, /gps-cs-s/, /grass-cs/ ...
+PHOTO_RE = re.compile(r"https://lh\d\.googleusercontent\.com/(?:p|gps-cs-s|grass-cs|gps-proxy|[a-z]+-cs(?:-s)?)/[A-Za-z0-9_\-]{20,}(?:=[A-Za-z0-9\-]+)?")
 BLOCK_MARKERS = ("unusual traffic", "/sorry/", "detected unusual", "not a robot", "recaptcha")
 
 
@@ -192,6 +193,15 @@ def collect_photo_urls(page, max_photos: int, debug: bool) -> list[str]:
                 new += 1
         if debug:
             print(f"    gallery scan: {len(seen)} photos (+{new})")
+            dbg = Path("data-lake/debug"); dbg.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(dbg / "maps-gallery.png"))
+            srcs = page.locator("img").evaluate_all("els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)")
+            bgs = page.locator("[style*='background-image']").evaluate_all("els => els.map(e => e.style.backgroundImage).filter(Boolean)")
+            hosts = {}
+            for u in srcs + bgs:
+                h = u.split("//")[-1].split("/")[0]; hosts[h] = hosts.get(h, 0) + 1
+            print(f"    image hosts on page: {hosts}")
+            print("    sample srcs:", [u[:110] for u in (srcs + bgs)[:6]])
         if len(seen) >= max_photos:
             break
         stale = stale + 1 if new == 0 else 0
