@@ -16,7 +16,7 @@ cd "$(dirname "$0")/../.."
 LOGS=data-lake/logs; mkdir -p "$LOGS"
 MODEL=${VLM_MODEL:-Qwen/Qwen3-VL-8B-Instruct}
 PORT=${VLM_PORT:-8000}
-ROLES=${ROLES:-acquire gate extract research}
+ROLES=${ROLES:-acquire maps gate extract research}
 ACQUIRE_PARALLEL=${ACQUIRE_PARALLEL:-4}      # counties acquired at the same time (one process each); the GPU starves on one
 export VLM_API=openai VLM_BASE_URL="http://localhost:$PORT/v1" VLM_MODEL="$MODEL" LOOP=${LOOP:-1}
 
