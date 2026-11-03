@@ -13,6 +13,8 @@ import html
 import json
 import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -20,6 +22,29 @@ from urllib.parse import parse_qs, urlparse
 REPO = Path(__file__).resolve().parents[2]
 DB = REPO / "data-lake" / "silver" / "allergylens.duckdb"
 PAGE_SIZE = 200
+STALE_AFTER = 15 * 60          # rebuild the database in the background when a page is served and the file is older than this
+_rebuild_lock = threading.Lock()
+_rebuilding = {"proc": None}
+
+
+def rebuild(wait: bool) -> None:
+    """Rebuild the database from the lake; at most one rebuild at a time. wait=False returns at once."""
+    with _rebuild_lock:
+        p = _rebuilding["proc"]
+        if p is not None and p.poll() is None:
+            proc = p
+        else:
+            proc = subprocess.Popen([sys.executable, str(REPO / "tools/scrape/build_db.py")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            _rebuilding["proc"] = proc
+    if wait:
+        proc.wait()
+
+
+def db_age() -> float | None:
+    try:
+        return time.time() - DB.stat().st_mtime
+    except FileNotFoundError:
+        return None
 
 PRESETS = {
     "Dishes with ingredients": "SELECT r.name AS restaurant, r.city, d.name_clean AS dish, d.price, d.section_text, "
@@ -90,8 +115,12 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path); q = parse_qs(u.query)
         if u.path == "/rebuild":
-            subprocess.run([sys.executable, str(REPO / "tools/scrape/build_db.py")], check=False)
+            rebuild(wait=True)
             self.send_response(302); self.send_header("Location", "/"); self.end_headers(); return
+        age = db_age()
+        if age is None or age > STALE_AFTER:
+            rebuild(wait=age is None)      # no file yet: build it before answering; stale: refresh in the background, serve the old one now
+            age = db_age()
         table = q.get("t", [None])[0]
         sql = q.get("sql", [None])[0] or (f"SELECT * FROM {table}" if table else PRESETS["Dishes with ingredients"])
         offset = int(q.get("o", ["0"])[0] or 0)
@@ -99,7 +128,10 @@ class H(BaseHTTPRequestHandler):
         counts = tables()
         side = "<h3>Tables</h3>" + "".join(f"<a class='{'on' if t == table else ''}' href='/?t={t}'>{t} <span class=meta>({c})</span></a>" for t, c in counts.items())
         side += "<h3>Questions</h3>" + "".join(f"<a href='/?sql={html.escape(json.dumps(s)[1:-1]).replace('%', '%25').replace('&', '%26').replace('+', '%2B').replace('#', '%23')}'>{html.escape(n)}</a>" for n, s in PRESETS.items())
-        side += f"<h3>Data</h3><a href='/rebuild'>Rebuild from the lake now</a><p class=meta>{DB.relative_to(REPO)}</p>"
+        p = _rebuilding["proc"]
+        busy = " (refreshing now…)" if p is not None and p.poll() is None else ""
+        side += (f"<h3>Data</h3><p class=meta>snapshot built {int((age or 0) // 60)} min ago{busy}<br>refreshed on its own when older than {STALE_AFTER // 60} min</p>"
+                 f"<a href='/rebuild'>Rebuild from the lake now</a><p class=meta>{DB.relative_to(REPO)}</p>")
         nav = ""
         if offset: nav += f"<a href='/?sql={html.escape(sql)}&o={max(0, offset - PAGE_SIZE)}'>&larr; previous {PAGE_SIZE}</a> &nbsp; "
         if len(rows) == PAGE_SIZE: nav += f"<a href='/?sql={html.escape(sql)}&o={offset + PAGE_SIZE}'>next {PAGE_SIZE} &rarr;</a>"
@@ -124,7 +156,7 @@ def main() -> int:
     ap.add_argument("--rebuild", action="store_true")
     args = ap.parse_args()
     if args.rebuild or not DB.exists():
-        subprocess.run([sys.executable, str(REPO / "tools/scrape/build_db.py")], check=False)
+        rebuild(wait=True)
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), H)
     print(f"AllergyLens data viewer: http://127.0.0.1:{args.port}/  (Ctrl+C to stop)", flush=True)
     srv.serve_forever()

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -153,7 +154,21 @@ def main() -> int:
     for name, cols in TABLES.items():
         con.execute(f"CREATE TABLE {name} ({cols})")
         rows_ = data.get(name, [])
-        if rows_:
+        if not rows_:
+            continue
+        if engine == "duckdb":
+            # bulk load: executemany in duckdb is one prepared statement per row (150k manifest rows took 10+ minutes)
+            import csv, tempfile
+            with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, newline="", encoding="utf-8") as f:
+                w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+                for r in rows_:
+                    w.writerow(["" if v is None else (str(v).lower() if isinstance(v, bool) else v) for v in r])
+                tmp_csv = f.name
+            try:
+                con.execute(f"COPY {name} FROM '{tmp_csv}' (FORMAT CSV, HEADER false, NULL '', QUOTE '\"', ESCAPE '\"')")
+            finally:
+                os.unlink(tmp_csv)
+        else:
             n = cols.count(",") + 1
             con.executemany(f"INSERT INTO {name} VALUES ({','.join('?' * n)})", rows_)
     # the view to query: dish lines from images the gate accepts, one row per line
