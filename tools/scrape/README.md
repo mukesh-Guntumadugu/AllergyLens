@@ -14,8 +14,9 @@ Pipeline 2  groceries     barcode / search / category -> ingredients, allergen t
 ## Run the whole thing (three commands, no Claude needed)
 
 ```bash
-tools/scrape/start_all.sh      # starts the vision server, waits for it, starts the three driver loops: acquire (crawl+gate),
-                               # extract (GPU labelling), research (ingredients). Safe to re-run; a running loop is left alone.
+tools/scrape/start_all.sh      # starts the vision server, waits for it, then the driver loops: ACQUIRE_PARALLEL (4) acquire shards
+                               # (discover + crawl, each its own counties), gate (OCR on all cores), extract (GPU labelling),
+                               # research (ingredients). They overlap. Safe to re-run; a running loop is left alone.
 tools/scrape/watch.sh          # live view: driver state, current stage log, totals (Ctrl+C to leave; the scraper keeps going)
 tools/scrape/stop_all.sh       # stops the driver (add --vllm to stop the vision server too)
 ```
