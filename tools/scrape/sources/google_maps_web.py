@@ -39,7 +39,9 @@ import json
 import random
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -68,14 +70,16 @@ def full_size(url: str) -> str:
     return base + "=w2000-h2000-k-no"
 
 
-LIMITED = {"seen": False}
+LIMITED = threading.local()          # per worker: did this listing come as Google's limited view
+WRITE_LOCK = threading.Lock()       # one writer at a time for the jsonl files
+STOP = threading.Event()            # set when any worker is blocked: every worker stops
 
 
 def check_block(page) -> None:
     url = page.url.lower()
     try:
         if "limited view of google maps" in page.inner_text("body", timeout=3000).lower():
-            LIMITED["seen"] = True      # limited view: no Menu category; a windowed browser still shows the top photos
+            LIMITED.seen = True      # limited view: no Menu category; a windowed browser still shows the top photos
     except Exception:
         pass
     if "/sorry/" in url or "consent.google" in url and "sorry" in url:
@@ -136,7 +140,7 @@ def open_listing(page, query: str, debug: bool) -> dict:
 
 def open_menu_gallery(page, debug: bool) -> str:
     """Open the photo gallery on the Menu category. Returns which category opened."""
-    if LIMITED["seen"]:
+    if getattr(LIMITED, "seen", False):
         # the gallery flag (!10e5) opens the photo grid; in the limited view it holds only the top photos, uncategorised
         target = page.url.split("?")[0]
         if "!10e5" not in target:
@@ -236,7 +240,7 @@ def download(urls: list[str], bronze_root: Path, restaurant_id: str, maps_url: s
             p.write_bytes(r.content)
         row = {"sha256": sha, "url": big, "source_type": "google-maps-web", "content_type": r.headers["content-type"], "bytes": len(r.content),
                "fetched_at": now(), "http_status": 200, "ext": ext, "restaurant_id": restaurant_id, "maps_url": maps_url, "gallery_category": category}
-        with manifest.open("a") as f:
+        with WRITE_LOCK, manifest.open("a") as f:
             f.write(json.dumps(row) + "\n")
         rows.append(row)
         time.sleep(random.uniform(0.4, 1.0))
@@ -251,7 +255,7 @@ def scrape_listing(page, query: str, restaurant_id: str, lake: Path, max_photos:
     rows = download(urls, lake / "bronze", restaurant_id, info["maps_url"], category)
     out = lake / "silver" / "menu_photos.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("a") as f:
+    with WRITE_LOCK, out.open("a") as f:
         for r in rows:
             f.write(json.dumps({"restaurant_id": restaurant_id, "sha256": r["sha256"], "ext": r["ext"], "gallery_category": category,
                                 "listing_name": info["name"], "listing_address": info["address"], "maps_url": info["maps_url"],
@@ -262,7 +266,7 @@ def scrape_listing(page, query: str, restaurant_id: str, lake: Path, max_photos:
 def record_block(lake: Path, detail: str) -> None:
     q = lake / "silver" / "review_queue.jsonl"
     q.parent.mkdir(parents=True, exist_ok=True)
-    with q.open("a") as f:
+    with WRITE_LOCK, q.open("a") as f:
         f.write(json.dumps({"kind": "blocked_source", "source": "google-maps-web", "detail": detail, "created_at": now()}) + "\n")
 
 
@@ -270,15 +274,17 @@ def log_job(lake: Path, row: dict) -> None:
     """one line per listing tried -> data-lake/silver/maps_log.jsonl (resume: a listing is not retried for 30 days)"""
     q = lake / "silver" / "maps_log.jsonl"
     q.parent.mkdir(parents=True, exist_ok=True)
-    with q.open("a") as f:
+    with WRITE_LOCK, q.open("a") as f:
         f.write(json.dumps({**row, "finished_at": now()}) + "\n")
 
 
-def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bool = True) -> list[dict]:
-    """jobs: [{query, restaurant_id}]. Stops at the first block page."""
+def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bool = True, worker: int = 0, total: int | None = None) -> list[dict]:
+    """jobs: [{query, restaurant_id}]. One browser; stops at the first block page (and tells the other workers to stop)."""
     from playwright.sync_api import sync_playwright
 
     results = []
+    total = total or len(jobs)
+    tag = f"w{worker} " if worker else ""
     with sync_playwright() as pw:
         # software GL: Google Maps renders nothing in headless Chromium without it. Windowed (--headed, needs a DISPLAY)
         # is placed off-screen; Google's limited view shows the gallery's top photos only to a windowed browser.
@@ -289,12 +295,14 @@ def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bo
         ctx = browser.new_context(locale="en-US", viewport={"width": 1400, "height": 900})
         page = ctx.new_page()
         for i, job in enumerate(jobs):
-            print(f"[{i + 1}/{len(jobs)}] {job['query']}")
-            LIMITED["seen"] = False
+            if STOP.is_set():
+                print(f"    {tag}stopping: another worker was blocked", file=sys.stderr); break
+            print(f"[{tag}{i + 1}/{len(jobs)}] {job['query']}")
+            LIMITED.seen = False
             try:
                 res = scrape_listing(page, job["query"], job["restaurant_id"], lake, max_photos, debug)
-                print(f"    -> {res['photos']} photos from the '{res['category']}' gallery" + (" (Google limited view: top photos only, no Menu category)" if LIMITED["seen"] else ""))
-                if LIMITED["seen"] and res["photos"] == 0 and headless:
+                print(f"    -> {res['photos']} photos from the '{res['category']}' gallery" + (" (Google limited view: top photos only, no Menu category)" if getattr(LIMITED, "seen", False) else ""))
+                if getattr(LIMITED, "seen", False) and res["photos"] == 0 and headless:
                     print("    limited view in HEADLESS mode exposes no photos at all; run with --headed on a machine with a display", file=sys.stderr)
                     record_block(lake, "limited view, headless: no photos; use --headed")
                     break
@@ -302,7 +310,7 @@ def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bo
                 log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": res["photos"], "category": res["category"]})
             except Blocked as e:
                 print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
-                record_block(lake, str(e))
+                record_block(lake, str(e)); STOP.set()
                 break
             except Blocked as e:  # pragma: no cover
                 print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
@@ -337,6 +345,7 @@ def main() -> int:
     ap.add_argument("--headed", action="store_true", help="show the browser window (needs a display)")
     ap.add_argument("--force", action="store_true", help="retry listings done in the last 30 days too")
     ap.add_argument("--limit", type=int, default=None, help="at most this many listings this run")
+    ap.add_argument("--parallel", type=int, default=4, help="browser windows at the same time, each on its own slice of the list")
     args = ap.parse_args()
     if not args.allow_google_maps_web:
         sys.exit("refusing: this adapter breaches Google Maps' terms (DESIGN.md §0.8). Pass --allow-google-maps-web to run it knowingly.")
@@ -360,7 +369,21 @@ def main() -> int:
         jobs = jobs[: args.limit]
     if not jobs:
         print("nothing to do"); return 0
-    results = run(jobs, lake, args.max_photos, args.debug, headless=not args.headed)
+    n = max(1, min(args.parallel, len(jobs)))
+    if n == 1:
+        results = run(jobs, lake, args.max_photos, args.debug, headless=not args.headed)
+    else:
+        # round-robin slices, one browser per worker (each thread owns its own Playwright instance), staggered starts
+        slices = [jobs[k::n] for k in range(n)]
+        print(f"{len(jobs)} listings, {n} browsers in parallel ({', '.join(str(len(sl)) for sl in slices)} each)", flush=True)
+        results = []
+        def worker(k):
+            time.sleep(k * 3)
+            return run(slices[k], lake, args.max_photos, args.debug, headless=not args.headed, worker=k + 1, total=len(jobs))
+        with ThreadPoolExecutor(max_workers=n) as pool:
+            for part in pool.map(worker, range(n)):
+                results.extend(part)
+    print(f"done: {len(results)} listings, {sum(r.get('photos', 0) for r in results)} photos" + (" (stopped early: blocked)" if STOP.is_set() else ""))
     print(json.dumps(results, indent=2)[:3000])
     return 0
 
