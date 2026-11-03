@@ -16,7 +16,8 @@ cd "$(dirname "$0")/../.."
 LOGS=data-lake/logs; mkdir -p "$LOGS"
 MODEL=${VLM_MODEL:-Qwen/Qwen3-VL-8B-Instruct}
 PORT=${VLM_PORT:-8000}
-ROLES=${ROLES:-acquire extract research}
+ROLES=${ROLES:-acquire gate extract research}
+ACQUIRE_PARALLEL=${ACQUIRE_PARALLEL:-4}      # counties acquired at the same time (one process each); the GPU starves on one
 export VLM_API=openai VLM_BASE_URL="http://localhost:$PORT/v1" VLM_MODEL="$MODEL" LOOP=${LOOP:-1}
 
 vllm_up() { curl -s -m 3 -o /dev/null -w '%{http_code}' "http://localhost:$PORT/v1/models" 2>/dev/null | grep -q 200; }
@@ -46,13 +47,23 @@ if alive all; then
   echo "the old single-loop driver (ROLE=all, pid $(cat "$LOGS/driver-all.pid")) is running; stop it with tools/scrape/stop_all.sh before starting the role loops"
   exit 1
 fi
-for role in $ROLES; do
-  if alive "$role"; then
-    echo "driver $role already running (pid $(cat "$LOGS/driver-$role.pid"))"
+# does this driver know shards and a gate role? (older run_pipeline.sh: one acquire, gate inside it)
+if grep -q "ACQUIRE_SHARD" tools/scrape/run_pipeline.sh && grep -q "gate)" tools/scrape/run_pipeline.sh; then SHARDED=1; else SHARDED=0; ROLES=${ROLES//gate/}; ACQUIRE_PARALLEL=1; fi
+start_role() {  # start_role <role> <pidname> [extra env assignments...]
+  local role=$1 name=$2; shift 2
+  if alive "$name"; then
+    echo "driver $name already running (pid $(cat "$LOGS/driver-$name.pid"))"
   else
-    ROLE=$role setsid nohup tools/scrape/run_pipeline.sh >> "$LOGS/driver-$role.out" 2>&1 < /dev/null &
+    env "$@" ROLE=$role setsid nohup tools/scrape/run_pipeline.sh >> "$LOGS/driver-$name.out" 2>&1 < /dev/null &
     sleep 2
-    echo "driver $role started (pid $(cat "$LOGS/driver-$role.pid" 2>/dev/null || echo '?'))"
+    echo "driver $name started (pid $(cat "$LOGS/driver-$name.pid" 2>/dev/null || echo '?'))"
+  fi
+}
+for role in $ROLES; do
+  if [ "$role" = acquire ] && [ "$SHARDED" = 1 ] && [ "$ACQUIRE_PARALLEL" -gt 1 ]; then
+    for k in $(seq 0 $((ACQUIRE_PARALLEL - 1))); do start_role acquire "acquire-$k" "ACQUIRE_SHARD=$k/$ACQUIRE_PARALLEL"; done
+  else
+    start_role "$role" "$role"
   fi
 done
 echo "watch it with tools/scrape/watch.sh"

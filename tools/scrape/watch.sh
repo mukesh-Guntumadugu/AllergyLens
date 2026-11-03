@@ -4,11 +4,11 @@
 cd "$(dirname "$0")/../.."
 exec watch -t -n 2 '
 printf "=== %s   vLLM: %s   load: %s\n" "$(date +%H:%M:%S)" "$(curl -s -m 2 -o /dev/null -w "%{http_code}" http://localhost:8000/v1/models)" "$(cut -d" " -f1-3 /proc/loadavg)"
-for role in acquire extract research all; do
-  f=data-lake/logs/driver-$role.pid
-  if [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null; then st="RUNNING pid $(cat "$f")"; else st="not running"; fi
-  [ "$role" = all ] && [ "$st" = "not running" ] && continue
-  printf "  %-9s %s\n" "$role" "$st"
+for f in data-lake/logs/driver-*.pid; do
+  [ -f "$f" ] || continue
+  role=$(basename "$f" .pid); role=${role#driver-}
+  if kill -0 "$(cat "$f")" 2>/dev/null; then st="RUNNING pid $(cat "$f")"; else st="not running"; fi
+  printf "  %-11s %s\n" "$role" "$st"
 done
 echo
 echo "--- last stage lines (data-lake/logs/status.log)"
