@@ -188,18 +188,32 @@ def fetch(url: str, bronze: Bronze, source_type: str, timeout: int = 20, max_byt
 
 
 # ─── search backends ─────────────────────────────────────────────────────────
+# One search at a time across all research threads, at most one every SEARCH_GAP seconds, and a shared cooldown
+# that grows while the provider rate-limits us: page fetches stay parallel, the search provider sees a slow client.
+_search_lock = threading.Lock()
+_search_state = {"next_ok": 0.0, "cooldown": 0.0}
+SEARCH_GAP = float(os.environ.get("SEARCH_GAP", "2.0"))
+
+
 def search_ddg(query: str, n: int) -> list[dict]:
     try:
         from ddgs import DDGS  # type: ignore
     except ImportError:
         from duckduckgo_search import DDGS  # type: ignore
-    for attempt in range(3):
-        try:
-            res = DDGS().text(query, max_results=n)
-            return [{"url": r.get("href") or r.get("url"), "title": r.get("title", "")} for r in res if r.get("href") or r.get("url")]
-        except Exception as e:  # rate limits etc.
-            print(f"      ddg error ({e.__class__.__name__}), retry {attempt + 1}", file=sys.stderr)
-            time.sleep(3 * (attempt + 1))
+    for attempt in range(5):
+        with _search_lock:
+            wait = _search_state["next_ok"] - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                res = DDGS().text(query, max_results=n)
+                _search_state["cooldown"] = max(0.0, _search_state["cooldown"] / 2)      # recover after a good call
+                _search_state["next_ok"] = time.time() + SEARCH_GAP + _search_state["cooldown"]
+                return [{"url": r.get("href") or r.get("url"), "title": r.get("title", "")} for r in res if r.get("href") or r.get("url")]
+            except Exception as e:  # rate limits etc.: back off for everyone, then retry
+                _search_state["cooldown"] = min(120.0, max(5.0, _search_state["cooldown"] * 2))
+                _search_state["next_ok"] = time.time() + _search_state["cooldown"]
+                print(f"      ddg error ({e.__class__.__name__}), retry {attempt + 1} after {_search_state['cooldown']:.0f}s", file=sys.stderr)
     return []
 
 
