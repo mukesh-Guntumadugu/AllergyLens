@@ -266,6 +266,14 @@ def record_block(lake: Path, detail: str) -> None:
         f.write(json.dumps({"kind": "blocked_source", "source": "google-maps-web", "detail": detail, "created_at": now()}) + "\n")
 
 
+def log_job(lake: Path, row: dict) -> None:
+    """one line per listing tried -> data-lake/silver/maps_log.jsonl (resume: a listing is not retried for 30 days)"""
+    q = lake / "silver" / "maps_log.jsonl"
+    q.parent.mkdir(parents=True, exist_ok=True)
+    with q.open("a") as f:
+        f.write(json.dumps({**row, "finished_at": now()}) + "\n")
+
+
 def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bool = True) -> list[dict]:
     """jobs: [{query, restaurant_id}]. Stops at the first block page."""
     from playwright.sync_api import sync_playwright
@@ -291,6 +299,7 @@ def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bo
                     record_block(lake, "limited view, headless: no photos; use --headed")
                     break
                 results.append(res)
+                log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": res["photos"], "category": res["category"]})
             except Blocked as e:
                 print(f"    BLOCKED by Google ({e}); stopping as designed.", file=sys.stderr)
                 record_block(lake, str(e))
@@ -304,6 +313,7 @@ def run(jobs: list[dict], lake: Path, max_photos: int, debug: bool, headless: bo
             except NotFound as e:
                 print(f"    not found: {e}")
                 results.append({"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)})
+                log_job(lake, {"restaurant_id": job["restaurant_id"], "photos": 0, "error": str(e)[:200]})
             except Exception as e:  # keep going on one bad listing
                 print(f"    error: {e.__class__.__name__}: {str(e)[:120]}")
                 if debug:
@@ -325,6 +335,8 @@ def main() -> int:
     ap.add_argument("--max-photos", type=int, default=15)
     ap.add_argument("--debug", action="store_true")
     ap.add_argument("--headed", action="store_true", help="show the browser window (needs a display)")
+    ap.add_argument("--force", action="store_true", help="retry listings done in the last 30 days too")
+    ap.add_argument("--limit", type=int, default=None, help="at most this many listings this run")
     args = ap.parse_args()
     if not args.allow_google_maps_web:
         sys.exit("refusing: this adapter breaches Google Maps' terms (DESIGN.md §0.8). Pass --allow-google-maps-web to run it knowingly.")
@@ -335,7 +347,20 @@ def main() -> int:
         jobs = [{"query": args.query, "restaurant_id": args.restaurant_id}]
     else:
         sys.exit("give --query and --restaurant-id, or --jobs")
-    results = run(jobs, Path(args.lake), args.max_photos, args.debug, headless=not args.headed)
+    lake = Path(args.lake)
+    log = lake / "silver" / "maps_log.jsonl"
+    if log.exists() and not args.force:
+        from datetime import datetime, timedelta, timezone
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        done = {json.loads(l)["restaurant_id"] for l in log.read_text().splitlines() if l.strip() and json.loads(l).get("finished_at", "") >= cutoff}
+        before = len(jobs); jobs = [j for j in jobs if j["restaurant_id"] not in done]
+        if before - len(jobs):
+            print(f"{before - len(jobs)} listings done in the last 30 days skipped (maps_log.jsonl); --force to redo")
+    if args.limit:
+        jobs = jobs[: args.limit]
+    if not jobs:
+        print("nothing to do"); return 0
+    results = run(jobs, lake, args.max_photos, args.debug, headless=not args.headed)
     print(json.dumps(results, indent=2)[:3000])
     return 0
 
