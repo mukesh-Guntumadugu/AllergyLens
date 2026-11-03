@@ -66,6 +66,7 @@ def main() -> int:
     data = fetch(args.state, args.county, lake / "bronze" / f"overpass-{slug(county_short)}-{args.state_code.lower()}.json")
     out = lake / "silver" / "restaurants.jsonl"; out.parent.mkdir(parents=True, exist_ok=True)
     existing = {json.loads(l)["restaurant_id"]: json.loads(l) for l in out.read_text().splitlines() if l.strip()} if out.exists() else {}
+    by_osm = {r["source_ids"].get("osm"): rid for rid, r in existing.items() if r.get("source_ids", {}).get("osm")}
     added = 0
     for e in data.get("elements", []):
         t = e.get("tags", {})
@@ -73,9 +74,13 @@ def main() -> int:
             continue
         lat, lon = (e.get("lat"), e.get("lon")) if "lat" in e else (e.get("center", {}).get("lat"), e.get("center", {}).get("lon"))
         city = t.get("addr:city") or f"{slug(county_short)}-county"
-        rid = f"{slug(t['name'])}-{slug(city)}"
-        if rid in existing and existing[rid]["source_ids"].get("osm") != f"{e['type']}/{e['id']}":
-            rid += f"-{e['id']}"
+        osm_id = f"{e['type']}/{e['id']}"
+        if osm_id in by_osm:
+            rid = by_osm[osm_id]            # same OSM element seen before: keep its id even if the name or city tag changed
+        else:
+            rid = f"{slug(t['name'])}-{slug(city)}"
+            if rid in existing and existing[rid]["source_ids"].get("osm") != osm_id:
+                rid += f"-{e['id']}"        # two different places with the same name in the same city
         row = {"restaurant_id": rid, "name": t["name"], "amenity": t.get("amenity"), "cuisine": t.get("cuisine"), "lat": lat, "lon": lon,
                "state": args.state_code, "county": county_short,
                "address": " ".join(x for x in [t.get("addr:housenumber"), t.get("addr:street")] if x) or None,
