@@ -6,8 +6,10 @@
 # ROLE picks which loop this process runs. Run the three network/GPU/CPU-bound loops as three processes
 # so none waits for the others (the GPU idles during crawling, the cores idle during labelling):
 #
-#   ROLE=acquire  tools/scrape/run_pipeline.sh    # per county: discover -> websites -> pdfs -> places -> mapsweb (network)
+#   ROLE=acquire  tools/scrape/run_pipeline.sh    # per county: discover -> websites -> pdfs -> places (network)
 #     ACQUIRE_SHARD=k/N ROLE=acquire ...          # this process takes counties i with i % N == k, so N acquires run at once
+#   ROLE=maps     tools/scrape/run_pipeline.sh    # Google Maps listing photos (opt-in, ALLOW_GOOGLE_MAPS_WEB=1) for every
+#                                                 # restaurant not visited in 30 days, then sleep; never blocks discovery
 #   ROLE=gate     tools/scrape/run_pipeline.sh    # judge every collected image not yet judged (CPU OCR + vision), then sleep
 #   ROLE=extract  tools/scrape/run_pipeline.sh    # label every gated menu image not yet extracted (GPU), then sleep
 #   ROLE=research tools/scrape/run_pipeline.sh    # ingredients for every dish not yet in the catalog (web), then
@@ -30,7 +32,7 @@ set -uo pipefail
 cd "$(dirname "$0")/../.."
 PY=".venv/bin/python -u"   # -u: unbuffered, so logs are live
 ROLE=${ROLE:-all}
-case "$ROLE" in acquire|gate|extract|research|all) ;; *) echo "ROLE must be acquire, gate, extract, research or all (got '$ROLE')"; exit 2;; esac
+case "$ROLE" in acquire|maps|gate|extract|research|all) ;; *) echo "ROLE must be acquire, maps, gate, extract, research or all (got '$ROLE')"; exit 2;; esac
 SHARD_K=0; SHARD_N=1; TAG=$ROLE
 if [ -n "${ACQUIRE_SHARD:-}" ]; then
   [ "$ROLE" = acquire ] || { echo "ACQUIRE_SHARD only applies to ROLE=acquire"; exit 2; }
@@ -85,21 +87,45 @@ acquire_county() {  # <spec>  returns 1 when discovery failed (caller re-queues 
   else
     log "skip  places (no GOOGLE_PLACES_API_KEY)"
   fi
-  if [ "${ALLOW_GOOGLE_MAPS_WEB:-0}" = "1" ]; then
-    $PY - <<'PYEOF' > data-lake/silver/maps_jobs.jsonl
-import json
-for l in open("data-lake/silver/restaurants.jsonl"):
-    r = json.loads(l); q = ", ".join(x for x in [r["name"], r.get("address"), r.get("city") or r["county"], r["state"]] if x)
-    print(json.dumps({"query": q, "restaurant_id": r["restaurant_id"]}))
-PYEOF
-    if command -v xvfb-run >/dev/null; then
-      stage mapsweb xvfb-run -a $PY tools/scrape/sources/google_maps_web.py --allow-google-maps-web --headed --jobs data-lake/silver/maps_jobs.jsonl
-    else
-      log "skip  mapsweb (needs xvfb-run for a windowed browser: sudo apt install -y xvfb)"
-    fi
+  # maps photos and the gate run in their own loops (ROLE=maps, ROLE=gate): the maps lane is 6 s a listing and
+  # must not hold up discovery, and N acquire shards must never judge the same image twice
+  if [ "$ROLE" = all ]; then
+    maps_pass || true
+    stage gate $PY tools/scrape/gate_menu_images.py --vision-model "$VISION_MODEL"
   fi
-  # the gate runs in its own loop (ROLE=gate) so N acquire shards never judge the same image twice
-  [ "$ROLE" = all ] && stage gate $PY tools/scrape/gate_menu_images.py --vision-model "$VISION_MODEL"
+  return 0
+}
+
+maps_pass() {  # Google Maps listing photos for every restaurant not tried in 30 days; 0 = did work, 1 = nothing to do / disabled
+  if [ "${ALLOW_GOOGLE_MAPS_WEB:-0}" != "1" ]; then log "skip  mapsweb (ALLOW_GOOGLE_MAPS_WEB is not 1; see DESIGN.md §0.8)"; return 1; fi
+  if ! command -v xvfb-run >/dev/null; then log "skip  mapsweb (needs xvfb-run for a windowed browser: sudo apt install -y xvfb)"; return 1; fi
+  local n
+  n=$($PY - <<'PYEOF'
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+lake = Path("data-lake/silver")
+cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+done = set()
+if (lake / "maps_log.jsonl").exists():
+    for l in (lake / "maps_log.jsonl").read_text().splitlines():
+        if l.strip():
+            row = json.loads(l)
+            if row.get("finished_at", "") >= cutoff: done.add(row["restaurant_id"])
+n = 0
+with (lake / "maps_jobs.jsonl").open("w") as f:
+    for l in (lake / "restaurants.jsonl").read_text().splitlines():
+        if not l.strip(): continue
+        r = json.loads(l)
+        if r["restaurant_id"] in done: continue
+        q = ", ".join(x for x in [r["name"], r.get("address"), r.get("city") or r["county"], r["state"]] if x)
+        f.write(json.dumps({"query": q, "restaurant_id": r["restaurant_id"]}) + "\n"); n += 1
+print(n)
+PYEOF
+)
+  [ "${n:-0}" -gt 0 ] || return 1
+  log "mapsweb: $n listings to visit"
+  stage mapsweb xvfb-run -a $PY tools/scrape/sources/google_maps_web.py --allow-google-maps-web --headed --jobs data-lake/silver/maps_jobs.jsonl
   return 0
 }
 
@@ -192,6 +218,13 @@ case "$ROLE" in
       [ "${ONCE:-0}" = "1" ] && break
       [ "${LOOP:-0}" = "1" ] || break
       log "loop: sleeping 6h before the next pass"; sleep 6h
+    done
+    ;;
+  maps)
+    while :; do
+      load_env
+      if maps_pass; then :; else log "idle: no listings to visit; sleeping ${IDLE_SLEEP}s"; [ "${ONCE:-0}" = "1" ] || sleep "$IDLE_SLEEP"; fi
+      [ "${ONCE:-0}" = "1" ] && break
     done
     ;;
   gate)
