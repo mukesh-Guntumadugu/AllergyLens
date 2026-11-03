@@ -13,12 +13,28 @@ from __future__ import annotations
 from pathlib import Path
 
 
+_RAPID = None
+
+
+def _rapid_engine():
+    """One engine per process, pinned to ONE thread: callers parallelise across processes (the gate runs
+    OCR_WORKERS of them). The default ONNX runtime pool is one thread per core PER PROCESS, which with 18
+    worker processes meant 5,000 threads and a load of 500 on 20 cores."""
+    global _RAPID
+    if _RAPID is None:
+        import os
+        os.environ.setdefault("OMP_NUM_THREADS", "1")
+        from rapidocr_onnxruntime import RapidOCR
+        n = int(os.environ.get("OCR_THREADS", "1"))
+        _RAPID = RapidOCR(intra_op_num_threads=n, inter_op_num_threads=n)
+    return _RAPID
+
+
 def _rapid(image_path: Path):
     from PIL import Image
-    from rapidocr_onnxruntime import RapidOCR
 
     img = Image.open(image_path).convert("RGB")
-    engine = RapidOCR()
+    engine = _rapid_engine()
     result, _ = engine(str(image_path))
     lines = []
     for box, text, conf in result or []:

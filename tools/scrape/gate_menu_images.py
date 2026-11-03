@@ -98,7 +98,7 @@ def main() -> int:
     # OCR is CPU work: run it on every core at once (one process each), then decide; vision calls go to vLLM a few at a time
     import os
     from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-    ocr_workers = max(1, int(os.environ.get("OCR_WORKERS", str(max(2, (os.cpu_count() or 4) - 2)))))
+    ocr_workers = max(1, int(os.environ.get("OCR_WORKERS", str(max(2, (os.cpu_count() or 4) // 2)))))   # half the cores: crawl and browsers need the rest
     vision_workers = max(1, int(os.environ.get("VISION_WORKERS", "8")))
     paths = {row["sha256"]: lake / "bronze" / "assets" / row["sha256"][:2] / f"{row['sha256']}.{row.get('ext', 'jpg')}" for row in items}
     items = [row for row in items if paths[row["sha256"]].exists()]
