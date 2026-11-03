@@ -14,7 +14,8 @@ Pipeline 2  groceries     barcode / search / category -> ingredients, allergen t
 ## Run the whole thing (three commands, no Claude needed)
 
 ```bash
-tools/scrape/start_all.sh      # starts the vision server, waits for it, starts ONE driver (safe to re-run; never doubles up)
+tools/scrape/start_all.sh      # starts the vision server, waits for it, starts the three driver loops: acquire (crawl+gate),
+                               # extract (GPU labelling), research (ingredients). Safe to re-run; a running loop is left alone.
 tools/scrape/watch.sh          # live view: driver state, current stage log, totals (Ctrl+C to leave; the scraper keeps going)
 tools/scrape/stop_all.sh       # stops the driver (add --vllm to stop the vision server too)
 ```

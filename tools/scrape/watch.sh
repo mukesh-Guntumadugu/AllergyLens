@@ -1,22 +1,30 @@
 #!/usr/bin/env bash
-# Live view of the scraper: the driver's stage status plus the tail of whatever stage log is being written right now.
+# Live view of the scraper: each driver loop's state, the last status lines, the tail of the newest stage log, totals.
 #   tools/scrape/watch.sh
 cd "$(dirname "$0")/../.."
 exec watch -t -n 2 '
-echo "=== driver: $(pgrep -f "^bash tools/scrape/run_pipeline.sh$" >/dev/null && echo RUNNING || echo NOT RUNNING)   vLLM: $(curl -s -m 2 -o /dev/null -w "%{http_code}" http://localhost:8000/v1/models)   $(date +%H:%M:%S)"
+printf "=== %s   vLLM: %s   load: %s\n" "$(date +%H:%M:%S)" "$(curl -s -m 2 -o /dev/null -w "%{http_code}" http://localhost:8000/v1/models)" "$(cut -d" " -f1-3 /proc/loadavg)"
+for role in acquire extract research all; do
+  f=data-lake/logs/driver-$role.pid
+  if [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null; then st="RUNNING pid $(cat "$f")"; else st="not running"; fi
+  [ "$role" = all ] && [ "$st" = "not running" ] && continue
+  printf "  %-9s %s\n" "$role" "$st"
+done
 echo
-echo "--- last stages (data-lake/logs/status.log)"
-tail -n 6 data-lake/logs/status.log
+echo "--- last stage lines (data-lake/logs/status.log)"
+tail -n 8 data-lake/logs/status.log | cut -c1-150
 echo
 f=$(ls -t data-lake/logs/2*/*.log 2>/dev/null | head -1)
-echo "--- current stage log: $f"
-tail -n 18 "$f" | cut -c1-150
+echo "--- newest stage log: $f"
+tail -n 14 "$f" | cut -c1-150
 echo
 echo "--- totals"
-printf "restaurants %s | menu assets %s | images judged %s (menus %s) | dish lines %s\n" \
+printf "restaurants %s | menu assets %s | gallery photos %s | images judged %s (menus %s) | dish lines %s | dishes researched %s\n" \
   "$(wc -l < data-lake/silver/restaurants.jsonl 2>/dev/null)" \
   "$(wc -l < data-lake/silver/menu_assets.jsonl 2>/dev/null)" \
+  "$(wc -l < data-lake/silver/menu_photos.jsonl 2>/dev/null)" \
   "$(wc -l < data-lake/silver/menu_gate.jsonl 2>/dev/null)" \
   "$(grep -c "\"verdict\": \"menu\"" data-lake/silver/menu_gate.jsonl 2>/dev/null)" \
-  "$(wc -l < data-lake/silver/menu_items.jsonl 2>/dev/null)"
+  "$(wc -l < data-lake/silver/menu_items.jsonl 2>/dev/null)" \
+  "$(python3 -c "import json;print(len(json.load(open(\"data-lake/gold/dishes.json\"))[\"dishes\"]))" 2>/dev/null)"
 '
