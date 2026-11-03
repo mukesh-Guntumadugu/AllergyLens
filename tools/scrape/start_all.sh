@@ -29,8 +29,8 @@ else
     echo "vLLM is starting (process exists, not answering yet)"
   else
     echo "starting vLLM ($MODEL) -> $LOGS/vllm.log"
-    # 0.60 of the 121 GB unified memory: ~17 GB weights, the rest KV cache so 16-32 menu images can be labelled at once
-    setsid nohup vllm serve "$MODEL" --port "$PORT" --max-model-len 16384 --gpu-memory-utilization "${VLLM_GPU_FRACTION:-0.60}" \
+    # 0.45 of the 121 GB UNIFIED memory (vLLM reserves it from system RAM too): ~17 GB weights + ~35 GB KV cache; 0.60 left the crawlers 0 GB
+    setsid nohup vllm serve "$MODEL" --port "$PORT" --max-model-len 16384 --gpu-memory-utilization "${VLLM_GPU_FRACTION:-0.45}" \
       --max-num-seqs "${VLLM_MAX_SEQS:-32}" \
       >> "$LOGS/vllm.log" 2>&1 < /dev/null &
   fi
