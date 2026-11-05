@@ -312,9 +312,32 @@ python3 tools/serve_data.py --port 8787 --with-lake     # on the GX10; /menus.js
 Then select `AllergyLens` in Lens Studio and set `menusUrl` to
 `http://<gx10-ip>:8787/menus.json`. The Lens fetches it once at start,
 validates the shape, re-checks any menu in view, and keeps the bundled data
-if the server is unreachable. `--with-lake` merges every restaurant the
-scraper has finished (`data-lake/gold/lens/menus.json`) over the committed
-seed, so new menus reach the glasses without a rebuild.
+if the server is unreachable.
+
+As deployed on 5 Nov: the GX10 (`mukesh@gx10-733b.local`, 10.233.204.96 on
+the lab network) serves a clone of `main` from `~/allergylens-serve`, port
+8787, started with `tools/serve_data.py` (pid in `~/logs/allergylens-data.pid`,
+log in `~/logs/`). The GX10 has no `node`, so the knowledge-base join runs on
+the Mac and the result is pushed over:
+
+```bash
+bash tools/server/sync_lake.sh        # pull the lake's gold output, build with it, push menus.lens.json, restart, check
+```
+
+That serves 28 restaurants (the 6 seed ones plus 22 scraped Ohio menus),
+1,446 dishes, and `node tools/check.js --url http://10.233.204.96:8787/menus.json`
+passes the Lens validator. Once `node` is installed on the GX10,
+`bash tools/server/install.sh` there turns it into a systemd service that
+builds and serves on its own.
+
+**Plain `http://` is refused by the Lens** ("URL is not secure") unless the
+project's **Experimental API** switch is on (Project Settings in Lens Studio;
+fine for development and side-loading, not for publishing). The alternative
+that works everywhere is an `https://` address with a real certificate: a
+Cloudflare quick tunnel on the GX10 (`cloudflared tunnel --url
+http://localhost:8787`, no account needed) gives one, and `menusUrl` points at
+it. Until one of the two is done the Lens logs "remote menus unavailable …
+using bundled data" and runs on the compiled snapshot, by design.
 
 ## Roadmap
 

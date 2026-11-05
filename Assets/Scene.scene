@@ -2609,7 +2609,6 @@
     previewVoice: true
     debugSimulateMarker: true
     debugSimulateLabel: true
-    menusUrl: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -2628,7 +2627,7 @@
       previewVoice: true
       debugSimulateMarker: false
       debugSimulateLabel: false
-      menusUrl: ""
+      menusUrl: "http://10.233.204.96:8787/menus.json"
   ScriptTypes:
     "":
       {}
