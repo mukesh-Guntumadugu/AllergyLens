@@ -48,3 +48,5 @@ __pycache__/
 # scraped menu images/extractions stay local; only the hand-checked seed folder is committed
 data/menus/*/
 !data/menus/star-of-india/
+!data/menus/laurel-cafe/
+!data/menus/tatlilar/

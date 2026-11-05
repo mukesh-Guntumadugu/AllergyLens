@@ -2083,7 +2083,9 @@
       "typicalIngredients": [
         "milk",
         "cocoa powder",
-        "sugar"
+        "sugar",
+        "espresso",
+        "milk foam"
       ],
       "evidence": {
         "milk": {
@@ -2146,6 +2148,15 @@
           "https://myeverydaytable.com/how-to-make-a-cappuccino/",
           "https://coffeerecipessite.com/how-to-make-cappuccino/"
         ]
+      },
+      "shares": {
+        "espresso": 35,
+        "milk": 55,
+        "milk foam": 10
+      },
+      "substitutes": {
+        "milk": "oat or almond milk",
+        "milk foam": "oat or almond milk"
       }
     },
     {
@@ -2882,7 +2893,8 @@
         "sugar",
         "egg",
         "graham cracker",
-        "butter"
+        "butter",
+        "biscuit base"
       ],
       "source": {
         "type": "recipe",
@@ -2890,7 +2902,18 @@
         "collected": "2026-10-31"
       },
       "seen_count": 2,
-      "last_seen": "2026-11-02"
+      "last_seen": "2026-11-02",
+      "shares": {
+        "cream cheese": 45,
+        "sugar": 15,
+        "egg": 10,
+        "biscuit base": 20,
+        "butter": 10
+      },
+      "substitutes": {
+        "cream cheese": null,
+        "biscuit base": "gluten-free biscuit base"
+      }
     },
     {
       "name": "chicken",
@@ -6223,7 +6246,8 @@
         "yeast",
         "sugar",
         "milk",
-        "european-style butter"
+        "european-style butter",
+        "flour"
       ],
       "evidence": {
         "egg": {
@@ -6301,6 +6325,17 @@
           "https://lacuisinedegeraldine.fr/en/homemade-croissants",
           "https://www.allrecipes.com/recipe/261911/chef-johns-croissants/"
         ]
+      },
+      "shares": {
+        "flour": 50,
+        "butter": 30,
+        "milk": 10,
+        "egg": 5,
+        "sugar": 5
+      },
+      "substitutes": {
+        "butter": null,
+        "flour": null
       }
     },
     {
@@ -10663,7 +10698,8 @@
       "cuisine": "coffee shop",
       "status": "typical",
       "typicalIngredients": [
-        "milk"
+        "milk",
+        "espresso"
       ],
       "evidence": {
         "milk": {
@@ -10731,6 +10767,13 @@
           "https://tastedessert.com/recipes/the-perfect-cafe-latte-barista-quality-at-home/",
           "https://coffeeatthree.com/latte-recipes/"
         ]
+      },
+      "shares": {
+        "espresso": 25,
+        "milk": 75
+      },
+      "substitutes": {
+        "milk": "oat or almond milk"
       }
     },
     {
@@ -11648,7 +11691,9 @@
       "typicalIngredients": [
         "milk",
         "sugar",
-        "chocolate syrup"
+        "chocolate syrup",
+        "espresso",
+        "chocolate"
       ],
       "evidence": {
         "milk": {
@@ -11729,6 +11774,15 @@
           "https://coffeeatthree.com/mocha-recipe/",
           "https://www.thespruceeats.com/mocha-4797918"
         ]
+      },
+      "shares": {
+        "espresso": 25,
+        "milk": 60,
+        "chocolate": 10,
+        "sugar": 5
+      },
+      "substitutes": {
+        "milk": "oat or almond milk"
       }
     },
     {
@@ -21225,6 +21279,778 @@
           "https://www.delishknowledge.com/easy-vegan-yellow-curry-bowls/",
           "https://www.homechef.com/meals/thai-coconut-yellow-curry-rice-bowl"
         ]
+      }
+    },
+    {
+      "name": "classic avo toast",
+      "aliases": [
+        "avo toast",
+        "avocado toast"
+      ],
+      "typicalIngredients": [
+        "sourdough",
+        "smashed avocado",
+        "feta",
+        "cherry tomatoes",
+        "chili flakes",
+        "lemon"
+      ],
+      "shares": {
+        "sourdough": 40,
+        "smashed avocado": 35,
+        "feta": 10,
+        "cherry tomatoes": 10,
+        "chili flakes": 2,
+        "lemon": 3
+      },
+      "substitutes": {
+        "sourdough": "gluten-free bread",
+        "feta": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Avocado_toast",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "egg & bacon croissant",
+      "aliases": [
+        "egg and bacon croissant"
+      ],
+      "typicalIngredients": [
+        "croissant",
+        "scrambled eggs",
+        "streaky bacon",
+        "cheddar cheese",
+        "rocket"
+      ],
+      "shares": {
+        "croissant": 40,
+        "scrambled eggs": 30,
+        "streaky bacon": 15,
+        "cheddar cheese": 10,
+        "rocket": 5
+      },
+      "substitutes": {
+        "croissant": "gluten-free bun",
+        "scrambled eggs": null,
+        "streaky bacon": "grilled chicken",
+        "cheddar cheese": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Breakfast_sandwich",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "french toast",
+      "aliases": [],
+      "typicalIngredients": [
+        "brioche",
+        "egg",
+        "milk",
+        "mixed berries",
+        "maple syrup",
+        "whipped cream"
+      ],
+      "shares": {
+        "brioche": 45,
+        "egg": 15,
+        "milk": 10,
+        "mixed berries": 15,
+        "maple syrup": 8,
+        "whipped cream": 7
+      },
+      "substitutes": {
+        "brioche": "gluten-free bread",
+        "egg": null,
+        "milk": "oat or almond milk",
+        "whipped cream": "coconut cream"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/French_Toast",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "full breakfast",
+      "aliases": [],
+      "typicalIngredients": [
+        "eggs",
+        "boerewors",
+        "bacon",
+        "grilled tomato",
+        "mushrooms",
+        "toast"
+      ],
+      "shares": {
+        "eggs": 25,
+        "boerewors": 20,
+        "bacon": 15,
+        "grilled tomato": 10,
+        "mushrooms": 10,
+        "toast": 20
+      },
+      "substitutes": {
+        "boerewors": "chicken sausage",
+        "bacon": null,
+        "toast": "gluten-free toast",
+        "eggs": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Full_Breakfast",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "granola bowl",
+      "aliases": [],
+      "typicalIngredients": [
+        "greek yogurt",
+        "granola",
+        "honey",
+        "seasonal fruit"
+      ],
+      "shares": {
+        "greek yogurt": 45,
+        "granola": 35,
+        "honey": 8,
+        "seasonal fruit": 12
+      },
+      "substitutes": {
+        "greek yogurt": "coconut yogurt",
+        "granola": "gluten-free granola",
+        "honey": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Granola",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "grilled chicken sandwich",
+      "aliases": [],
+      "typicalIngredients": [
+        "grilled chicken",
+        "ciabatta",
+        "avocado",
+        "bacon",
+        "lettuce",
+        "aioli"
+      ],
+      "shares": {
+        "grilled chicken": 40,
+        "ciabatta": 30,
+        "avocado": 10,
+        "bacon": 10,
+        "lettuce": 5,
+        "aioli": 5
+      },
+      "substitutes": {
+        "ciabatta": "gluten-free bread",
+        "aioli": "olive oil",
+        "bacon": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Chicken_sandwich",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "beef burger",
+      "aliases": [
+        "beef burger & fries",
+        "burger & fries"
+      ],
+      "typicalIngredients": [
+        "beef patty",
+        "bun",
+        "cheddar",
+        "pickles",
+        "caramelised onion",
+        "burger sauce",
+        "fries"
+      ],
+      "shares": {
+        "beef patty": 40,
+        "bun": 30,
+        "cheddar": 8,
+        "pickles": 4,
+        "caramelised onion": 8,
+        "burger sauce": 5,
+        "fries": 5
+      },
+      "substitutes": {
+        "beef patty": "chicken or veggie patty",
+        "bun": "gluten-free bun",
+        "cheddar": null,
+        "burger sauce": "ketchup"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Hamburger",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "crispy chicken wrap",
+      "aliases": [
+        "chicken wrap"
+      ],
+      "typicalIngredients": [
+        "crispy chicken",
+        "tortilla wrap",
+        "lettuce",
+        "cucumber",
+        "mayo"
+      ],
+      "shares": {
+        "crispy chicken": 45,
+        "tortilla wrap": 30,
+        "lettuce": 10,
+        "cucumber": 8,
+        "mayo": 7
+      },
+      "substitutes": {
+        "crispy chicken": "grilled chicken",
+        "tortilla wrap": "lettuce wrap",
+        "mayo": "olive oil"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Wrap_(food)",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "veggie bowl",
+      "aliases": [],
+      "typicalIngredients": [
+        "quinoa",
+        "roasted vegetables",
+        "hummus",
+        "feta",
+        "seeds",
+        "lemon dressing"
+      ],
+      "shares": {
+        "quinoa": 35,
+        "roasted vegetables": 35,
+        "hummus": 12,
+        "feta": 8,
+        "seeds": 5,
+        "lemon dressing": 5
+      },
+      "substitutes": {
+        "feta": null,
+        "hummus": "avocado",
+        "seeds": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Buddha_bowl",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "gourmet toasties",
+      "aliases": [
+        "toastie",
+        "toasties"
+      ],
+      "typicalIngredients": [
+        "bread",
+        "cheese",
+        "chicken mayo",
+        "tomato",
+        "avocado",
+        "feta"
+      ],
+      "shares": {
+        "bread": 50,
+        "cheese": 20,
+        "chicken mayo": 15,
+        "tomato": 10,
+        "avocado": 5
+      },
+      "substitutes": {
+        "bread": "gluten-free bread",
+        "cheese": null,
+        "chicken mayo": "avo & feta"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Toast_sandwich",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "chicken caesar salad",
+      "aliases": [
+        "caesar salad"
+      ],
+      "typicalIngredients": [
+        "romaine lettuce",
+        "grilled chicken",
+        "parmesan",
+        "croutons",
+        "caesar dressing",
+        "anchovies",
+        "egg"
+      ],
+      "shares": {
+        "romaine lettuce": 35,
+        "grilled chicken": 35,
+        "parmesan": 8,
+        "croutons": 10,
+        "caesar dressing": 7,
+        "anchovies": 3,
+        "egg": 2
+      },
+      "substitutes": {
+        "parmesan": null,
+        "croutons": null,
+        "caesar dressing": "olive oil and lemon"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Caesar_salad",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "greek salad",
+      "aliases": [],
+      "typicalIngredients": [
+        "cucumber",
+        "tomato",
+        "feta",
+        "olives",
+        "red onion",
+        "olive oil"
+      ],
+      "shares": {
+        "cucumber": 25,
+        "tomato": 25,
+        "feta": 20,
+        "olives": 10,
+        "red onion": 10,
+        "olive oil": 10
+      },
+      "substitutes": {
+        "feta": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Greek_Salad",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "muffin",
+      "aliases": [
+        "muffins"
+      ],
+      "typicalIngredients": [
+        "flour",
+        "sugar",
+        "egg",
+        "butter",
+        "milk",
+        "fruit"
+      ],
+      "shares": {
+        "flour": 40,
+        "sugar": 20,
+        "egg": 10,
+        "butter": 15,
+        "milk": 10,
+        "fruit": 5
+      },
+      "substitutes": {
+        "milk": "oat or almond milk",
+        "butter": "oil"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Muffin",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "brownie",
+      "aliases": [
+        "chocolate brownie"
+      ],
+      "typicalIngredients": [
+        "chocolate",
+        "butter",
+        "sugar",
+        "egg",
+        "flour"
+      ],
+      "shares": {
+        "chocolate": 30,
+        "butter": 20,
+        "sugar": 20,
+        "egg": 15,
+        "flour": 15
+      },
+      "substitutes": {
+        "butter": "oil",
+        "egg": "flax egg",
+        "flour": "gluten-free flour"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Chocolate_brownie",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "espresso",
+      "aliases": [],
+      "typicalIngredients": [
+        "coffee"
+      ],
+      "shares": {
+        "coffee": 100
+      },
+      "substitutes": {},
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Espresso",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "americano",
+      "aliases": [],
+      "typicalIngredients": [
+        "coffee",
+        "water"
+      ],
+      "shares": {
+        "coffee": 30,
+        "water": 70
+      },
+      "substitutes": {},
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Caffè_Americano",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "flat white",
+      "aliases": [],
+      "typicalIngredients": [
+        "espresso",
+        "milk"
+      ],
+      "shares": {
+        "espresso": 40,
+        "milk": 60
+      },
+      "substitutes": {
+        "milk": "oat or almond milk"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Flat_White",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "iced vanilla latte",
+      "aliases": [],
+      "typicalIngredients": [
+        "espresso",
+        "milk",
+        "vanilla syrup",
+        "ice"
+      ],
+      "shares": {
+        "espresso": 25,
+        "milk": 60,
+        "vanilla syrup": 10,
+        "ice": 5
+      },
+      "substitutes": {
+        "milk": "oat or almond milk",
+        "vanilla syrup": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Iced_coffee",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "caramel cold brew",
+      "aliases": [],
+      "typicalIngredients": [
+        "cold brew coffee",
+        "caramel syrup",
+        "milk",
+        "ice"
+      ],
+      "shares": {
+        "cold brew coffee": 60,
+        "caramel syrup": 10,
+        "milk": 25,
+        "ice": 5
+      },
+      "substitutes": {
+        "milk": "oat milk",
+        "caramel syrup": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Cold_brew_coffee",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "strawberry iced tea",
+      "aliases": [],
+      "typicalIngredients": [
+        "black tea",
+        "strawberry syrup",
+        "ice",
+        "lemon"
+      ],
+      "shares": {
+        "black tea": 70,
+        "strawberry syrup": 15,
+        "ice": 10,
+        "lemon": 5
+      },
+      "substitutes": {
+        "strawberry syrup": "fresh strawberries"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Iced_tea",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "lemonade",
+      "aliases": [
+        "fresh lemonade"
+      ],
+      "typicalIngredients": [
+        "lemon",
+        "sugar",
+        "water",
+        "ice"
+      ],
+      "shares": {
+        "lemon": 20,
+        "sugar": 15,
+        "water": 60,
+        "ice": 5
+      },
+      "substitutes": {
+        "sugar": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Lemonade",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "kurabiye",
+      "aliases": [],
+      "typicalIngredients": [
+        "flour",
+        "butter",
+        "sugar",
+        "egg",
+        "hazelnuts",
+        "chocolate"
+      ],
+      "shares": {
+        "flour": 45,
+        "butter": 25,
+        "sugar": 20,
+        "egg": 5,
+        "hazelnuts": 3,
+        "chocolate": 2
+      },
+      "substitutes": {
+        "butter": "vegan version on request",
+        "egg": "vegan version on request",
+        "hazelnuts": null
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Kurabiye",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "cupcake",
+      "aliases": [],
+      "typicalIngredients": [
+        "flour",
+        "sugar",
+        "butter",
+        "egg",
+        "milk",
+        "frosting",
+        "cherry"
+      ],
+      "shares": {
+        "flour": 30,
+        "sugar": 25,
+        "butter": 15,
+        "egg": 10,
+        "milk": 10,
+        "frosting": 8,
+        "cherry": 2
+      },
+      "substitutes": {
+        "butter": "vegan version on request",
+        "egg": "vegan version on request",
+        "milk": "vegan version on request"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Cupcake",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "waffle",
+      "aliases": [],
+      "typicalIngredients": [
+        "flour",
+        "egg",
+        "milk",
+        "butter",
+        "sugar",
+        "chocolate",
+        "banana",
+        "pistachios"
+      ],
+      "shares": {
+        "flour": 40,
+        "egg": 15,
+        "milk": 20,
+        "butter": 10,
+        "sugar": 5,
+        "chocolate": 5,
+        "banana": 3,
+        "pistachios": 2
+      },
+      "substitutes": {
+        "egg": "vegan version on request",
+        "milk": "vegan version on request",
+        "butter": "vegan version on request",
+        "pistachios": null,
+        "chocolate": "fruit only"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Waffle",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "ekler",
+      "aliases": [
+        "eclair",
+        "éclair"
+      ],
+      "typicalIngredients": [
+        "flour",
+        "butter",
+        "egg",
+        "milk",
+        "sugar",
+        "chocolate"
+      ],
+      "shares": {
+        "flour": 25,
+        "butter": 15,
+        "egg": 15,
+        "milk": 25,
+        "sugar": 10,
+        "chocolate": 10
+      },
+      "substitutes": {
+        "butter": "vegan version on request",
+        "egg": "vegan version on request",
+        "milk": "vegan version on request"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Éclair",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "macaron",
+      "aliases": [
+        "macarons"
+      ],
+      "typicalIngredients": [
+        "almond flour",
+        "sugar",
+        "egg white",
+        "buttercream"
+      ],
+      "shares": {
+        "almond flour": 35,
+        "sugar": 35,
+        "egg white": 20,
+        "buttercream": 10
+      },
+      "substitutes": {
+        "almond flour": null,
+        "egg white": "vegan version on request",
+        "buttercream": "vegan version on request"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Macaron",
+        "collected": "2026-11-04"
+      }
+    },
+    {
+      "name": "dondurma",
+      "aliases": [],
+      "typicalIngredients": [
+        "milk",
+        "sugar",
+        "cream",
+        "salep",
+        "mastic"
+      ],
+      "shares": {
+        "milk": 60,
+        "sugar": 20,
+        "cream": 15,
+        "salep": 3,
+        "mastic": 2
+      },
+      "substitutes": {
+        "milk": "vegan version on request",
+        "cream": "vegan version on request"
+      },
+      "source": {
+        "type": "recipe",
+        "url": "https://en.wikipedia.org/wiki/Dondurma",
+        "collected": "2026-11-04"
       }
     }
   ]

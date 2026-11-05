@@ -19,7 +19,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Part | State |
 |---|---|
 | Profile panel (17 toggles + 6 mood chips) as a separate step before the menu | Working, on the real camera path |
-| Real printed menu recognised by the camera (image marker, 29.7 cm wide page) | Working — marks land on the printed lines |
+| Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks land on the printed lines |
 | Three verdicts per dish: safe / contains / unverified, from the data | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
@@ -186,7 +186,8 @@ Two pipelines, both plain Python + one Node script, documented in
 storage schema); the data shapes are in [data/README.md](data/README.md).
 
 ```
-Pipeline 1  restaurants   discover (OpenStreetMap) → menus (website, PDF, Places photos, own captures)
+Pipeline 1  restaurants   discover (OpenStreetMap) → menus (website, PDF, Places photos, own captures, or a handheld
+                          video: tools/scrape/page_from_video.py picks the sharpest frame and flattens the page)
                           → gate → OCR with boxes → vision labelling → dish catalog → cited ingredient research
                           → allergens + category → data-lake/gold/ → menus.json
 Pipeline 2  groceries     barcode / search / category → Open Food Facts → ingredients, allergen tags, nutrition, fitness flags

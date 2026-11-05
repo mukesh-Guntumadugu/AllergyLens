@@ -169,7 +169,12 @@ export const ALLERGENS: AllergenDef[] = [
       "ricotta",
       "mascarpone",
       "buttermilk",
-      "condensed milk"
+      "condensed milk",
+      "feta",
+      "brie",
+      "goat cheese",
+      "cream cheese",
+      "milk foam"
     ]
   },
   {
@@ -186,7 +191,8 @@ export const ALLERGENS: AllergenDef[] = [
       "mayonnaise",
       "mayo",
       "meringue",
-      "aioli"
+      "aioli",
+      "caesar dressing"
     ]
   },
   {
@@ -213,7 +219,19 @@ export const ALLERGENS: AllergenDef[] = [
       "pizza dough",
       "naan",
       "roti",
-      "tortilla"
+      "tortilla",
+      "sourdough",
+      "brioche",
+      "croissant",
+      "ciabatta",
+      "bun",
+      "toast",
+      "crouton",
+      "croutons",
+      "waffle",
+      "biscuit",
+      "biscuit base",
+      "wrap"
     ]
   },
   {
@@ -308,7 +326,8 @@ export const ALLERGENS: AllergenDef[] = [
       "oxtail",
       "veal",
       "beef gelatin",
-      "beef tallow"
+      "beef tallow",
+      "boerewors"
     ]
   },
   {
@@ -328,7 +347,8 @@ export const ALLERGENS: AllergenDef[] = [
       "sausage",
       "pork belly",
       "pork gelatin",
-      "char siu"
+      "char siu",
+      "boerewors"
     ]
   },
   {
@@ -595,8 +615,17 @@ export const RESTAURANTS: RestaurantDef[] = [
         "ingredientsSource": "restaurant",
         "category": "dessert",
         "removable": [],
-        "shares": {},
-        "substitutes": {},
+        "shares": {
+          "cream cheese": 45,
+          "sugar": 15,
+          "egg": 10,
+          "biscuit base": 20,
+          "butter": 10
+        },
+        "substitutes": {
+          "cream cheese": null,
+          "biscuit base": "gluten-free biscuit base"
+        },
         "layout": null,
         "price": null,
         "section": null,
@@ -1889,6 +1918,1259 @@ export const RESTAURANTS: RestaurantDef[] = [
         "price": null,
         "section": null,
         "markers": []
+      }
+    ]
+  },
+  {
+    "id": "laurel-cafe",
+    "name": "Laurel Café & Co",
+    "source": {
+      "type": "photo",
+      "url": null,
+      "collected": "2026-11-04"
+    },
+    "cuisine": "cafe",
+    "rating": null,
+    "menuImage": {
+      "path": "data/menus/laurel-cafe/menu-1.png",
+      "widthPx": 1400,
+      "heightPx": 1812,
+      "widthCm": 21.59
+    },
+    "dishes": [
+      {
+        "id": "classic-avo-toast",
+        "name": "Classic Avo Toast",
+        "icon": null,
+        "ingredients": [
+          "sourdough",
+          "smashed avocado",
+          "feta",
+          "cherry tomatoes",
+          "chili flakes",
+          "lemon"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "vegetarian",
+        "removable": [
+          "feta",
+          "chili flakes"
+        ],
+        "shares": {
+          "sourdough": 40,
+          "smashed avocado": 35,
+          "feta": 10,
+          "cherry tomatoes": 10,
+          "chili flakes": 2,
+          "lemon": 3
+        },
+        "substitutes": {
+          "sourdough": "gluten-free bread",
+          "feta": null
+        },
+        "layout": {
+          "x": 0.415,
+          "y": 0.216,
+          "w": 0.134,
+          "h": 0.013
+        },
+        "price": 72,
+        "section": "Breakfast & Brunch",
+        "markers": []
+      },
+      {
+        "id": "egg-bacon-croissant",
+        "name": "Egg & Bacon Croissant",
+        "icon": null,
+        "ingredients": [
+          "croissant",
+          "scrambled eggs",
+          "streaky bacon",
+          "cheddar cheese",
+          "rocket"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "red_meat",
+        "removable": [
+          "cheddar cheese",
+          "streaky bacon",
+          "rocket"
+        ],
+        "shares": {
+          "croissant": 40,
+          "scrambled eggs": 30,
+          "streaky bacon": 15,
+          "cheddar cheese": 10,
+          "rocket": 5
+        },
+        "substitutes": {
+          "croissant": "gluten-free bun",
+          "scrambled eggs": null,
+          "streaky bacon": "grilled chicken",
+          "cheddar cheese": null
+        },
+        "layout": {
+          "x": 0.42,
+          "y": 0.281,
+          "w": 0.164,
+          "h": 0.015
+        },
+        "price": 65,
+        "section": "Breakfast & Brunch",
+        "markers": []
+      },
+      {
+        "id": "french-toast",
+        "name": "French Toast",
+        "icon": null,
+        "ingredients": [
+          "brioche",
+          "egg",
+          "milk",
+          "mixed berries",
+          "maple syrup",
+          "whipped cream"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "vegetarian",
+        "removable": [
+          "whipped cream",
+          "maple syrup"
+        ],
+        "shares": {
+          "brioche": 45,
+          "egg": 15,
+          "milk": 10,
+          "mixed berries": 15,
+          "maple syrup": 8,
+          "whipped cream": 7
+        },
+        "substitutes": {
+          "brioche": "gluten-free bread",
+          "egg": null,
+          "milk": "oat or almond milk",
+          "whipped cream": "coconut cream"
+        },
+        "layout": {
+          "x": 0.421,
+          "y": 0.333,
+          "w": 0.1,
+          "h": 0.014
+        },
+        "price": 75,
+        "section": "Breakfast & Brunch",
+        "markers": []
+      },
+      {
+        "id": "full-breakfast",
+        "name": "Full Breakfast",
+        "icon": null,
+        "ingredients": [
+          "eggs",
+          "boerewors",
+          "bacon",
+          "grilled tomato",
+          "mushrooms",
+          "toast"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "red_meat",
+        "removable": [
+          "boerewors",
+          "bacon",
+          "mushrooms",
+          "toast"
+        ],
+        "shares": {
+          "eggs": 25,
+          "boerewors": 20,
+          "bacon": 15,
+          "grilled tomato": 10,
+          "mushrooms": 10,
+          "toast": 20
+        },
+        "substitutes": {
+          "boerewors": "chicken sausage",
+          "bacon": null,
+          "toast": "gluten-free toast",
+          "eggs": null
+        },
+        "layout": {
+          "x": 0.421,
+          "y": 0.385,
+          "w": 0.107,
+          "h": 0.014
+        },
+        "price": 95,
+        "section": "Breakfast & Brunch",
+        "markers": []
+      },
+      {
+        "id": "granola-bowl",
+        "name": "Granola Bowl",
+        "icon": null,
+        "ingredients": [
+          "greek yogurt",
+          "granola",
+          "honey",
+          "seasonal fruit"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "vegetarian",
+        "removable": [
+          "honey"
+        ],
+        "shares": {
+          "greek yogurt": 45,
+          "granola": 35,
+          "honey": 8,
+          "seasonal fruit": 12
+        },
+        "substitutes": {
+          "greek yogurt": "coconut yogurt",
+          "granola": "gluten-free granola",
+          "honey": null
+        },
+        "layout": {
+          "x": 0.422,
+          "y": 0.449,
+          "w": 0.104,
+          "h": 0.013
+        },
+        "price": 55,
+        "section": "Breakfast & Brunch",
+        "markers": []
+      },
+      {
+        "id": "grilled-chicken-sandwich",
+        "name": "Grilled Chicken Sandwich",
+        "icon": null,
+        "ingredients": [
+          "grilled chicken",
+          "avocado",
+          "bacon",
+          "lettuce",
+          "aioli",
+          "ciabatta"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "chicken",
+        "removable": [
+          "bacon",
+          "aioli",
+          "avocado"
+        ],
+        "shares": {
+          "grilled chicken": 40,
+          "ciabatta": 30,
+          "avocado": 10,
+          "bacon": 10,
+          "lettuce": 5,
+          "aioli": 5
+        },
+        "substitutes": {
+          "ciabatta": "gluten-free bread",
+          "aioli": "olive oil",
+          "bacon": null
+        },
+        "layout": {
+          "x": 0.701,
+          "y": 0.416,
+          "w": 0.169,
+          "h": 0.014
+        },
+        "price": 85,
+        "section": "Lunch",
+        "markers": []
+      },
+      {
+        "id": "beef-burger-fries",
+        "name": "Beef Burger & Fries",
+        "icon": null,
+        "ingredients": [
+          "beef patty",
+          "cheddar",
+          "pickles",
+          "caramelised onion",
+          "burger sauce",
+          "bun",
+          "fries"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "red_meat",
+        "removable": [
+          "cheddar",
+          "pickles",
+          "caramelised onion",
+          "burger sauce"
+        ],
+        "shares": {
+          "beef patty": 40,
+          "bun": 30,
+          "cheddar": 8,
+          "pickles": 4,
+          "caramelised onion": 8,
+          "burger sauce": 5,
+          "fries": 5
+        },
+        "substitutes": {
+          "beef patty": "chicken or veggie patty",
+          "bun": "gluten-free bun",
+          "cheddar": null,
+          "burger sauce": "ketchup"
+        },
+        "layout": {
+          "x": 0.704,
+          "y": 0.46,
+          "w": 0.131,
+          "h": 0.014
+        },
+        "price": 95,
+        "section": "Lunch",
+        "markers": []
+      },
+      {
+        "id": "crispy-chicken-wrap",
+        "name": "Crispy Chicken Wrap",
+        "icon": null,
+        "ingredients": [
+          "crispy chicken",
+          "lettuce",
+          "cucumber",
+          "mayo",
+          "tortilla wrap"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "chicken",
+        "removable": [
+          "mayo",
+          "cucumber"
+        ],
+        "shares": {
+          "crispy chicken": 45,
+          "tortilla wrap": 30,
+          "lettuce": 10,
+          "cucumber": 8,
+          "mayo": 7
+        },
+        "substitutes": {
+          "crispy chicken": "grilled chicken",
+          "tortilla wrap": "lettuce wrap",
+          "mayo": "olive oil"
+        },
+        "layout": {
+          "x": 0.705,
+          "y": 0.501,
+          "w": 0.139,
+          "h": 0.016
+        },
+        "price": 75,
+        "section": "Lunch",
+        "markers": []
+      },
+      {
+        "id": "veggie-bowl",
+        "name": "Veggie Bowl",
+        "icon": null,
+        "ingredients": [
+          "quinoa",
+          "roasted vegetables",
+          "hummus",
+          "feta",
+          "seeds",
+          "lemon dressing"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "vegetarian",
+        "removable": [
+          "feta",
+          "hummus",
+          "seeds"
+        ],
+        "shares": {
+          "quinoa": 35,
+          "roasted vegetables": 35,
+          "hummus": 12,
+          "feta": 8,
+          "seeds": 5,
+          "lemon dressing": 5
+        },
+        "substitutes": {
+          "feta": null,
+          "hummus": "avocado",
+          "seeds": null
+        },
+        "layout": {
+          "x": 0.707,
+          "y": 0.541,
+          "w": 0.086,
+          "h": 0.018
+        },
+        "price": 85,
+        "section": "Lunch",
+        "markers": []
+      },
+      {
+        "id": "gourmet-toasties",
+        "name": "Gourmet Toasties",
+        "icon": null,
+        "ingredients": [
+          "bread",
+          "chicken mayo",
+          "cheese",
+          "tomato",
+          "avocado",
+          "feta"
+        ],
+        "ingredientsSource": "restaurant",
+        "category": "chicken",
+        "removable": [
+          "cheese",
+          "feta"
+        ],
+        "shares": {
+          "bread": 50,
+          "cheese": 20,
+          "chicken mayo": 15,
+          "tomato": 10,
+          "avocado": 5
+        },
+        "substitutes": {
+          "bread": "gluten-free bread",
+          "cheese": null,
+          "chicken mayo": "avo & feta"
+        },
+        "layout": {
+          "x": 0.71,
+          "y": 0.587,
+          "w": 0.113,
+          "h": 0.011
+        },
+        "price": 55,
+        "section": "Lunch",
+        "markers": [],
+        "notes": "Choose from chicken mayo / cheese & tomato / avo & feta."
+      },
+      {
+        "id": "chicken-caesar-salad",
+        "name": "Chicken Caesar Salad",
+        "icon": null,
+        "ingredients": [
+          "romaine lettuce",
+          "grilled chicken",
+          "parmesan",
+          "croutons",
+          "caesar dressing",
+          "anchovies",
+          "egg"
+        ],
+        "ingredientsSource": "typical",
+        "category": "chicken",
+        "removable": [],
+        "shares": {
+          "romaine lettuce": 35,
+          "grilled chicken": 35,
+          "parmesan": 8,
+          "croutons": 10,
+          "caesar dressing": 7,
+          "anchovies": 3,
+          "egg": 2
+        },
+        "substitutes": {
+          "parmesan": null,
+          "croutons": null,
+          "caesar dressing": "olive oil and lemon"
+        },
+        "layout": {
+          "x": 0.712,
+          "y": 0.674,
+          "w": 0.141,
+          "h": 0.014
+        },
+        "price": 85,
+        "section": "Bowls & Salads",
+        "markers": []
+      },
+      {
+        "id": "greek-salad",
+        "name": "Greek Salad",
+        "icon": null,
+        "ingredients": [
+          "cucumber",
+          "tomato",
+          "feta",
+          "olives",
+          "red onion",
+          "olive oil"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "cucumber": 25,
+          "tomato": 25,
+          "feta": 20,
+          "olives": 10,
+          "red onion": 10,
+          "olive oil": 10
+        },
+        "substitutes": {
+          "feta": null
+        },
+        "layout": {
+          "x": 0.713,
+          "y": 0.692,
+          "w": 0.083,
+          "h": 0.013
+        },
+        "price": 75,
+        "section": "Bowls & Salads",
+        "markers": []
+      },
+      {
+        "id": "side-fries",
+        "name": "Side Fries",
+        "icon": null,
+        "ingredients": [
+          "potato",
+          "olive oil"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.713,
+          "y": 0.708,
+          "w": 0.07,
+          "h": 0.013
+        },
+        "price": 30,
+        "section": "Bowls & Salads",
+        "markers": []
+      },
+      {
+        "id": "croissants",
+        "name": "Croissants",
+        "icon": null,
+        "ingredients": [
+          "egg",
+          "wheat flour",
+          "butter",
+          "yeast",
+          "sugar",
+          "milk",
+          "european-style butter",
+          "flour"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "flour": 50,
+          "butter": 30,
+          "milk": 10,
+          "egg": 5,
+          "sugar": 5
+        },
+        "substitutes": {
+          "butter": null,
+          "flour": null
+        },
+        "layout": {
+          "x": 0.43,
+          "y": 0.687,
+          "w": 0.078,
+          "h": 0.013
+        },
+        "price": 28,
+        "section": "Sweet Treats",
+        "markers": [],
+        "notes": "Plain or chocolate."
+      },
+      {
+        "id": "muffins",
+        "name": "Muffins",
+        "icon": null,
+        "ingredients": [
+          "egg",
+          "wheat flour",
+          "baking powder",
+          "sugar",
+          "milk",
+          "baking soda",
+          "cinnamon",
+          "butter"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.43,
+          "y": 0.717,
+          "w": 0.051,
+          "h": 0.012
+        },
+        "price": 28,
+        "section": "Sweet Treats",
+        "markers": []
+      },
+      {
+        "id": "cheesecake-slice",
+        "name": "Cheesecake Slice",
+        "icon": null,
+        "ingredients": [
+          "cream cheese",
+          "sugar",
+          "egg",
+          "graham cracker",
+          "butter",
+          "biscuit base"
+        ],
+        "ingredientsSource": "typical",
+        "category": "dessert",
+        "removable": [],
+        "shares": {
+          "cream cheese": 45,
+          "sugar": 15,
+          "egg": 10,
+          "biscuit base": 20,
+          "butter": 10
+        },
+        "substitutes": {
+          "cream cheese": null,
+          "biscuit base": "gluten-free biscuit base"
+        },
+        "layout": {
+          "x": 0.432,
+          "y": 0.748,
+          "w": 0.113,
+          "h": 0.013
+        },
+        "price": 48,
+        "section": "Sweet Treats",
+        "markers": []
+      },
+      {
+        "id": "chocolate-brownie",
+        "name": "Chocolate Brownie",
+        "icon": null,
+        "ingredients": [
+          "chocolate",
+          "butter",
+          "sugar",
+          "egg",
+          "flour"
+        ],
+        "ingredientsSource": "typical",
+        "category": "dessert",
+        "removable": [],
+        "shares": {
+          "chocolate": 30,
+          "butter": 20,
+          "sugar": 20,
+          "egg": 15,
+          "flour": 15
+        },
+        "substitutes": {
+          "butter": "oil",
+          "egg": "flax egg",
+          "flour": "gluten-free flour"
+        },
+        "layout": {
+          "x": 0.429,
+          "y": 0.767,
+          "w": 0.128,
+          "h": 0.014
+        },
+        "price": 45,
+        "section": "Sweet Treats",
+        "markers": [],
+        "notes": "With cream or ice cream."
+      },
+      {
+        "id": "espresso",
+        "name": "Espresso",
+        "icon": null,
+        "ingredients": [
+          "coffee"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "coffee": 100
+        },
+        "substitutes": {},
+        "layout": {
+          "x": 0.159,
+          "y": 0.344,
+          "w": 0.06,
+          "h": 0.015
+        },
+        "price": 25,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "americano",
+        "name": "Americano",
+        "icon": null,
+        "ingredients": [
+          "coffee",
+          "water"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "coffee": 30,
+          "water": 70
+        },
+        "substitutes": {},
+        "layout": {
+          "x": 0.16,
+          "y": 0.363,
+          "w": 0.071,
+          "h": 0.013
+        },
+        "price": 30,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "cappuccino",
+        "name": "Cappuccino",
+        "icon": null,
+        "ingredients": [
+          "milk",
+          "cocoa powder",
+          "sugar",
+          "espresso",
+          "milk foam"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "espresso": 35,
+          "milk": 55,
+          "milk foam": 10
+        },
+        "substitutes": {
+          "milk": "oat or almond milk",
+          "milk foam": "oat or almond milk"
+        },
+        "layout": {
+          "x": 0.159,
+          "y": 0.379,
+          "w": 0.078,
+          "h": 0.015
+        },
+        "price": 35,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "flat-white",
+        "name": "Flat White",
+        "icon": null,
+        "ingredients": [
+          "espresso",
+          "milk"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "espresso": 40,
+          "milk": 60
+        },
+        "substitutes": {
+          "milk": "oat or almond milk"
+        },
+        "layout": {
+          "x": 0.156,
+          "y": 0.396,
+          "w": 0.071,
+          "h": 0.015
+        },
+        "price": 35,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "cafe-latte",
+        "name": "Café Latte",
+        "icon": null,
+        "ingredients": [
+          "milk",
+          "espresso"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "espresso": 25,
+          "milk": 75
+        },
+        "substitutes": {
+          "milk": "oat or almond milk"
+        },
+        "layout": {
+          "x": 0.158,
+          "y": 0.415,
+          "w": 0.07,
+          "h": 0.014
+        },
+        "price": 36,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "mocha",
+        "name": "Mocha",
+        "icon": null,
+        "ingredients": [
+          "milk",
+          "sugar",
+          "chocolate syrup",
+          "espresso",
+          "chocolate"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "espresso": 25,
+          "milk": 60,
+          "chocolate": 10,
+          "sugar": 5
+        },
+        "substitutes": {
+          "milk": "oat or almond milk"
+        },
+        "layout": {
+          "x": 0.159,
+          "y": 0.433,
+          "w": 0.048,
+          "h": 0.013
+        },
+        "price": 40,
+        "section": "Coffee",
+        "markers": []
+      },
+      {
+        "id": "iced-vanilla-latte",
+        "name": "Iced Vanilla Latte",
+        "icon": null,
+        "ingredients": [
+          "espresso",
+          "milk",
+          "vanilla syrup",
+          "ice"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "espresso": 25,
+          "milk": 60,
+          "vanilla syrup": 10,
+          "ice": 5
+        },
+        "substitutes": {
+          "milk": "oat or almond milk",
+          "vanilla syrup": null
+        },
+        "layout": {
+          "x": 0.154,
+          "y": 0.589,
+          "w": 0.108,
+          "h": 0.013
+        },
+        "price": 45,
+        "section": "Specialty Drinks",
+        "markers": []
+      },
+      {
+        "id": "caramel-cold-brew",
+        "name": "Caramel Cold Brew",
+        "icon": null,
+        "ingredients": [
+          "cold brew coffee",
+          "caramel syrup",
+          "milk",
+          "ice"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "cold brew coffee": 60,
+          "caramel syrup": 10,
+          "milk": 25,
+          "ice": 5
+        },
+        "substitutes": {
+          "milk": "oat milk",
+          "caramel syrup": null
+        },
+        "layout": {
+          "x": 0.154,
+          "y": 0.606,
+          "w": 0.12,
+          "h": 0.014
+        },
+        "price": 48,
+        "section": "Specialty Drinks",
+        "markers": []
+      },
+      {
+        "id": "matcha-latte",
+        "name": "Matcha Latte",
+        "icon": null,
+        "ingredients": [
+          "honey",
+          "matcha powder",
+          "milk",
+          "vanilla"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {},
+        "substitutes": {},
+        "layout": {
+          "x": 0.153,
+          "y": 0.625,
+          "w": 0.084,
+          "h": 0.013
+        },
+        "price": 45,
+        "section": "Specialty Drinks",
+        "markers": []
+      },
+      {
+        "id": "strawberry-iced-tea",
+        "name": "Strawberry Iced Tea",
+        "icon": null,
+        "ingredients": [
+          "black tea",
+          "strawberry syrup",
+          "ice",
+          "lemon"
+        ],
+        "ingredientsSource": "typical",
+        "category": "drink",
+        "removable": [],
+        "shares": {
+          "black tea": 70,
+          "strawberry syrup": 15,
+          "ice": 10,
+          "lemon": 5
+        },
+        "substitutes": {
+          "strawberry syrup": "fresh strawberries"
+        },
+        "layout": {
+          "x": 0.151,
+          "y": 0.643,
+          "w": 0.126,
+          "h": 0.014
+        },
+        "price": 40,
+        "section": "Specialty Drinks",
+        "markers": []
+      },
+      {
+        "id": "fresh-lemonade",
+        "name": "Fresh Lemonade",
+        "icon": null,
+        "ingredients": [
+          "lemon",
+          "sugar",
+          "water",
+          "ice"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "lemon": 20,
+          "sugar": 15,
+          "water": 60,
+          "ice": 5
+        },
+        "substitutes": {
+          "sugar": null
+        },
+        "layout": {
+          "x": 0.149,
+          "y": 0.661,
+          "w": 0.107,
+          "h": 0.014
+        },
+        "price": 35,
+        "section": "Specialty Drinks",
+        "markers": []
+      }
+    ]
+  },
+  {
+    "id": "tatlilar",
+    "name": "Tatlılar",
+    "source": {
+      "type": "photo",
+      "url": null,
+      "collected": "2026-11-04"
+    },
+    "cuisine": "dessert",
+    "rating": null,
+    "menuImage": {
+      "path": "data/menus/tatlilar/menu-1.png",
+      "widthPx": 1400,
+      "heightPx": 1812,
+      "widthCm": 21.59
+    },
+    "dishes": [
+      {
+        "id": "kurabiye",
+        "name": "Kurabiye (cookie)",
+        "icon": null,
+        "ingredients": [
+          "flour",
+          "butter",
+          "sugar",
+          "egg",
+          "hazelnuts",
+          "chocolate"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "flour": 45,
+          "butter": 25,
+          "sugar": 20,
+          "egg": 5,
+          "hazelnuts": 3,
+          "chocolate": 2
+        },
+        "substitutes": {
+          "butter": "vegan version on request",
+          "egg": "vegan version on request",
+          "hazelnuts": null
+        },
+        "layout": {
+          "x": 0.1,
+          "y": 0.108,
+          "w": 0.095,
+          "h": 0.042
+        },
+        "price": 80,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "Options: hazelnut pieces, chocolate-filled, sour-cherry-filled. Vegan version on request."
+      },
+      {
+        "id": "cupcake",
+        "name": "Cupcake",
+        "icon": null,
+        "ingredients": [
+          "flour",
+          "sugar",
+          "butter",
+          "egg",
+          "milk",
+          "frosting",
+          "cherry"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "flour": 30,
+          "sugar": 25,
+          "butter": 15,
+          "egg": 10,
+          "milk": 10,
+          "frosting": 8,
+          "cherry": 2
+        },
+        "substitutes": {
+          "butter": "vegan version on request",
+          "egg": "vegan version on request",
+          "milk": "vegan version on request"
+        },
+        "layout": {
+          "x": 0.725,
+          "y": 0.07,
+          "w": 0.095,
+          "h": 0.04
+        },
+        "price": 50,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "Options: chocolate, sour cherry, strawberry, banana, pistachio. Seasonal fruit on top. Vegan version on request."
+      },
+      {
+        "id": "waffle",
+        "name": "Waffle",
+        "icon": null,
+        "ingredients": [
+          "flour",
+          "egg",
+          "milk",
+          "butter",
+          "sugar",
+          "chocolate",
+          "banana",
+          "pistachios"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "flour": 40,
+          "egg": 15,
+          "milk": 20,
+          "butter": 10,
+          "sugar": 5,
+          "chocolate": 5,
+          "banana": 3,
+          "pistachios": 2
+        },
+        "substitutes": {
+          "egg": "vegan version on request",
+          "milk": "vegan version on request",
+          "butter": "vegan version on request",
+          "pistachios": null,
+          "chocolate": "fruit only"
+        },
+        "layout": {
+          "x": 0.1,
+          "y": 0.437,
+          "w": 0.1,
+          "h": 0.03
+        },
+        "price": 180,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "Options: milk, white or dark chocolate, banana, pistachio; served with seasonal fruit. Vegan version on request."
+      },
+      {
+        "id": "ekler",
+        "name": "Ekler (éclair)",
+        "icon": null,
+        "ingredients": [
+          "flour",
+          "butter",
+          "egg",
+          "milk",
+          "sugar",
+          "chocolate"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "flour": 25,
+          "butter": 15,
+          "egg": 15,
+          "milk": 25,
+          "sugar": 10,
+          "chocolate": 10
+        },
+        "substitutes": {
+          "butter": "vegan version on request",
+          "egg": "vegan version on request",
+          "milk": "vegan version on request"
+        },
+        "layout": {
+          "x": 0.65,
+          "y": 0.365,
+          "w": 0.105,
+          "h": 0.045
+        },
+        "price": 120,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "6 pieces. Options: chocolate, strawberry, banana, lemon, pistachio, raspberry. Vegan version on request."
+      },
+      {
+        "id": "macaron",
+        "name": "Macaron",
+        "icon": null,
+        "ingredients": [
+          "almond flour",
+          "sugar",
+          "egg white",
+          "buttercream"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
+        "removable": [],
+        "shares": {
+          "almond flour": 35,
+          "sugar": 35,
+          "egg white": 20,
+          "buttercream": 10
+        },
+        "substitutes": {
+          "almond flour": null,
+          "egg white": "vegan version on request",
+          "buttercream": "vegan version on request"
+        },
+        "layout": {
+          "x": 0.155,
+          "y": 0.725,
+          "w": 0.11,
+          "h": 0.045
+        },
+        "price": 120,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "5 pieces. Options: chocolate, dark, white chocolate, banana, lemon, strawberry, pistachio, raspberry."
+      },
+      {
+        "id": "dondurma",
+        "name": "Dondurma (ice cream)",
+        "icon": null,
+        "ingredients": [
+          "milk",
+          "sugar",
+          "cream",
+          "salep",
+          "mastic"
+        ],
+        "ingredientsSource": "typical",
+        "category": "dessert",
+        "removable": [],
+        "shares": {
+          "milk": 60,
+          "sugar": 20,
+          "cream": 15,
+          "salep": 3,
+          "mastic": 2
+        },
+        "substitutes": {
+          "milk": "vegan version on request",
+          "cream": "vegan version on request"
+        },
+        "layout": {
+          "x": 0.64,
+          "y": 0.595,
+          "w": 0.1,
+          "h": 0.045
+        },
+        "price": 30,
+        "section": "Tatlılar",
+        "markers": [],
+        "notes": "Per scoop. Options: chocolate, dark, white chocolate, banana, lemon, strawberry, pistachio, raspberry, sour cherry. Vegan version on request."
       }
     ]
   }

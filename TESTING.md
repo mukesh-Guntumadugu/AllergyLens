@@ -12,6 +12,10 @@ no camera and no menu — nothing can be recognized there.
    **Multimedia → Open file…**, then pick one of:
    - `data/menus/star-of-india/menu-1-pan.mp4` — a slow pan over the real menu
      (best; recognition locks faster on video)
+   - `data/menus/laurel-cafe/menu-1-pan.mp4` — the handheld Laurel Café & Co
+     menu (28 lines: breakfast, coffee, lunch, drinks, sweets, salads)
+   - `data/menus/tatlilar/menu-1-pan.mp4` — the handheld Turkish dessert menu
+     (6 items; the marks sit on the price lines because the names are script)
    - `data/menus/star-of-india/menu-1.png` — the still photo
    - **Webcam** — hold a printout of `menu-1.png` (A4/Letter, flat, well lit,
      no glare) in front of the laptop camera
@@ -81,6 +85,21 @@ the pose nothing is drawn over the real menu except the marks and the badge.
   panel as `[LEAF SUMMARY] n/9 passed`.
 
 Both are saved **off** in the committed scene.
+
+## 4b. Adding a menu from a video
+
+```bash
+python3 tools/scrape/page_from_video.py data/menus/<id>/menu-1-pan.mp4 --out data/menus/<id>/menu-1.png \
+    [--frame N --corners "x,y x,y x,y x,y"] [--aspect 0.7727]     # Letter = 0.7727, A4 = 0.7071
+```
+
+Then OCR the page for line boxes, add the restaurant to `data/menus.json`
+(ingredients as printed, or `null` to fall back to the dish knowledge base),
+copy the page to `Assets/Markers/<id>-menu-1.png`, add an `.imgmarker` with
+the real page height in cm, one line in `MENU_MARKERS`
+(`Assets/Scripts/AllergyLensMenuOverlayUI.ts`), and `node tools/build-data.js`.
+The Lens creates the tracker for every bundled page at start; nothing in the
+scene changes.
 
 ## 5. Grocery products
 

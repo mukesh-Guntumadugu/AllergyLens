@@ -28,8 +28,8 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    debugSimulateLabel: false
     debugSimulateMarker: false
-    debugSimulateProduct: false
     defaultMood: false
     defaultProfile: false
     detailGapCm: false
@@ -65,7 +65,7 @@
       voiceEnabled: true
       voiceInPreview: false
       debugSimulateMarker: false
-      debugSimulateProduct: true
+      debugSimulateLabel: false
       menusUrl: ""
   ScriptTypes:
     -
@@ -92,6 +92,6 @@
     - '// @input bool voiceEnabled = true {"hint":"Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way."}'
     - '// @input bool voiceInPreview {"hint":"Start the ASR session inside the Lens Studio preview too. Off by default: starting ASR in the preview crashed Lens Studio 5.23.2 during testing; on the device it runs normally."}'
     - '// @input bool debugSimulateMarker {"hint":"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera)."}'
-    - '// @input bool debugSimulateProduct {"hint":"Debug: on start, pretend the first product label was recognised 50 cm ahead (for Interactive Preview, which has no camera)."}'
+    - '// @input bool debugSimulateLabel {"hint":"Debug: on start, pretend the first product label was recognised 50 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
     - '// @ui {"widget":"group_end"}'

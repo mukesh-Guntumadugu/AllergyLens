@@ -24,6 +24,18 @@ const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
 // simulateMarker) so the marks are visibly on a menu. Never drawn while the camera
 // tracker owns the pose — there the real page is under the marks.
 const PAGE_TEX = requireAsset("../Markers/menu-1.png") as Texture
+
+/**
+ * Menu pages bundled with the Lens, by restaurant id: the image marker the camera tracks
+ * and the page image for the simulated path. Main creates one MenuMarker object per entry
+ * that is not authored in the scene (star-of-india is). Adding a restaurant = one photo
+ * through tools/scrape/page_from_video.py + ocr, its data/menus.json entry, and a line here.
+ */
+export const MENU_MARKERS: {[restaurantId: string]: {marker: MarkerAsset; texture: Texture}} = {
+  "star-of-india": {marker: requireAsset("../Markers/MenuMarker.imgmarker") as MarkerAsset, texture: PAGE_TEX},
+  "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
+  "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
+}
 const SQUARE_GLYPH_COVERAGE = 0.75 // the glyph fills 18/24 of its canvas
 const imageMaterial = requireAsset("../Materials/ImageMaterial.mat") as Material
 
@@ -78,6 +90,9 @@ const FADE_SEC = 0.4
 
 @component
 export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
+  /** Set by Main right before createComponent so a runtime-created overlay knows its restaurant (inputs are at defaults then). */
+  static pending: {restaurantId: string; texture: Texture} | null = null
+
   @ui.label('<span style="color: #60A5FA;">AllergyLensMenuOverlayUI – highlights + badge on a tracked real menu</span>')
   @ui.separator
   @ui.label('<span style="color: #60A5FA;">Settings</span>')
@@ -138,6 +153,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private bars: Bar[] = []
   private barsRoot: SceneObject | null = null
   private pageImage: SceneObject | null = null
+  private pageTexture: Texture = PAGE_TEX
   private badgeRoot: SceneObject | null = null
   private badgeText: Text | null = null
   private badgeDotMat: Material | null = null
@@ -213,6 +229,14 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   }
 
   onAwake(): void {
+    const pending = AllergyLensMenuOverlayUI.pending
+    if (pending) {
+      this.restaurantId = pending.restaurantId
+      this.pageTexture = pending.texture
+      AllergyLensMenuOverlayUI.pending = null
+    } else if (MENU_MARKERS[this.restaurantId]) {
+      this.pageTexture = MENU_MARKERS[this.restaurantId].texture
+    }
     this.restaurant = getRestaurant(this.restaurantId) ?? null
     if (!this.restaurant || !this.restaurant.menuImage) {
       print(`AllergyLensMenuOverlayUI: restaurant "${this.restaurantId}" has no menuImage — overlay disabled.`)
@@ -366,7 +390,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const so = UI.obj(this.sceneObject, "SimulatedPage", new vec3(0, 0, 0))
     const img = so.createComponent("Component.Image") as Image
     const mat = imageMaterial.clone()
-    mat.mainPass.baseTex = PAGE_TEX
+    mat.mainPass.baseTex = this.pageTexture
     mat.mainPass.baseColor = new vec4(1, 1, 1, 1)
     mat.mainPass.depthTest = true
     mat.mainPass.depthWrite = true

@@ -14,7 +14,7 @@
 import {AllergyLensProfileUI} from "./AllergyLensProfileUI"
 import {AllergyLensProfileButtonUI} from "./AllergyLensProfileButtonUI"
 import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
-import {AllergyLensMenuOverlayUI, DishMark, MarkStyle} from "./AllergyLensMenuOverlayUI"
+import {AllergyLensMenuOverlayUI, DishMark, MarkStyle, MENU_MARKERS} from "./AllergyLensMenuOverlayUI"
 import {AllergyLensProductOverlayUI, PRODUCT_MARKERS} from "./AllergyLensProductOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
 import {ALLERGENS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
@@ -138,15 +138,30 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profileButton.onProfile.add(() => this.openProfile())
     this.dishDetail.onClose.add(() => this.closeDetail())
 
-    // Discover the marker overlays from the authored Markers group (one per real menu).
-    for (let i = 0; i < this.markersRoot.getChildrenCount(); i++) {
-      const child = this.markersRoot.getChild(i)
-      const overlay = child.getComponent(AllergyLensMenuOverlayUI.getTypeName()) as AllergyLensMenuOverlayUI | null
-      if (!overlay) continue
+    // Discover the marker overlays from the authored Markers group (one per real menu), then
+    // create one per bundled page (MENU_MARKERS) that is not authored yet.
+    const bindOverlay = (overlay: AllergyLensMenuOverlayUI) => {
       this.overlays.push(overlay)
       overlay.onFound.add((id) => this.onMarkerFound(id))
       overlay.onLost.add((id) => this.onMarkerLost(id))
       overlay.onBarPinched.add((e) => this.onBarPinched(e.restaurantId, e.dishId))
+    }
+    for (let i = 0; i < this.markersRoot.getChildrenCount(); i++) {
+      const overlay = this.markersRoot.getChild(i).getComponent(AllergyLensMenuOverlayUI.getTypeName()) as AllergyLensMenuOverlayUI | null
+      if (overlay) bindOverlay(overlay)
+    }
+    for (const restaurantId of Object.keys(MENU_MARKERS)) {
+      if (this.overlays.some((o) => o.restaurantId === restaurantId)) continue
+      if (!getRestaurant(restaurantId)) continue
+      const def = MENU_MARKERS[restaurantId]
+      const so = global.scene.createSceneObject(`MenuMarker-${restaurantId}`)
+      so.setParent(this.markersRoot)
+      const tracker = so.createComponent("Component.MarkerTrackingComponent") as MarkerTrackingComponent
+      tracker.marker = def.marker
+      AllergyLensMenuOverlayUI.pending = {restaurantId, texture: def.texture}
+      const overlay = so.createComponent(AllergyLensMenuOverlayUI.getTypeName()) as AllergyLensMenuOverlayUI
+      AllergyLensMenuOverlayUI.pending = null
+      bindOverlay(overlay)
     }
     // Packaged products: authored ProductMarker objects under productsRoot (optional) plus one
     // created here per bundled label marker (PRODUCT_MARKERS) that is not authored yet.
