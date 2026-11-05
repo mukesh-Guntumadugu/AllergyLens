@@ -55,6 +55,12 @@ export class AllergyLensDishDetailUI extends BaseScriptComponent {
   private bodyText: Text | null = null
   private pending: DishDetailData | null = null
   private _onClose = new Event<void>()
+  private _heightCm = 8
+
+  /** Height of the card plate in cm (known after onAwake). */
+  get cardHeightCm(): number {
+    return this._heightCm
+  }
 
   /** User pinched the close (X) button. */
   get onClose(): PublicApi<void> {
@@ -71,6 +77,7 @@ export class AllergyLensDishDetailUI extends BaseScriptComponent {
     this.sceneObject.createComponent("Component.Canvas")
     const plate = this.sceneObject.createComponent(BackPlate.getTypeName()) as BackPlate
     plate.size = new vec2(W, H)
+    this._heightCm = H
 
     const content = UI.obj(this.sceneObject, "Content", new vec3(0, 0, UI.CONTENT_Z))
     const col = UI.flexColumn(content, W, H, {gap: GAP, padX: PAD, padY: PAD, justify: FlexJustify.Start, align: FlexAlign.Stretch})

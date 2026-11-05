@@ -29,12 +29,14 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     debugSimulateMarker: false
+    debugSimulateProduct: false
     defaultMood: false
     defaultProfile: false
     detailGapCm: false
     dishDetail: false
     markersRoot: false
     menusUrl: false
+    productsRoot: false
     profileButton: false
     profilePanel: false
     sfxVolume: false
@@ -54,6 +56,7 @@
       profileButton: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       dishDetail: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       markersRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      productsRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
       defaultProfile: ""
       defaultMood: everything
@@ -62,6 +65,7 @@
       voiceEnabled: true
       voiceInPreview: false
       debugSimulateMarker: false
+      debugSimulateProduct: true
       menusUrl: ""
   ScriptTypes:
     -
@@ -75,6 +79,7 @@
     - '// @input AssignableType_2 profileButton {"hint":"Small world-locked Profile button that reopens the panel."}'
     - '// @input AssignableType_3 dishDetail {"hint":"Detail card shown beside a pinched red or amber bar."}'
     - '// @input SceneObject markersRoot {"hint":"Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI)."}'
+    - '// @input SceneObject productsRoot {"hint":"Optional group whose children are ProductMarker objects (MarkerTrackingComponent + AllergyLensProductOverlayUI)."}'
     - '// @ui {"widget":"group_end"}'
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
@@ -87,5 +92,6 @@
     - '// @input bool voiceEnabled = true {"hint":"Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way."}'
     - '// @input bool voiceInPreview {"hint":"Start the ASR session inside the Lens Studio preview too. Off by default: starting ASR in the preview crashed Lens Studio 5.23.2 during testing; on the device it runs normally."}'
     - '// @input bool debugSimulateMarker {"hint":"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera)."}'
+    - '// @input bool debugSimulateProduct {"hint":"Debug: on start, pretend the first product label was recognised 50 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
     - '// @ui {"widget":"group_end"}'

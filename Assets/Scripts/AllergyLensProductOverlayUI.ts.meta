@@ -1,0 +1,69 @@
+- !<AssetImportMetadata/f6442758-941e-4517-8f23-29149450ce1c>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e081dc0f-374a-47c8-a92c-f60bf4510d3f
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e081dc0f-374a-47c8-a92c-f60bf4510d3f
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 324140bf-c9fc-463a-ab2a-8cb5af66bc4f
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/324140bf-c9fc-463a-ab2a-8cb5af66bc4f>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  VersionPrerelease: ""
+  UpdateOrder: 0
+  ComponentUid: 52f756a9-ba50-451d-ad24-dc0cc619fa3b
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    barcode: false
+    chipWidthCm: false
+    flagColor: false
+    labelHeightCm: false
+    lostHideDelaySec: false
+    safeColor: false
+    unverifiedColor: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - barcode: !<string> 0051500255162
+      labelHeightCm: !<float> 10.000000
+      chipWidthCm: !<float> 16.000000
+      safeColor: !<Vec3> {x: 0.550000, y: 0.950000, z: 0.600000}
+      flagColor: !<Vec3> {x: 0.980000, y: 0.450000, z: 0.450000}
+      unverifiedColor: !<Vec3> {x: 1.000000, y: 0.800000, z: 0.300000}
+      lostHideDelaySec: 0.600000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">AllergyLensProductOverlayUI – outline + chip on a tracked product label</span>"}'
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
+    - '// @ui {"widget":"group_start", "label":"Settings"}'
+    - '// @input string barcode = "0051500255162" {"hint":"Barcode of a product in the bundled Open Food Facts data (digits only)."}'
+    - '// @input float labelHeightCm = 10 {"hint":"Real height of the label marker in cm (same value as the ImageMarker asset).", "widget":"slider", "min":2, "max":40, "step":0.5}'
+    - '// @input float chipWidthCm = 16 {"hint":"Chip width in cm.", "widget":"slider", "min":8, "max":30, "step":0.5}'
+    - '// @input vec3 safeColor = "{0.55, 0.95, 0.6}" {"widget":"color"}'
+    - '// @input vec3 flagColor = "{0.98, 0.45, 0.45}" {"widget":"color"}'
+    - '// @input vec3 unverifiedColor = "{1.0, 0.8, 0.3}" {"widget":"color"}'
+    - '// @input float lostHideDelaySec = 0.6 {"hint":"Seconds to keep the overlay after the marker is lost before it fades out.", "widget":"slider", "min":0, "max":5, "step":0.1}'
+    - '// @ui {"widget":"group_end"}'

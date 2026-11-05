@@ -82,7 +82,30 @@ the pose nothing is drawn over the real menu except the marks and the badge.
 
 Both are saved **off** in the committed scene.
 
-## 5. Recording the demo
+## 5. Grocery products
+
+Same profile, same rules, on a packaged product. The camera recognises the
+product's front label (an image marker, like the menu); the label gets a thin
+outline in the verdict colour and one chip above it, e.g. *Jif Creamy Peanut
+Butter · contains peanuts*. Pinch the label for the card ("Contains peanuts —
+declared on the label. Put it back; pick one without it."). The label's own
+allergen statement wins; the ingredient list is read with the same aliases as
+dishes; "may contain" makes it amber; trans fat and high sugar come from the
+nutrition numbers, not from the word "sugar" in the list.
+
+Until a photo of the real jar arrives, the bundled marker
+`Assets/Markers/product-0051500255162.png` is a placeholder image, so the
+camera path cannot lock on a real Jif jar yet. To add or replace a product:
+flat straight-on label photo → `Assets/Markers/product-<barcode>.png` (and the
+`.imgmarker` next to it, height = real label height in cm) → one line in
+`PRODUCT_MARKERS` in `Assets/Scripts/AllergyLensProductOverlayUI.ts` → the data
+via `python3 tools/scrape/fetch_products.py --barcode <code>` and
+`node tools/build-data.js`.
+
+`AllergyLens → debugSimulateLabel` simulates the first product label 50 cm
+ahead (label image drawn, Interactive Preview only). Saved off.
+
+## 6. Recording the demo
 
 Use the Multimedia (video) source with a hands-free profile, SPECS 27 device,
 and record the Preview panel. Show: profile → menu recognized → marks on the

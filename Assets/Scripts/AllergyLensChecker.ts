@@ -4,7 +4,7 @@
 // contains an alias of a flagged allergen), "unverified" (ingredients unknown — never
 // safe). Expects no @inputs. Must not touch the scene; Main pushes results into the UI.
 
-import {ALLERGENS, AllergenDef, DishDef, IngredientsSource, RestaurantDef} from "./AllergyLensMenuData"
+import {ALLERGENS, AllergenDef, DishDef, IngredientsSource, ProductDef, RestaurantDef} from "./AllergyLensMenuData"
 
 export type DishVerdict = "none" | "safe" | "contains" | "unverified"
 
@@ -258,4 +258,119 @@ export function describeResult(result: DishResult): {headline: string; body: str
   }
   if (rest.length > 0) body += `\nAlso: ${rest.join(", ")}.`
   return {headline, body}
+}
+
+// ── Packaged products (Open Food Facts) ─────────────────────────────────────
+export interface ProductMatch {
+  allergenId: string
+  allergenLabel: string
+  /** From the label's own allergen statement (true) or from reading the ingredient list (false). */
+  declared: boolean
+  /** The tag or ingredient that matched. */
+  via: string
+}
+
+export interface ProductResult {
+  barcode: string
+  verdict: DishVerdict
+  matches: ProductMatch[]
+  /** "May contain" allergens from the profile (labels). */
+  traces: string[]
+  /** Fitness flags from the profile that the label trips, e.g. "high sugar (18 g per 100 g)". */
+  fitness: string[]
+}
+
+/** Open Food Facts allergen tags → allergen ids (the rest fall back to alias matching). */
+const OFF_TAGS: {[tag: string]: string} = {
+  "peanuts": "peanut", "peanut": "peanut",
+  "soybeans": "soy", "soy": "soy", "soya": "soy",
+  "milk": "milk", "eggs": "egg", "egg": "egg",
+  "gluten": "wheat", "wheat": "wheat",
+  "nuts": "tree_nut", "tree-nuts": "tree_nut",
+  "sesame-seeds": "sesame", "sesame": "sesame",
+  "fish": "fish", "crustaceans": "shellfish", "molluscs": "shellfish", "shellfish": "shellfish",
+}
+
+function tagToAllergen(tag: string, allergens: AllergenDef[]): AllergenDef | null {
+  const clean = tag.toLowerCase().replace(/^[a-z]{2}:/, "").trim()
+  const mapped = OFF_TAGS[clean]
+  if (mapped) return allergens.find((a) => a.id === mapped) ?? null
+  const words = clean.replace(/-/g, " ")
+  return allergens.find((a) => ingredientMatches(words, a)) ?? null
+}
+
+/**
+ * A packaged product against the profile. The label's own allergen statement wins; the
+ * ingredient list is read with the same aliases as dishes; "may contain" from the profile
+ * makes the product amber (never safe); fitness flags count as "contains" for a profile
+ * that avoids trans fat or high sugar. No ingredient list and no statement → unverified.
+ */
+export function checkProduct(product: ProductDef, profile: Profile, allergens: AllergenDef[] = ALLERGENS): ProductResult {
+  const active = allergens.filter((a) => profile.has(a.id))
+  const matches: ProductMatch[] = []
+  const seen = new Set<string>()
+  const add = (a: AllergenDef, declared: boolean, via: string) => {
+    if (seen.has(a.id)) return
+    seen.add(a.id)
+    matches.push({allergenId: a.id, allergenLabel: a.label, declared, via})
+  }
+  for (const tag of product.allergens) {
+    const a = tagToAllergen(tag, active)
+    if (a) add(a, true, tag)
+  }
+  // Diet flags (trans fat, high sugar) come from the nutrition numbers below, not from
+  // the word "sugar" in an ingredient list — every cookie would be flagged otherwise.
+  const byIngredient = active.filter((a) => a.group !== "diet")
+  for (const ing of product.ingredients ?? []) {
+    for (const a of byIngredient) if (ingredientMatches(ing, a)) add(a, false, ing)
+  }
+  const traces: string[] = []
+  for (const tag of product.traces) {
+    const a = tagToAllergen(tag, active)
+    if (a && !seen.has(a.id) && traces.indexOf(a.label) < 0) traces.push(a.label)
+  }
+  const fitness: string[] = []
+  const n = product.nutrition
+  if (profile.has("trans_fat") && product.fitness.transFat) fitness.push(`trans fat${n.trans_fat_g !== null ? ` (${n.trans_fat_g} g per 100 g)` : ""}`)
+  if (profile.has("high_sugar") && product.fitness.highSugar) fitness.push(`high sugar${n.sugar_g !== null ? ` (${n.sugar_g} g per 100 g)` : ""}`)
+  const known = (product.ingredients !== null && product.ingredients.length > 0) || product.allergens.length > 0
+  let verdict: DishVerdict
+  if (matches.length > 0 || fitness.length > 0) verdict = "contains"
+  else if (!known || traces.length > 0) verdict = "unverified"
+  else verdict = "safe"
+  return {barcode: product.barcode, verdict, matches, traces, fitness}
+}
+
+/** One-line chip text for a product, e.g. "contains peanuts, soy" / "may contain milk" / "safe for you". */
+export function productChipText(result: ProductResult): string {
+  if (result.verdict === "contains") {
+    const parts = result.matches.map((m) => m.allergenLabel.toLowerCase()).concat(result.fitness.map((f) => f.replace(/ \(.*\)$/, "")))
+    return `contains ${parts.join(", ")}`
+  }
+  if (result.verdict === "unverified") return result.traces.length > 0 ? `may contain ${result.traces.join(", ").toLowerCase()}` : "ingredients not listed"
+  return "safe for you"
+}
+
+/** Detail card wording for a product (headline + body). */
+export function describeProduct(product: ProductDef, result: ProductResult): {headline: string; body: string} {
+  const lines: string[] = []
+  if (result.verdict === "contains") {
+    const declared = result.matches.filter((m) => m.declared).map((m) => m.allergenLabel.toLowerCase())
+    const read = result.matches.filter((m) => !m.declared).map((m) => `${m.allergenLabel.toLowerCase()} (${m.via})`)
+    const head = declared.length > 0
+      ? `Contains ${declared.join(", ")} — declared on the label.`
+      : `Contains ${read.join(", ")}.`
+    if (declared.length > 0 && read.length > 0) lines.push(`Also in the ingredients: ${read.join(", ")}.`)
+    if (result.fitness.length > 0) lines.push(`${capitalize(result.fitness.join("; "))}.`)
+    if (result.traces.length > 0) lines.push(`May contain: ${result.traces.join(", ").toLowerCase()}.`)
+    lines.push("Put it back; pick one without it.")
+    return {headline: head, body: lines.join("\n")}
+  }
+  if (result.verdict === "unverified") {
+    if (result.traces.length > 0) {
+      return {headline: `May contain ${result.traces.join(", ").toLowerCase()}.`, body: "The label says it is made where that is handled. Your call."}
+    }
+    return {headline: "No ingredient list for this product.", body: "Read the label before buying."}
+  }
+  return {headline: "Looks fine.", body: "Nothing from your profile on the label."}
 }

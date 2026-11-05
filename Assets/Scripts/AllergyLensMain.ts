@@ -15,9 +15,10 @@ import {AllergyLensProfileUI} from "./AllergyLensProfileUI"
 import {AllergyLensProfileButtonUI} from "./AllergyLensProfileButtonUI"
 import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
 import {AllergyLensMenuOverlayUI, DishMark, MarkStyle} from "./AllergyLensMenuOverlayUI"
+import {AllergyLensProductOverlayUI, PRODUCT_MARKERS} from "./AllergyLensProductOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
-import {ALLERGENS, MOODS, Mood, RestaurantDef, dishCategory, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
-import {checkMenu, describeChoice, DishResult, Profile, rateRestaurant} from "./AllergyLensChecker"
+import {ALLERGENS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
+import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
 import {VoiceListener, matchDishByVoice} from "./AllergyLensVoice"
 
 @component
@@ -41,6 +42,11 @@ export class AllergyLensMain extends BaseScriptComponent {
   @input
   @hint("Group whose children are the MenuMarker objects (MarkerTrackingComponent + AllergyLensMenuOverlayUI).")
   markersRoot!: SceneObject
+
+  @input
+  @allowUndefined
+  @hint("Optional group whose children are ProductMarker objects (MarkerTrackingComponent + AllergyLensProductOverlayUI).")
+  productsRoot: SceneObject
   @ui.group_end
 
   @ui.separator
@@ -81,6 +87,10 @@ export class AllergyLensMain extends BaseScriptComponent {
   debugSimulateMarker: boolean = false
 
   @input
+  @hint("Debug: on start, pretend the first product label was recognised 50 cm ahead (for Interactive Preview, which has no camera).")
+  debugSimulateLabel: boolean = false
+
+  @input
   @hint("Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used.")
   menusUrl: string = ""
   @ui.group_end
@@ -88,8 +98,11 @@ export class AllergyLensMain extends BaseScriptComponent {
   private profile = new Profile()
   private mood: Mood = "everything"
   private overlays: AllergyLensMenuOverlayUI[] = []
+  private products: AllergyLensProductOverlayUI[] = []
   private results = new Map<string, DishResult[]>()
+  private productResults = new Map<string, ProductResult>()
   private openDish: {restaurantId: string; dishId: string} | null = null
+  private openProduct: string | null = null
   private audio: AllergyLensAudio | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
   private voice: VoiceListener | null = null
@@ -135,6 +148,35 @@ export class AllergyLensMain extends BaseScriptComponent {
       overlay.onLost.add((id) => this.onMarkerLost(id))
       overlay.onBarPinched.add((e) => this.onBarPinched(e.restaurantId, e.dishId))
     }
+    // Packaged products: authored ProductMarker objects under productsRoot (optional) plus one
+    // created here per bundled label marker (PRODUCT_MARKERS) that is not authored yet.
+    const productsRoot = this.productsRoot ?? (() => {
+      const g = global.scene.createSceneObject("Products")
+      g.setParent(this.sceneObject)
+      return g
+    })()
+    const bindProduct = (overlay: AllergyLensProductOverlayUI) => {
+      this.products.push(overlay)
+      overlay.onFound.add((b) => this.onProductFound(b))
+      overlay.onLost.add((b) => this.onProductLost(b))
+      overlay.onPinched.add((b) => this.onProductPinched(b))
+    }
+    for (let i = 0; i < productsRoot.getChildrenCount(); i++) {
+      const overlay = productsRoot.getChild(i).getComponent(AllergyLensProductOverlayUI.getTypeName()) as AllergyLensProductOverlayUI | null
+      if (overlay) bindProduct(overlay)
+    }
+    for (const barcode of Object.keys(PRODUCT_MARKERS)) {
+      if (this.products.some((p) => p.barcode === barcode)) continue
+      const def = PRODUCT_MARKERS[barcode]
+      const so = global.scene.createSceneObject(`ProductMarker-${barcode}`)
+      so.setParent(productsRoot)
+      const tracker = so.createComponent("Component.MarkerTrackingComponent") as MarkerTrackingComponent
+      tracker.marker = def.marker
+      AllergyLensProductOverlayUI.pending = {barcode, heightCm: def.heightCm, texture: def.texture}
+      const overlay = so.createComponent(AllergyLensProductOverlayUI.getTypeName()) as AllergyLensProductOverlayUI
+      AllergyLensProductOverlayUI.pending = null
+      bindProduct(overlay)
+    }
 
     this.applyDefaultProfile()
     this.applyDefaultMood()
@@ -156,12 +198,17 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
     this.dishDetail.hideDetail()
-    print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s))`)
+    print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s), ${this.products.length} product marker(s))`)
 
     if (this.menusUrl && this.menusUrl.trim().length > 0) this.loadRemoteMenus(this.menusUrl.trim())
     if (this.debugSimulateMarker && this.overlays.length > 0) {
       const t = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
       t.bind(() => this.simulateMarker(this.overlays[0].restaurantId))
+      t.reset(0.5)
+    }
+    if (this.debugSimulateLabel && this.products.length > 0) {
+      const t = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+      t.bind(() => this.simulateMarker(this.products[0].barcode))
       t.reset(0.5)
     }
   }
@@ -170,24 +217,26 @@ export class AllergyLensMain extends BaseScriptComponent {
   /** Drive the real marker-found path for a restaurant id (page parked 60 cm ahead). */
   simulateMarker(restaurantId: string, offsetXcm: number = 0): boolean {
     const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
-    if (!overlay) {
-      print(`AllergyLens: simulateMarker — no overlay for "${restaurantId}"`)
-      return false
-    }
-    return overlay.simulateFound(offsetXcm)
+    if (overlay) return overlay.simulateFound(offsetXcm)
+    const product = this.products.find((p) => p.barcode === restaurantId)
+    if (product) return product.simulateFound(offsetXcm)
+    print(`AllergyLens: simulateMarker — no overlay for "${restaurantId}"`)
+    return false
   }
 
   simulateMarkerLost(): void {
     for (const o of this.overlays) if (o.isActive) o.simulateLost()
+    for (const p of this.products) if (p.isActive) p.simulateLost()
   }
 
   /** Debug / tests: enable or disable the camera marker trackers (runtime-only; tests use simulateMarker instead). */
   setCameraTracking(enabled: boolean): void {
     for (const o of this.overlays) o.setCameraTracking(enabled)
+    for (const p of this.products) p.setCameraTracking(enabled)
     print(`AllergyLens: camera marker tracking ${enabled ? "enabled" : "disabled"}`)
   }
 
-  /** True while any menu marker is recognised or simulated. */
+  /** True while any menu or product marker is recognised or simulated. */
   get markerActive(): boolean {
     return this.anyMarkerActive()
   }
@@ -232,7 +281,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   private anyMarkerActive(): boolean {
-    return this.overlays.some((o) => o.isActive)
+    return this.overlays.some((o) => o.isActive) || this.products.some((p) => p.isActive)
   }
 
   // ── Marker lifecycle ───────────────────────────────────────────────────
@@ -288,6 +337,60 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   private recheckActive(): void {
     for (const o of this.overlays) if (o.isActive) this.runCheck(o.restaurantId)
+    for (const p of this.products) if (p.isActive) this.runProductCheck(p.barcode)
+  }
+
+  // ── Products ───────────────────────────────────────────────────────────
+  private onProductFound(barcode: string): void {
+    this.audio?.playScan()
+    print(`AllergyLens: product recognised — ${barcode}`)
+    this.buttonShowTimer?.cancel()
+    if (this.profilePanel.getSceneObject().enabled) {
+      this.profilePanel.getSceneObject().enabled = false
+      print(`AllergyLens: profile panel closed by recognition [${this.profile.ids().join(", ")}]`)
+    }
+    this.profileButton.getSceneObject().enabled = false
+    this.runProductCheck(barcode)
+  }
+
+  private onProductLost(barcode: string): void {
+    print(`AllergyLens: product lost — ${barcode}`)
+    if (this.openProduct === barcode) this.closeDetail()
+    if (!this.anyMarkerActive()) this.buttonShowTimer?.reset(1.0)
+  }
+
+  private runProductCheck(barcode: string): void {
+    const overlay = this.products.find((p) => p.barcode === barcode)
+    const product = getProduct(barcode)
+    if (!overlay || !product) return
+    const result = checkProduct(product, this.profile)
+    this.productResults.set(barcode, result)
+    const level = result.verdict === "contains" ? "avoid" : result.verdict === "unverified" ? "caution" : "good"
+    const name = product.brand && product.name.toLowerCase().indexOf(product.brand.toLowerCase()) < 0 ? `${product.brand} ${product.name}` : product.name
+    const verdictText = productChipText(result)
+    const capacity = overlay.chipCapacityChars
+    const candidates = [`${name} · ${verdictText}`, `${product.name} · ${verdictText}`, verdictText]
+    overlay.setVerdict(level, candidates.find((c) => c.length <= capacity) ?? candidates[candidates.length - 1])
+    print(`AllergyLens: product ${barcode} — ${result.verdict}; ${verdictText}`)
+    if (this.openProduct === barcode) this.closeDetail()
+  }
+
+  private onProductPinched(barcode: string): void {
+    if (this.openProduct === barcode) {
+      this.closeDetail()
+      return
+    }
+    const overlay = this.products.find((p) => p.barcode === barcode)
+    const product = getProduct(barcode)
+    const result = this.productResults.get(barcode)
+    if (!overlay || !product || !result) return
+    this.closeDetail()
+    this.openProduct = barcode
+    const text = describeProduct(product, result)
+    this.placeDetailBeside(overlay.getSceneObject(), overlay.labelGeometry, true)
+    this.dishDetail.showDetail({dishName: product.name, headline: text.headline, body: text.body})
+    this.audio?.playPop()
+    print(`AllergyLens: product detail open for ${barcode} — ${text.headline} ${text.body.replace(/\n/g, " ")}`)
   }
 
   private runCheck(restaurantId: string): void {
@@ -365,7 +468,9 @@ export class AllergyLensMain extends BaseScriptComponent {
   private closeDetail(): void {
     this.safeCardTimer?.cancel()
     if (this.openDish) print(`AllergyLens: detail closed for ${this.openDish.dishId}`)
+    if (this.openProduct) print(`AllergyLens: product detail closed for ${this.openProduct}`)
     this.openDish = null
+    this.openProduct = null
     this.dishDetail.hideDetail()
   }
 
@@ -373,13 +478,23 @@ export class AllergyLensMain extends BaseScriptComponent {
   private placeDetailBesideBar(overlay: AllergyLensMenuOverlayUI, dishId: string): void {
     const g = overlay.getBarGeometry(dishId)
     if (!g) return
+    this.placeDetailBeside(overlay.getSceneObject(), g)
+  }
+
+  /**
+   * Park the card on a marker's plane next to a local rectangle (cm): beside it on the side
+   * toward the centre (menu lines), or centred below it (a product label, which is wide
+   * and sits in the middle of the display band).
+   */
+  private placeDetailBeside(parent: SceneObject, g: {x: number; y: number; w: number; h: number}, below: boolean = false): void {
     const cardW = this.dishDetail.cardWidthCm
     const side = g.x < 0 ? 1 : -1
-    const lx = g.x + side * (g.w / 2 + this.detailGapCm + cardW / 2)
+    const lx = below ? g.x : g.x + side * (g.w / 2 + this.detailGapCm + cardW / 2)
+    const ly = below ? g.y - (g.h / 2 + this.detailGapCm + this.dishDetail.cardHeightCm / 2) : g.y
     const root = this.dishDetail.getSceneObject()
-    root.setParent(overlay.getSceneObject())
+    root.setParent(parent)
     const t = root.getTransform()
-    t.setLocalPosition(new vec3(lx, g.y, 1.0))
+    t.setLocalPosition(new vec3(lx, ly, 1.0))
     t.setLocalRotation(quat.quatIdentity())
     t.setLocalScale(new vec3(1, 1, 1))
   }

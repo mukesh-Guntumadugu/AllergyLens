@@ -25,7 +25,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
 | Mood filter ("Vegetarian", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
 | Voice: say the dish name instead of pinching (SPECS ASR) | Built; only testable on the glasses |
-| Grocery products (Open Food Facts: ingredients, declared allergens, nutrition) | Data pipeline done, 10 sample products; Lens UI not built yet |
+| Grocery products: label recognised by the camera → outline in the verdict colour + one chip ("Jif Creamy Peanut Butter · contains peanuts") → pinch for the card | Built; the Jif label marker is a placeholder image until a photo of the real jar replaces `Assets/Markers/product-0051500255162.png` |
 | Scraper pipeline v2 (restaurant discovery → menu acquisition → OCR + vision labelling → cited ingredient research → data lake), unattended per county on the GX10 | Merged 4 Nov; runs outside the Lens |
 | Live fallback when a dish is not in the database (web / LLM) | Designed below; not built yet |
 | LEAF integration tests | 9 scenarios, 9/9 pass |
@@ -120,6 +120,7 @@ you'd pay the same for less, so the card offers the knowledge-base substitute
 | `AllergyLensMenuOverlayUI.ts` | one per menu page: marks, badge chip, mood arrow, simulated page for the preview |
 | `AllergyLensChecker.ts` | verdicts, badge rule, replacement wording (pure, no scene access) |
 | `AllergyLensProfileUI.ts` / `DishDetailUI.ts` / `ProfileButtonUI.ts` | the three UI surfaces |
+| `AllergyLensProductOverlayUI.ts` | one per product label: outline, chip, pinch target; `PRODUCT_MARKERS` lists the bundled label markers and Main creates one tracker per entry at start |
 | `AllergyLensVoice.ts` | fuzzy dish-name match + SPECS ASR session |
 | `AllergyLensMenuData.ts` | typed access to the generated data, remote `menus.json` validation |
 | `Assets/LeafTests/` | 9 LEAF scenarios driving the real Lens in the preview |
@@ -277,8 +278,8 @@ seed, so new menus reach the glasses without a rebuild.
 
 ## Roadmap
 
-- Product segment in the Lens: barcode or label marker → the same card from
-  `PRODUCTS` (data is already compiled in).
+- Real product label photos (one per product) to replace the placeholder marker;
+  more products through `tools/scrape/fetch_products.py --barcode`.
 - Tier 3 LLM fallback through the Remote Service Gateway, batched per page,
   cached into `menus.json`.
 - More restaurants through Pipeline 1 (one photo + 10 minutes on the GX10 each).

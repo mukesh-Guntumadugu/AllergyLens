@@ -13,9 +13,11 @@ import {
   DishCategory,
   DishDef,
   RestaurantDef,
+  PRODUCTS,
+  ProductDef,
 } from "../Data/AllergyData"
 
-export type {AllergenDef, AllergenGroup, DishDef, RestaurantDef}
+export type {AllergenDef, AllergenGroup, DishDef, RestaurantDef, ProductDef}
 export {ALLERGENS, DATA_VERSION}
 export type IngredientsSource = DishDef["ingredientsSource"]
 export type RestaurantRating = NonNullable<RestaurantDef["rating"]>
@@ -70,6 +72,12 @@ let activeRestaurants: RestaurantDef[] = RESTAURANTS
 
 export function getRestaurants(): RestaurantDef[] {
   return activeRestaurants
+}
+
+/** A packaged product from the bundled Open Food Facts set, by barcode (digits only). */
+export function getProduct(barcode: string): ProductDef | undefined {
+  const key = barcode.replace(/[^0-9]/g, "")
+  return PRODUCTS.find((p) => p.barcode === key)
 }
 
 export function getRestaurant(id: string): RestaurantDef | undefined {
