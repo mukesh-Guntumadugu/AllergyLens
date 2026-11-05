@@ -70,6 +70,8 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
   seafood", "everything"; a chip the profile forbids is refused), "done"
   closes the panel, and "I'm allergic to mango" / "no coriander" / "I can't
   eat okra" adds a food that is not on the panel ("Also avoiding: Mango").
+  "allergies, add mango" / "religious, add lamb" / "diet, add keto" put a
+  custom item under that section; "clear" resets everything.
   Every command prints what it understood to the Logger. In the preview the
   Lens listens through VoiceML and the Preview panel's **microphone button**
   (bottom-left; it must be on). `previewVoice` on the AllergyLens object is

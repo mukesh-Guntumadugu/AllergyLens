@@ -17,9 +17,19 @@ import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
 import {AllergyLensMenuOverlayUI, DishMark, MarkStyle, MENU_MARKERS} from "./AllergyLensMenuOverlayUI"
 import {AllergyLensProductOverlayUI, PRODUCT_MARKERS} from "./AllergyLensProductOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
-import {ALLERGENS, AllergenDef, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
+import {ALLERGENS, AllergenDef, AllergenGroup, GROUP_LABELS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
 import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
 import {VoiceListener, matchDishByVoice, parseAllergyPhrase} from "./AllergyLensVoice"
+
+const WELCOME = 'Welcome. Pinch an option, or just say it: "peanuts", "no pork", "vegetarian", "allergies, add mango", "done".'
+
+/** "allergies, add mango" / "religious, add lamb" / "diet, add keto" → where a spoken addition belongs. */
+const SECTION_WORDS: {[word: string]: AllergenGroup} = {
+  allergies: "allergy", allergy: "allergy", allergic: "allergy",
+  religious: "religious", religion: "religious", cultural: "religious", culture: "religious",
+  diet: "diet", dietary: "diet", diets: "diet",
+}
+const NOT_A_FOOD = /^(this|that|these|those|thing|things|something|anything|it|them|one|one more|more|another|another one|option|options|stuff|here|there|some|some more|the same|same|also|too|as well)$/
 
 @component
 export class AllergyLensMain extends BaseScriptComponent {
@@ -227,7 +237,10 @@ export class AllergyLensMain extends BaseScriptComponent {
     const panelAtStart = this.showProfileAtStart && this.profile.isEmpty
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
-    if (panelAtStart) this.voice?.start() // "I'm allergic to …" while the panel is open
+    if (panelAtStart) {
+      this.profilePanel.setHeard(WELCOME)
+      this.voice?.start() // the panel is voice-driven while it is open
+    }
     this.dishDetail.hideDetail()
     print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s), ${this.products.length} product marker(s))`)
 
@@ -295,7 +308,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     for (const c of this.customAllergens) this.profile.set(c.id, false)
     this.customAllergens = []
-    this.profilePanel.setCustomLabels([])
+    this.showCustomItems()
     this.mood = "everything"
     this.profilePanel.setMood("everything")
     this.audio?.playClick()
@@ -309,7 +322,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   /** Something not on the list ("mango"): one alias each for the word and its plural; matched like any other allergen. */
-  private addCustomAllergen(phrase: string): void {
+  private addCustomAllergen(phrase: string, group: AllergenGroup = "allergy"): void {
     const word = phrase.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim()
     if (word.length < 2) return
     const known = ALLERGENS.find((a) => a.id === word || a.label.toLowerCase() === word || a.label.toLowerCase().replace(/^(no|avoid) /, "") === word
@@ -327,12 +340,18 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (!this.customAllergens.some((a) => a.id === id)) {
       const label = word.charAt(0).toUpperCase() + word.slice(1)
       const aliases = word.endsWith("s") ? [word, word.slice(0, -1)] : [word, word + "s", word + "es"]
-      this.customAllergens.push({id, label, group: "allergy", aliases})
-      print(`AllergyLens: added custom allergen "${label}" (${aliases.join(", ")})`)
+      this.customAllergens.push({id, label, group, aliases})
+      print(`AllergyLens: added custom ${group} item "${label}" (${aliases.join(", ")})`)
     }
     this.profile.set(id, true)
-    this.profilePanel.setCustomLabels(this.customAllergens.filter((a) => this.profile.has(a.id)).map((a) => a.label))
+    this.showCustomItems()
     this.recheckActive()
+  }
+
+  /** "Also avoiding: Mango (Allergies) · Lamb (Religious / cultural)". */
+  private showCustomItems(): void {
+    const active = this.customAllergens.filter((a) => this.profile.has(a.id))
+    this.profilePanel.setCustomLabels(active.map((a) => a.group === "allergy" ? a.label : `${a.label} (${GROUP_LABELS[a.group]})`))
   }
 
   /**
@@ -379,6 +398,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.closeDetail()
     this.profilePanel.getSceneObject().enabled = true
     this.profileButton.getSceneObject().enabled = false
+    this.profilePanel.setHeard(WELCOME)
     this.voice?.start()
     print("AllergyLens: profile reopened")
   }
@@ -476,6 +496,30 @@ export class AllergyLensMain extends BaseScriptComponent {
     const cleaned = text
       .replace(/\b(uh|um|ah|please|okay|ok|right|yeah|yes|so|can you|could you|pick|select|tick|choose|mark|set|put|on the \w+ side|on \w+ side|for me|i want|i'd like|i would like|to do|would like to)\b/g, " ")
       .replace(/\s+/g, " ").trim()
+    // "allergies, add mango" / "religious add lamb" / "diet, also keto": an item for that section.
+    const sectionAdd = /^(allergies|allergy|allergic|religious|religion|cultural|culture|diet|dietary|diets)\s*,?\s*(add|also|plus|and|include|put)\s+(.+)$/.exec(cleaned)
+    if (sectionAdd) {
+      const group = SECTION_WORDS[sectionAdd[1]]
+      const item = sectionAdd[3].replace(/^(a|an|the|some|one more|more|another)\s+/, "").replace(/\s+(please|too|also|as well)$/, "").trim()
+      if (NOT_A_FOOD.test(item) || item.length < 3) {
+        heard(`say what to add, e.g. "${sectionAdd[1]}, add mango"`)
+        return
+      }
+      const existing = this.findTogglesInSentence(item)
+      if (existing.length > 0) {
+        for (const t of existing) { this.profile.set(t.id, true); this.profilePanel.setToggle(t.id, true) }
+        heard(existing.map((t) => `${t.label} on`).join(", "))
+        this.audio?.playClick()
+        this.updateMoodAvailability()
+        this.recheckActive()
+        return
+      }
+      print(`AllergyLens: voice "${raw}" → ${group}: add ${item}`)
+      heard(`${GROUP_LABELS[group]}: avoid ${item}`)
+      this.audio?.playClick()
+      this.addCustomAllergen(item, group)
+      return
+    }
     const off = /\b(turn off|switch off|remove|unselect|deselect|clear|undo|cancel|don't need|do not need|not anymore)\b/.test(cleaned)
     const found = this.findTogglesInSentence(cleaned)
     if (found.length > 0) {
@@ -518,6 +562,10 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     const item = parseAllergyPhrase(raw)
     if (item) {
+      if (NOT_A_FOOD.test(item)) {
+        heard('say what to avoid, e.g. "I\'m allergic to mango"')
+        return
+      }
       print(`AllergyLens: voice "${raw}" → avoid ${item}`)
       heard(`avoid ${item}`)
       this.audio?.playClick()

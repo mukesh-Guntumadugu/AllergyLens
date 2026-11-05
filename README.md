@@ -62,6 +62,32 @@ The shot list with timings and voice-over is in
 
 ---
 
+## Voice first: there is no keyboard on the glasses
+
+Everything on the profile panel can be done by speaking, and the panel shows
+what it heard on a line under the title ("Heard: "no pork" → No pork on"),
+so you always know whether it understood you. A welcome line says so when the
+panel opens. Pinching works too; voice is the way to add what isn't there.
+
+| say | what happens |
+|---|---|
+| "peanuts", "dairy", "gluten", "no pork", "vegetarian", "avoid high sugar" | that toggle on (label, a word of it, or a synonym: "bacon" is No pork, "nuts" is Tree nuts) |
+| "no beef and no pork", "avoid trans fat and high sugar" | several at once; filler like "please", "on the religious side", "I'd like to" is ignored |
+| "turn off milk", "remove peanuts" | that toggle off |
+| "I'm allergic to mango", "I can't eat okra", "no coriander" | a custom allergen, checked against every dish and product; shown as "Also avoiding: Mango" |
+| "allergies, add mango" · "religious, add lamb" · "diet, add keto" | a custom item under that section |
+| "chicken", "in the mood for seafood", "everything" | the mood chip (refused, with the reason, when the profile forbids it) |
+| "clear" / "reset" | everything off |
+| "done" (even inside "that's it, done") | closes the panel |
+| with a menu in view: "mixed naan" | same as pinching that line |
+
+Misheard words map to the right toggle when they match a toggle's spoken
+synonyms ("transfer" → Avoid trans fat). In Lens Studio the preview listens
+through VoiceML and the Preview panel's mic button; on the glasses through
+the SPECS ASR module. A sentence that names nothing on the panel is "not a
+command"; mapping free speech like "I keep halal" to toggles is the next
+step, through a language model on Snap's Remote Service Gateway.
+
 ## How it works
 
 ```
