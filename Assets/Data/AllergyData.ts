@@ -174,7 +174,10 @@ export const ALLERGENS: AllergenDef[] = [
       "brie",
       "goat cheese",
       "cream cheese",
-      "milk foam"
+      "milk foam",
+      "cheesecake",
+      "milkshake",
+      "buttercream"
     ]
   },
   {

@@ -61,11 +61,24 @@ export class Profile {
   }
 }
 
-/** True when the (lowercase) ingredient contains any alias of the allergen. */
+const aliasRegexCache = new Map<string, RegExp>()
+
+/** The alias as a whole word (or words) inside the ingredient: "ham" must not match "graham cracker", "egg" not "eggplant". */
+function aliasRegex(alias: string): RegExp {
+  let re = aliasRegexCache.get(alias)
+  if (!re) {
+    const escaped = alias.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")
+    re = new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`)
+    aliasRegexCache.set(alias, re)
+  }
+  return re
+}
+
+/** True when the (lowercase) ingredient contains any alias of the allergen as a whole word. */
 export function ingredientMatches(ingredient: string, allergen: AllergenDef): boolean {
   const low = ingredient.toLowerCase()
   for (const alias of allergen.aliases) {
-    if (alias && low.indexOf(alias.toLowerCase()) >= 0) return true
+    if (alias && aliasRegex(alias).test(low)) return true
   }
   return false
 }
@@ -149,7 +162,11 @@ export function nearestSafeDish(dish: DishDef, restaurant: RestaurantDef, allRes
     if (other.id === dish.id || !other.layout || !safeIds.has(other.id)) continue
     const dx = Math.abs(other.layout.x - dish.layout.x)
     const dy = Math.abs(other.layout.y - dish.layout.y)
-    const key = (dx < 0.3 ? 0 : 10) + dy // same column sorts first, then vertical distance
+    // Same printed section first (a breakfast for a breakfast, not a coffee), then the same
+    // kind of dish, then the same column, then vertical distance.
+    const sameSection = !!dish.section && !!other.section && dish.section === other.section
+    const sameKind = dish.category === other.category
+    const key = (sameSection ? 0 : 100) + (sameKind ? 0 : 20) + (dx < 0.3 ? 0 : 10) + dy
     if (key < bestKey) {
       bestKey = key
       best = other

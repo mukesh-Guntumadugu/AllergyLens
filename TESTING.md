@@ -60,6 +60,19 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
   dish name ("mixed naan"). If the preview mic gives no transcript, pinch is
   the fallback; voice is meant for the glasses.
 
+## 3b. Check the logic on the command line
+
+```bash
+node tools/check.js --profile milk --restaurant laurel-cafe
+```
+
+prints, for every line on that menu: GREEN / RED / AMBER, the category
+(vegetarian, chicken, red_meat, seafood, dessert, drink), where the ingredients
+came from (`menu says` = printed on the menu, `typical` = dish knowledge base,
+`unknown` = amber), and the exact card text. `--url http://<gx10-ip>:8787/menus.json`
+runs the same through the live server. It uses the Lens's own compiled code
+from `Cache/TypeScript/Out`, so open the project in Lens Studio once first.
+
 ## 4. The 3D room is NOT a menu test
 
 The Interactive Preview room has no camera feed, so the real marker can never

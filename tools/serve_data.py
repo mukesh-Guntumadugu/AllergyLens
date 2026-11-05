@@ -21,7 +21,10 @@ WITH_LAKE = False
 
 
 def load_menus():
-    menus = json.load(open(os.path.join(ROOT, "data", "menus.json"), encoding="utf-8"))
+    # Prefer the joined output of `node tools/build-data.js` (ingredients filled from the dish knowledge
+    # base, sources marked) so the Lens sees the same data live as compiled in; the raw seed is the fallback.
+    built = os.path.join(ROOT, "data", "menus.lens.json")
+    menus = json.load(open(built if os.path.exists(built) else os.path.join(ROOT, "data", "menus.json"), encoding="utf-8"))
     lake = os.path.join(ROOT, "data-lake", "gold", "lens", "menus.json")
     if WITH_LAKE and os.path.exists(lake):
         by_id = {r["id"]: r for r in menus.get("restaurants", [])}

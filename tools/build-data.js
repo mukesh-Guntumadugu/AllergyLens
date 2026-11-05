@@ -311,6 +311,9 @@ const outDir = path.join(root, "Assets", "Data");
 fs.mkdirSync(outDir, { recursive: true });
 const outFile = path.join(outDir, "AllergyData.ts");
 fs.writeFileSync(outFile, out);
+// The same joined restaurants as JSON, for tools/serve_data.py: what the Lens fetches live must carry the
+// knowledge-base ingredients and sources exactly like the compiled snapshot (gitignored; rebuild on the server).
+fs.writeFileSync(path.join(root, "data", "menus.lens.json"), JSON.stringify({ version: menus.version, built: new Date().toISOString(), restaurants }, null, 1));
 console.log(
   `wrote ${path.relative(root, outFile)}: ${allergens.allergens.length} allergens, ` +
     `${dishKb.dishes.length} KB dishes, ${restaurants.length} restaurants, ${dishIds.size} menu dishes ` +

@@ -223,6 +223,17 @@ Three ways to run it, from most to least real:
 
 The step-by-step manual guide is [TESTING.md](TESTING.md).
 
+**Test the decisions without the glasses.** `tools/check.js` runs the same
+compiled checker the Lens runs, on the same data, and prints every dish's
+verdict, category, source and card text for a profile:
+
+```bash
+node tools/check.js --list                                   # profile ids, restaurants, products
+node tools/check.js --profile milk,peanut                    # everything, bundled data
+node tools/check.js --profile meat --restaurant laurel-cafe  # veg / non-veg for one menu
+node tools/check.js --profile milk --url http://<gx10-ip>:8787/menus.json   # through the live server + the Lens validator
+```
+
 Automated: 9 LEAF scenarios (`Assets/LeafTests/`) run inside the live Lens:
 profile panel and Done, peanut+milk marks and badge on the Star of India
 page, the replacement rule, detail card on pinch, marker lost, vegetarian and
