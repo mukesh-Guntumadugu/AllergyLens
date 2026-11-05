@@ -26,6 +26,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Mood filter ("Vegetarian", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
 | Voice: say the dish name instead of pinching (SPECS ASR) | Built; only testable on the glasses |
 | Grocery products (Open Food Facts: ingredients, declared allergens, nutrition) | Data pipeline done, 10 sample products; Lens UI not built yet |
+| Scraper pipeline v2 (restaurant discovery → menu acquisition → OCR + vision labelling → cited ingredient research → data lake), unattended per county on the GX10 | Merged 4 Nov; runs outside the Lens |
 | Live fallback when a dish is not in the database (web / LLM) | Designed below; not built yet |
 | LEAF integration tests | 9 scenarios, 9/9 pass |
 
@@ -64,15 +65,15 @@ The shot list with timings and voice-over is in
 ```
  OFFLINE (once per restaurant, on the ASUS GX10)            ON THE GLASSES (every time you look)
  ─────────────────────────────────────────────────           ──────────────────────────────────────────────
- menu photo ──► OCR (tesseract + qwen2.5-vl) ──┐             camera ──► MarkerTrackingComponent
-                dish lines WITH positions      │                          (Assets/Markers/MenuMarker.imgmarker)
-                                               ▼                                   │ page pose
- dish name ──► enrichment (llama3.1 local) ──► data/menus.json ──┐                 ▼
-                ingredients, % shares,          data/dishes.json  │   AllergyLensMenuOverlayUI
-                substitutes, category           data/allergens.json ├─► build-data.js ─► Assets/Data/AllergyData.ts
-                                                data/products.json │        (compiled into the Lens)
- Google Places API ──► stars, allergy reviews ──┘                 │                 │
- Open Food Facts API ──► packaged products ───────────────────────┘                 ▼
+ menu photo ──► gate ──► OCR with boxes ──► Qwen3-VL ──┐     camera ──► MarkerTrackingComponent
+                labels each printed line: name, box,   │                  (Assets/Markers/MenuMarker.imgmarker)
+                section, price, markers, category      ▼                           │ page pose
+ dish name ──► web retrieval with citations ──► data/menus.json ──┐                ▼
+                recipe pages' schema.org lists,  data/dishes.json  │   AllergyLensMenuOverlayUI
+                voted across ≥3 recipes; shares, data/allergens.json ├─► build-data.js ─► Assets/Data/AllergyData.ts
+                substitutes from the curated seed data/products.json │        (compiled into the Lens)
+ Google Places API ──► stars, allergy reviews ──┘                  │                 │
+ Open Food Facts API ──► packaged products ────────────────────────┘                 ▼
                                                                    AllergyLensChecker  (profile × ingredients → verdict)
                                                                                     │
                                                                                     ▼
@@ -99,7 +100,11 @@ marks update instantly.
 
 Ingredients come from the restaurant when published, otherwise from the dish
 knowledge base (`data/dishes.json`: what a pad thai or butter chicken is
-*typically* made of). Matches from a typical recipe are always worded
+*typically* made of). Since pipeline v2 a knowledge-base entry is built by
+web retrieval, not by a model: recipe pages found by search, their schema.org
+ingredient lists voted across at least three agreeing recipes, every
+ingredient stored with its source URLs. A dish with fewer than three agreeing
+recipes stays unknown (amber). Matches from a typical recipe are always worded
 "typically contains … confirm with the restaurant".
 
 **The replacement rule.** Each known ingredient has a share of the dish. Under
@@ -131,8 +136,9 @@ miss, and nothing below is allowed to turn an unknown dish green.
 | 0 | `Assets/Data/AllergyData.ts` compiled into the Lens (4 restaurants, 49 dishes, 17 allergens, 10 products) | zero, offline | built |
 | 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure | one ~30 KB GET per session | built |
 | 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
-| 3 | LLM for an unknown dish *name* through Snap's **Remote Service Gateway** (OpenAI / Gemini with a Snap-issued token, no personal API key) or, for a limited session, the user's own key through `InternetModule` | ~150 tokens per dish, cached | designed |
-| 4 | Vision model for a menu with no marker: one down-scaled JPEG of the page, once, result saved as a `menus.json` entry | one image call per *page*, never per frame | designed |
+| 3 | Backend cache on the GX10 by place: a restaurant the pipeline already processed answers from `data-lake/gold/` in under a second (`tools/scrape/DESIGN.md` §4); a miss queues acquire → process → research and answers amber meanwhile | one small GET | designed, backend scripts built |
+| 4 | Unknown dish *name* only: web retrieval with citations (the same `ingredients_rag.py` step), or a small model through Snap's **Remote Service Gateway** (OpenAI / Gemini with a Snap-issued token, no personal API key; a user's own key through `InternetModule` for a limited session) | ~150 tokens per dish, cached forever | designed |
+| 5 | Menu with no marker: one down-scaled camera frame through the Remote Service Gateway to a vision model with the *same* line schema; the result is uploaded as a capture so the next visitor gets the cached answer (DESIGN.md §7.4) | one image call per *page*, never per frame | designed |
 
 Guardrails that stay the same at every tier: results from a model are stored
 with `source.type: "llm"` and worded as *typical*; the amber "ask the
@@ -144,10 +150,12 @@ restaurant" state is the default whenever a tier times out (4 s) or disagrees.
 
 1. **The hot path is offline.** Marker tracking, the check and the drawing
    never touch the network. A look at a known menu costs nothing.
-2. **Expensive work happens once per restaurant, not once per user.** OCR and
-   ingredient enrichment run on the GX10 with local models (tesseract,
-   qwen2.5-vl 7B, llama3.1 8B via Ollama): no API bill, and the result is a
-   JSON file every user gets for free.
+2. **Expensive work happens once per restaurant, not once per user.** Menu
+   reading runs on the GX10 with local models (RapidOCR for boxes, Qwen3-VL 8B
+   served by vLLM with schema-enforced JSON, batched); ingredients come from
+   web retrieval, so no model ever invents a recipe and there is no API bill.
+   The result is a JSON file every user gets for free, precomputed county by
+   county by an unattended driver (`tools/scrape/run_pipeline.sh`).
 3. **Cache by menu, not by frame.** A page is recognised by its marker; its
    data is keyed by restaurant id. A model is only ever asked about a dish
    once; the answer goes into `menus.json`.
@@ -160,8 +168,9 @@ restaurant" state is the default whenever a tier times out (4 s) or disagrees.
    marker-less page entry.
 6. **Budget caps built in.** Per-session call cap, 4 s timeout, and the Lens
    degrades to amber instead of waiting. No spinner over the menu, ever.
-7. **Tiny payloads.** A restaurant entry is ~30 KB of JSON; the whole bundled
-   dataset is under 200 KB. Marker images are capped at 2048 px.
+7. **Tiny payloads.** A restaurant entry is ~30 KB of JSON; the compiled data
+   module for 4 restaurants, the dish catalog and 10 products is about 50 KB.
+   Marker images are capped at 2048 px.
 8. **Free, open data where it exists.** Open Food Facts for products (ODbL,
    attribution kept in `data/products.json`); the official Google Places API
    for ratings instead of scraping.
@@ -171,16 +180,25 @@ restaurant" state is the default whenever a tier times out (4 s) or disagrees.
 ## Data pipelines
 
 Two pipelines, both plain Python + one Node script, documented in
-[tools/scrape/README.md](tools/scrape/README.md) and
-[data/README.md](data/README.md).
+[tools/scrape/README.md](tools/scrape/README.md) (how to run) and
+[tools/scrape/DESIGN.md](tools/scrape/DESIGN.md) (design, source policy,
+storage schema); the data shapes are in [data/README.md](data/README.md).
 
 ```
-Pipeline 1  restaurants   photo/web menu → dish lines with positions → ingredients, shares, substitutes → rating
-Pipeline 2  groceries     barcode / search / category → ingredients, allergen tags, nutrition, fitness flags
+Pipeline 1  restaurants   discover (OpenStreetMap) → menus (website, PDF, Places photos, own captures)
+                          → gate → OCR with boxes → vision labelling → dish catalog → cited ingredient research
+                          → allergens + category → data-lake/gold/ → menus.json
+Pipeline 2  groceries     barcode / search / category → Open Food Facts → ingredients, allergen tags, nutrition, fitness flags
 ```
+
+Raw pages and images land in `data-lake/bronze/`, tables in `silver/`,
+Lens-shaped JSON in `gold/` (all git-ignored). Every stage is a script with
+one input and one output table, restartable, and skips work it already did.
 
 ```bash
-node tools/build-data.js      # validates data/*.json and regenerates Assets/Data/AllergyData.ts
+node tools/build-data.js               # validates data/*.json and regenerates Assets/Data/AllergyData.ts
+node tools/build-data.js --with-lake   # local build that also joins the scraped data-lake (never commit that output)
+tmux new -d -s allergylens 'LOOP=1 tools/scrape/run_pipeline.sh'   # unattended run over tools/scrape/counties.txt
 ```
 
 Current contents: 4 restaurants (Star of India is the real one: a printed menu,
@@ -213,7 +231,7 @@ read `[LEAF SUMMARY] 9/9 passed` in the Logger. Both debug flags are saved
 
 Toolchain: Lens Studio 5.23.2, Spectacles Interaction Kit 0.18, Spectacles UI
 Kit, Leaf; built with CLAD (Snap's coding agents) through the Lens Studio MCP;
-scrapers run on an ASUS GX10 with Ollama.
+scrapers run on an ASUS GX10 (vLLM + Ollama, local only).
 
 ---
 
