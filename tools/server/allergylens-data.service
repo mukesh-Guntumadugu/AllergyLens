@@ -1,0 +1,18 @@
+# systemd unit for the AllergyLens live data server on the GX10.
+# Install with tools/server/install.sh (it fills in the user and repo path).
+[Unit]
+Description=AllergyLens data server (menus.json / products.json for the Lens)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__REPO__
+ExecStartPre=/usr/bin/env node tools/build-data.js
+ExecStart=/usr/bin/env python3 tools/serve_data.py --host 0.0.0.0 --port 8787 --with-lake
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
