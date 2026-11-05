@@ -70,12 +70,13 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
   seafood", "everything"; a chip the profile forbids is refused), "done"
   closes the panel, and "I'm allergic to mango" / "no coriander" / "I can't
   eat okra" adds a food that is not on the panel ("Also avoiding: Mango").
-  Every command prints what it understood to the Logger. **Do not tick
-  `voiceInPreview`**: starting speech recognition inside the Lens Studio
-  5.23.2 preview crashes Lens Studio (reproduced twice, 1 Nov and 4 Nov; the
-  app dies within seconds, no Lens error is logged). Voice is tested on the
-  glasses only, where the ASR module runs normally. The saved scene keeps the
-  switch off.
+  Every command prints what it understood to the Logger. In the preview the
+  Lens listens through VoiceML and the Preview panel's **microphone button**
+  (bottom-left; it must be on). `previewVoice` on the AllergyLens object is
+  on by default. On the glasses voice runs through the SPECS ASR module,
+  which is never started in the preview (that crashed Lens Studio 5.23.2).
+  Confirmed 5 Nov: the preview transcribed a spoken sentence and the Logger
+  printed it.
 
 ## 3b. Check the logic on the command line
 

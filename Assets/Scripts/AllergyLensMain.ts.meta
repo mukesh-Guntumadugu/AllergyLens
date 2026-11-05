@@ -90,7 +90,7 @@
     - "// @input float detailGapCm = 1 {\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}"
     - '// @input float sfxVolume = 0.8 {"hint":"Volume for the click / scan / pop cues (0 = silent).", "widget":"slider", "min":0, "max":1, "step":0.05}'
     - '// @input bool voiceEnabled = true {"hint":"Also let the user say a dish name while a menu is in view (Specs ASR). Pinching a line stays the primary way."}'
-    - '// @input bool voiceInPreview {"hint":"DO NOT TICK in Lens Studio 5.23.2: starting the ASR session inside the preview crashes the whole app (reproduced twice). Voice is for the glasses, where it runs normally."}'
+    - "// @input bool voiceInPreview {\"hint\":\"Listen in the Lens Studio preview too, through VoiceML and the preview's mic button (the SPECS ASR module crashes Lens Studio 5.23.2 when started in the preview, so it is never used there). On the glasses voice runs through ASR regardless of this switch.\"}"
     - '// @input bool debugSimulateMarker {"hint":"Debug: on start, pretend the first menu marker was recognised 60 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input bool debugSimulateLabel {"hint":"Debug: on start, pretend the first product label was recognised 50 cm ahead (for Interactive Preview, which has no camera)."}'
     - '// @input string menusUrl {"hint":"Optional URL of a menus.json (same shape as data/menus.json). Fetched once at start; on any failure the bundled data is used."}'
