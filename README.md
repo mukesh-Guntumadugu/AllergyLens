@@ -332,13 +332,21 @@ passes the Lens validator. Once `node` is installed on the GX10,
 builds and serves on its own.
 
 **Plain `http://` is refused by the Lens** ("URL is not secure") unless the
-project's **Experimental API** switch is on (Project Settings in Lens Studio;
-fine for development and side-loading, not for publishing). The alternative
-that works everywhere is an `https://` address with a real certificate: a
-Cloudflare quick tunnel on the GX10 (`cloudflared tunnel --url
-http://localhost:8787`, no account needed) gives one, and `menusUrl` points at
-it. Until one of the two is done the Lens logs "remote menus unavailable …
-using bundled data" and runs on the compiled snapshot, by design.
+project's Experimental API switch is on, so the GX10 also runs a second
+service, `allergylens-tunnel`: a Cloudflare quick tunnel (no account) that
+gives the data server a public `https://…trycloudflare.com` address with a
+valid certificate, reachable from the glasses on any network. `menusUrl` in
+the saved scene points at it, and the Lens logs "loaded 28 restaurants from
+https://…" about 0.3 s after start. The hostname changes whenever the tunnel
+restarts (GX10 reboot): read the current one with
+
+```bash
+bash tools/server/tunnel_url.sh       # prints https://<words>.trycloudflare.com
+```
+
+and put `<that>/menus.json` into `menusUrl`. If the fetch ever fails the Lens
+logs "remote menus unavailable … using bundled data" and runs on the compiled
+snapshot, by design.
 
 ## Roadmap
 

@@ -22,5 +22,7 @@ node tools/build-data.js >/dev/null            # restore the committed snapshot 
 $SSH "$HOST" 'cd ~/allergylens-serve && git pull -q origin main 2>/dev/null || true
   sudo -n systemctl restart allergylens-data && sleep 3 && curl -fsS -m 3 http://localhost:8787/health; echo'
 IP=$($SSH "$HOST" "hostname -I | awk '{print \$1}'")
-echo "live: http://$IP:8787/menus.json"
-node tools/check.js --profile milk --url "http://$IP:8787/menus.json" | head -3
+TUN=$(bash "$REPO/tools/server/tunnel_url.sh" "$HOST" 2>/dev/null || true)
+echo "live (LAN):   http://$IP:8787/menus.json"
+echo "live (https): ${TUN:-<tunnel not running>}/menus.json   <- this goes into menusUrl"
+node tools/check.js --profile milk --url "${TUN:-http://$IP:8787}/menus.json" | head -3

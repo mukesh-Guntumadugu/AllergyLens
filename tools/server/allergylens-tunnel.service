@@ -1,0 +1,16 @@
+# Public https address for the data server: a Cloudflare quick tunnel (no account; the hostname changes
+# on every start — read it with tools/server/tunnel_url.sh and put it into menusUrl in Lens Studio).
+[Unit]
+Description=AllergyLens https tunnel (cloudflared quick tunnel to the data server)
+After=network-online.target allergylens-data.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate --url http://localhost:8787
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

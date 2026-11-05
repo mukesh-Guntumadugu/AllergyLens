@@ -2627,7 +2627,7 @@
       previewVoice: true
       debugSimulateMarker: false
       debugSimulateLabel: false
-      menusUrl: "http://10.233.204.96:8787/menus.json"
+      menusUrl: "https://visits-fame-wonderful-science.trycloudflare.com/menus.json"
   ScriptTypes:
     "":
       {}
