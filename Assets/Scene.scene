@@ -2599,14 +2599,16 @@
   Enabled: true
   ScriptAsset: !<reference> d5638eef-0648-4cc2-8a01-2f3542bbd9f1
   ScriptInputsDefault:
+    productsRoot: true
     showProfileAtStart: true
     defaultProfile: true
     defaultMood: true
     detailGapCm: true
     sfxVolume: true
     voiceEnabled: true
-    voiceInPreview: true
+    previewVoice: true
     debugSimulateMarker: true
+    debugSimulateLabel: true
     menusUrl: true
   ScriptTypesDefault:
     {}
@@ -2616,14 +2618,16 @@
       profileButton: !<MappingBased.AssignableType_2> 69fd1002-088d-4f30-acc1-dbf5ed897db1
       dishDetail: !<MappingBased.AssignableType_3> d15c45b4-aa50-41ce-aca4-704348f09d4c
       markersRoot: !<reference.SceneObject> d4d72d8d-7a7e-4db6-930e-358c6d92ebea
+      productsRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
       defaultProfile: ""
       defaultMood: everything
       detailGapCm: 1.500000
       sfxVolume: 0.800000
       voiceEnabled: true
-      voiceInPreview: false
+      previewVoice: true
       debugSimulateMarker: false
+      debugSimulateLabel: false
       menusUrl: ""
   ScriptTypes:
     "":
