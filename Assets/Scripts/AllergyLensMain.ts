@@ -734,7 +734,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const reviewsShort = complaints > 0 ? ` · ${complaints} allergy review${complaints === 1 ? "" : "s"}` : ""
     const core = everything
       ? `${badge.safeCount} of ${badge.total} safe`
-      : `${safeInCategory} ${moodLabel(this.mood).toLowerCase()} dish${safeInCategory === 1 ? "" : "es"} safe for you`
+      : `${safeInCategory} ${moodLabel(this.mood).toLowerCase().replace(/ dishes$/, "")} dish${safeInCategory === 1 ? "" : "es"} safe for you`
     // Fit the chip: full wording first, then compact reviews, then drop the restaurant name.
     const capacity = overlay.badgeCapacityChars
     const candidates = [

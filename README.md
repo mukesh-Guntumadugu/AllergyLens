@@ -25,7 +25,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Three verdicts per dish: safe / contains / unverified, from the data | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
-| Mood filter ("Vegetarian", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
+| Mood filter ("Veg dishes", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
 | Voice: say the dish name instead of pinching (SPECS ASR) | Built; only testable on the glasses |
 | Grocery products: label recognised by the camera → outline in the verdict colour + one chip ("Jif Creamy Peanut Butter · contains peanuts") → pinch for the card | Built; the Jif label marker is a placeholder image until a photo of the real jar replaces `Assets/Markers/product-0051500255162.png` |
 | Scraper pipeline v2 (restaurant discovery → menu acquisition → OCR + vision labelling → cited ingredient research → data lake), unattended per county on the GX10 | Merged 4 Nov; runs outside the Lens |
@@ -54,7 +54,7 @@ The shot list with timings and voice-over is in
    10% of the dish). Ask the chef to leave them out." Pinch again to close.
 4. **Mood.** With *Vegetarian* on, only vegetarian lines are marked and the
    safe ones get a green star ("order this"). Lines outside the glasses'
-   display band get a small *← Vegetarian* arrow at the edge.
+   display band get a small *← Veg dishes* arrow at the edge.
 5. **Look away.** The marks fade out; the small Profile button comes back.
 6. **(Product segment)** Same profile, pick up a jar of peanut butter: the
    label gets the same red underline + card from the Open Food Facts data.

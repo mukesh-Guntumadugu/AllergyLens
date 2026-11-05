@@ -24,7 +24,7 @@ export class AllergyLensLeafScenario6MoodVegetarian extends Scenario {
       if (d.category !== "vegetarian") ui.expectUnmarked(d.id)
     }
     const badge = ui.badge()
-    expect(badge.text.toLowerCase().includes("vegetarian"), badge.text).toBe(true)
+    expect(badge.text.toLowerCase().includes("veg dish"), badge.text).toBe(true)
     expect(badge.text.includes("safe for you"), badge.text).toBe(true)
   }
 }

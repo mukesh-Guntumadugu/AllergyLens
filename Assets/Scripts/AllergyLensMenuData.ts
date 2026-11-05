@@ -93,7 +93,7 @@ export const MOODS: Array<{id: Mood; label: string}> = [
   {id: "chicken", label: "Chicken"},
   {id: "red_meat", label: "Red meat"},
   {id: "seafood", label: "Seafood"},
-  {id: "vegetarian", label: "Vegetarian"},
+  {id: "vegetarian", label: "Veg dishes"},
   {id: "dessert", label: "Dessert"},
   {id: "everything", label: "Everything"},
 ]
