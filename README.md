@@ -19,7 +19,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Part | State |
 |---|---|
 | Profile panel (17 toggles + 6 mood chips) as a separate step before the menu | Working, on the real camera path |
-| Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks land on the printed lines |
+| Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks on the printed lines, confirmed on the handheld Laurel video 4 Nov |
 | Three verdicts per dish: safe / contains / unverified, from the data | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
