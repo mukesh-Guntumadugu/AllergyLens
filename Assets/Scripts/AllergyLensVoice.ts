@@ -77,13 +77,21 @@ export function parseAllergyPhrase(transcript: string): string | null {
   return null
 }
 
-/** Thin ASR session wrapper. Construct once; start/stop as menus come and go. */
+/**
+ * Thin speech-to-text wrapper. Construct once; start/stop as the panel opens and menus come
+ * and go. On the glasses it uses the SPECS ASR module. In the Lens Studio preview it uses
+ * VoiceML instead (`useVoiceML`), because starting ASR inside the 5.23.2 preview crashes
+ * Lens Studio; VoiceML is what Snapchat Lenses use there and takes the preview's mic button.
+ */
 export class VoiceListener {
   private asr: AsrModule | null = null
+  private vml: VoiceMLModule | null = null
+  private vmlEnabled = false
+  private vmlListening = false
   private active = false
   private failed = false
 
-  constructor(private onFinalTranscript: (text: string) => void) {}
+  constructor(private onFinalTranscript: (text: string) => void, private useVoiceML: boolean = false) {}
 
   get isListening(): boolean {
     return this.active
@@ -91,6 +99,10 @@ export class VoiceListener {
 
   start(): void {
     if (this.active || this.failed) return
+    if (this.useVoiceML) {
+      this.startVoiceML()
+      return
+    }
     try {
       if (!this.asr) this.asr = require("LensStudio:AsrModule") as AsrModule
       const options = AsrModule.AsrTranscriptionOptions.create()
@@ -115,13 +127,60 @@ export class VoiceListener {
   }
 
   stop(): void {
-    if (!this.active || !this.asr) return
+    if (!this.active) return
     this.active = false
     try {
-      this.asr.stopTranscribing()
+      if (this.vml) {
+        if (this.vmlListening) this.vml.stopListening()
+        this.vmlListening = false
+      } else if (this.asr) {
+        this.asr.stopTranscribing()
+      }
       print("AllergyLens: voice stopped")
     } catch (e) {
       print(`AllergyLens: voice stop failed (${e})`)
+    }
+  }
+
+  // ── VoiceML (Lens Studio preview) ────────────────────────────────────────
+  private startVoiceML(): void {
+    try {
+      if (!this.vml) {
+        this.vml = require("LensStudio:VoiceMLModule") as VoiceMLModule
+        this.vml.onListeningEnabled.add(() => {
+          this.vmlEnabled = true
+          if (this.active) this.vmlListen()
+        })
+        this.vml.onListeningUpdate.add((e: VoiceML.ListeningUpdateEventArgs) => {
+          if (e.isFinalTranscription && e.transcription && e.transcription.trim().length > 0) this.onFinalTranscript(e.transcription)
+        })
+        this.vml.onListeningError.add((e: VoiceML.ListeningErrorEventArgs) => {
+          const any = e as unknown as {error?: string; description?: string}
+          print(`AllergyLens: voice (VoiceML) error ${any.error ?? ""} ${any.description ?? ""}`)
+        })
+      }
+      this.active = true
+      // Listening is allowed once the module reports the mic is enabled; try now as well in
+      // case that already happened before we subscribed.
+      this.vmlListen()
+    } catch (e) {
+      this.failed = true
+      this.active = false
+      print(`AllergyLens: voice unavailable in the preview (${e}); pinch still works`)
+    }
+  }
+
+  private vmlListen(): void {
+    if (!this.vml || this.vmlListening) return
+    try {
+      const options = VoiceML.ListeningOptions.create()
+      options.shouldReturnAsrTranscription = true
+      options.shouldReturnInterimAsrTranscription = false
+      this.vml.startListening(options)
+      this.vmlListening = true
+      print(`AllergyLens: voice listening (VoiceML, preview mic${this.vmlEnabled ? "" : ", waiting for the mic"}) — say a toggle, a mood, "I'm allergic to …" or "done"`)
+    } catch (e) {
+      print(`AllergyLens: VoiceML startListening failed (${e})`)
     }
   }
 }

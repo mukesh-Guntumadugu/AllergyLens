@@ -79,7 +79,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   voiceEnabled: boolean = true
 
   @input
-  @hint("DO NOT TICK in Lens Studio 5.23.2: starting the ASR session inside the preview crashes the whole app (reproduced twice). Voice is for the glasses, where it runs normally.")
+  @hint("Listen in the Lens Studio preview too, through VoiceML and the preview's mic button (the SPECS ASR module crashes Lens Studio 5.23.2 when started in the preview, so it is never used there). On the glasses voice runs through ASR regardless of this switch.")
   voiceInPreview: boolean = false
 
   @input
@@ -212,8 +212,8 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.updateMoodAvailability()
     if (this.voiceEnabled) {
       const inEditor = global.deviceInfoSystem.isEditor()
-      if (inEditor && !this.voiceInPreview) print("AllergyLens: voice selection is off in the Lens Studio preview (set voiceInPreview to try it); pinch works")
-      else this.voice = new VoiceListener((text) => this.onVoice(text))
+      if (inEditor && !this.voiceInPreview) print("AllergyLens: voice is off in the Lens Studio preview (tick voiceInPreview to talk to the panel through the preview mic); pinch works")
+      else this.voice = new VoiceListener((text) => this.onVoice(text), inEditor) // preview → VoiceML, glasses → ASR
     }
     this.safeCardTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.safeCardTimer.bind(() => this.closeDetail())
