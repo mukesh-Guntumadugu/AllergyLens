@@ -63,10 +63,17 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
   "Better pick: Alu Gobi". Click again to close.
 - **Voice:** turn on the microphone button in the Preview panel and say the
   dish name ("mixed naan"). If the preview mic gives no transcript, pinch is
-  the fallback; voice is meant for the glasses. With the profile panel open,
-  "I'm allergic to mango" / "no coriander" / "I can't eat okra" adds that
-  food to the profile; it shows as "Also avoiding: Mango" under the
-  allergies. (Voice stays off in the preview by default: `voiceInPreview`.)
+  the fallback; voice is meant for the glasses. With the profile panel open
+  you can drive the whole panel by voice: a toggle's name switches it on
+  ("peanuts", "dairy", "no pork", "vegetarian", "high sugar"), "turn off milk"
+  switches it off, a mood name picks the chip ("chicken", "in the mood for
+  seafood", "everything"; a chip the profile forbids is refused), "done"
+  closes the panel, and "I'm allergic to mango" / "no coriander" / "I can't
+  eat okra" adds a food that is not on the panel ("Also avoiding: Mango").
+  Every command prints what it understood to the Logger. Voice stays off in
+  the preview by default (`voiceInPreview` on the AllergyLens object), because
+  starting speech recognition in the preview crashed Lens Studio 5.23.2 once;
+  tick it to try, and expect it to work on the glasses regardless.
 
 ## 3b. Check the logic on the command line
 

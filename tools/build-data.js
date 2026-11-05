@@ -208,6 +208,8 @@ export interface AllergenDef {
   hint?: string
   /** toggling this on also turns these ids on (vegan → vegetarian, milk, egg) */
   implies?: string[]
+  /** phrases that contain an alias but are NOT this allergen ("coconut milk", "almond flour"); stripped before matching */
+  exclude?: string[]
 }
 
 /** Where a dish's ingredient list came from.

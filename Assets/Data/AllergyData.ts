@@ -12,6 +12,8 @@ export interface AllergenDef {
   hint?: string
   /** toggling this on also turns these ids on (vegan → vegetarian, milk, egg) */
   implies?: string[]
+  /** phrases that contain an alias but are NOT this allergen ("coconut milk", "almond flour"); stripped before matching */
+  exclude?: string[]
 }
 
 /** Where a dish's ingredient list came from.
@@ -122,6 +124,10 @@ export const ALLERGENS: AllergenDef[] = [
       "peanut oil",
       "peanut butter",
       "satay"
+    ],
+    "exclude": [
+      "peanut-free",
+      "peanut free"
     ]
   },
   {
@@ -148,6 +154,13 @@ export const ALLERGENS: AllergenDef[] = [
       "praline",
       "marzipan",
       "nut butter"
+    ],
+    "exclude": [
+      "nutmeg",
+      "coconut",
+      "water chestnut",
+      "water chestnuts",
+      "butternut"
     ]
   },
   {
@@ -182,6 +195,40 @@ export const ALLERGENS: AllergenDef[] = [
       "cheesecake",
       "milkshake",
       "buttercream"
+    ],
+    "exclude": [
+      "coconut milk",
+      "almond milk",
+      "oat milk",
+      "soy milk",
+      "soya milk",
+      "rice milk",
+      "cashew milk",
+      "hazelnut milk",
+      "pea milk",
+      "plant milk",
+      "plant-based milk",
+      "coconut cream",
+      "coconut yogurt",
+      "coconut yoghurt",
+      "creamed coconut",
+      "cream of tartar",
+      "cream of coconut",
+      "milk thistle",
+      "peanut butter",
+      "almond butter",
+      "cashew butter",
+      "nut butter",
+      "seed butter",
+      "cocoa butter",
+      "shea butter",
+      "apple butter",
+      "butternut",
+      "butter beans",
+      "vegan butter",
+      "vegan cheese",
+      "cashew cheese",
+      "nutritional yeast"
     ]
   },
   {
@@ -200,6 +247,13 @@ export const ALLERGENS: AllergenDef[] = [
       "meringue",
       "aioli",
       "caesar dressing"
+    ],
+    "exclude": [
+      "eggplant",
+      "egg-free",
+      "egg free",
+      "vegan mayo",
+      "vegan mayonnaise"
     ]
   },
   {
@@ -239,6 +293,26 @@ export const ALLERGENS: AllergenDef[] = [
       "biscuit",
       "biscuit base",
       "wrap"
+    ],
+    "exclude": [
+      "rice noodles",
+      "glass noodles",
+      "rice paper",
+      "rice flour",
+      "almond flour",
+      "chickpea flour",
+      "corn flour",
+      "cornflour",
+      "coconut flour",
+      "oat flour",
+      "buckwheat",
+      "gluten free",
+      "gluten-free",
+      "rice bread",
+      "corn tortilla",
+      "corn tortillas",
+      "tapioca flour",
+      "potato flour"
     ]
   },
   {
@@ -256,6 +330,10 @@ export const ALLERGENS: AllergenDef[] = [
       "tempeh",
       "soy sauce",
       "tamari"
+    ],
+    "exclude": [
+      "soy-free",
+      "soy free"
     ]
   },
   {
@@ -277,6 +355,10 @@ export const ALLERGENS: AllergenDef[] = [
       "sardines",
       "mackerel",
       "worcestershire"
+    ],
+    "exclude": [
+      "fish-free",
+      "vegan fish sauce"
     ]
   },
   {
@@ -474,7 +556,13 @@ export const ALLERGENS: AllergenDef[] = [
       "condensed milk",
       "candied"
     ],
-    "hint": "sugar, syrup, honey, icing; products over 15 g per 100 g"
+    "hint": "sugar, syrup, honey, icing; products over 15 g per 100 g",
+    "exclude": [
+      "sugar-free",
+      "sugar free",
+      "no added sugar",
+      "unsweetened"
+    ]
   }
 ]
 

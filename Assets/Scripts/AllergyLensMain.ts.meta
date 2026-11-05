@@ -85,7 +85,7 @@
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts (ignored when defaultProfile is set)."}'
-    - '// @input string defaultProfile {"hint":"Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo."}'
+    - "// @input string defaultProfile {\"hint\":\"Comma-separated allergen ids (e.g. \\\"peanut,milk\\\") applied at start — with showProfileAtStart off this gives a hands-free demo. A word that is not an id (e.g. \\\"mango\\\") is added as a custom allergen, like saying \\\"I'm allergic to mango\\\".\"}"
     - '// @input string defaultMood = "everything" {"hint":"Mood applied at start: everything | chicken | red_meat | seafood | vegetarian | dessert."}'
     - "// @input float detailGapCm = 1 {\"hint\":\"Gap (cm) between a bar's end and the detail card placed beside it.\", \"widget\":\"slider\", \"min\":0, \"max\":10, \"step\":0.5}"
     - '// @input float sfxVolume = 0.8 {"hint":"Volume for the click / scan / pop cues (0 = silent).", "widget":"slider", "min":0, "max":1, "step":0.05}'

@@ -74,9 +74,16 @@ function aliasRegex(alias: string): RegExp {
   return re
 }
 
-/** True when the (lowercase) ingredient contains any alias of the allergen as a whole word. */
+/**
+ * True when the (lowercase) ingredient contains any alias of the allergen as a whole word,
+ * after removing the allergen's exclusions: "coconut milk" is not milk, "almond flour" is
+ * not wheat, "peanut butter" is not dairy.
+ */
 export function ingredientMatches(ingredient: string, allergen: AllergenDef): boolean {
-  const low = ingredient.toLowerCase()
+  let low = ingredient.toLowerCase()
+  for (const ex of allergen.exclude ?? []) {
+    if (ex && aliasRegex(ex).test(low)) low = low.replace(aliasRegex(ex), "$1 $2")
+  }
   for (const alias of allergen.aliases) {
     if (alias && aliasRegex(alias).test(low)) return true
   }

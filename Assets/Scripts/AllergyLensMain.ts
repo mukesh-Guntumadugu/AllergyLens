@@ -400,14 +400,7 @@ export class AllergyLensMain extends BaseScriptComponent {
    */
   private onVoice(text: string): void {
     if (this.profilePanel.getSceneObject().enabled) {
-      const item = parseAllergyPhrase(text)
-      if (item) {
-        print(`AllergyLens: voice "${text}" → avoid ${item}`)
-        this.audio?.playClick()
-        this.addCustomAllergen(item)
-      } else {
-        print(`AllergyLens: voice "${text}" — say "I'm allergic to …" or "no …" to add something`)
-      }
+      this.handlePanelVoice(text)
       return
     }
     const overlay = this.overlays.find((o) => o.isActive)
@@ -431,6 +424,93 @@ export class AllergyLensMain extends BaseScriptComponent {
       return
     }
     this.onBarPinched(restaurant.id, dish.id)
+  }
+
+  /**
+   * Voice control of the profile panel. In order:
+   *   "done" / "finished" / "that's it"              → Done
+   *   "turn off milk" / "remove milk" / "clear milk"  → that toggle off
+   *   "peanuts", "no pork", "vegan", "avoid high sugar" → that toggle on (label, id or any alias)
+   *   "chicken" / "in the mood for seafood" / "everything" → the mood chip (if the profile allows it)
+   *   "I'm allergic to mango" / "no mango"            → custom allergen (anything not on the panel)
+   *   "allergies" / "religious" / "diet"              → just acknowledged (the whole panel is in view)
+   */
+  private handlePanelVoice(raw: string): void {
+    const text = raw.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").replace(/\s+/g, " ").trim()
+    if (/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done)$/.test(text)) {
+      print(`AllergyLens: voice "${raw}" → Done`)
+      this.onProfileDone()
+      return
+    }
+    const off = /^(turn off|switch off|remove|unselect|deselect|clear|undo|cancel)\s+(.+)$/.exec(text)
+    const wanted = off ? off[2] : text.replace(/^(turn on|switch on|select|add|enable|set)\s+/, "")
+    // Labels and ids first, moods second, aliases last: "chicken" is the mood chip, not the
+    // vegetarian toggle (whose aliases include chicken).
+    const toggle = this.findToggleByName(wanted, false) ?? (this.moodByName(wanted) ? null : this.findToggleByName(wanted, true))
+    if (toggle) {
+      const on = !off
+      this.profile.set(toggle.id, on)
+      this.profilePanel.setToggle(toggle.id, on)
+      if (on && toggle.implies) for (const id of toggle.implies) { this.profile.set(id, true); this.profilePanel.setToggle(id, true) }
+      this.audio?.playClick()
+      print(`AllergyLens: voice "${raw}" → ${toggle.id} ${on ? "on" : "off"}`)
+      this.updateMoodAvailability()
+      this.recheckActive()
+      return
+    }
+    const mood = this.moodByName(wanted)
+    if (mood) {
+      const veg = this.profile.has("meat") || this.profile.has("vegan")
+      const blocked = (mood.id === "chicken" && veg) || (mood.id === "red_meat" && (veg || (this.profile.has("beef") && this.profile.has("pork"))))
+        || (mood.id === "seafood" && (veg || (this.profile.has("fish") && this.profile.has("shellfish"))))
+      if (blocked) {
+        print(`AllergyLens: voice "${raw}" — ${mood.label} contradicts the profile`)
+        return
+      }
+      this.mood = mood.id
+      this.profilePanel.setMood(mood.id)
+      this.audio?.playClick()
+      print(`AllergyLens: voice "${raw}" → mood ${mood.id}`)
+      this.recheckActive()
+      return
+    }
+    if (/^(allergies|allergy|religious|religious cultural|cultural|diet|dietary|preferences|mood|what am i in the mood for)$/.test(text)) {
+      print(`AllergyLens: voice "${raw}" — section is in view; say a toggle, e.g. "peanuts" or "no pork"`)
+      return
+    }
+    const item = parseAllergyPhrase(raw)
+    if (item) {
+      print(`AllergyLens: voice "${raw}" → avoid ${item}`)
+      this.audio?.playClick()
+      this.addCustomAllergen(item)
+      return
+    }
+    print(`AllergyLens: voice "${raw}" — not understood; say a toggle name, a mood, "I'm allergic to …" or "done"`)
+  }
+
+  /** "chicken", "in the mood for seafood", "red meat", "everything" → the mood chip, or null. */
+  private moodByName(phrase: string): {id: Mood; label: string} | null {
+    const t = phrase.replace(/^(i'm |im |i am )?(in the mood for|mood|show me|only|just)\s+/, "").replace(/\s+(mood|only|please)$/, "").trim()
+    return MOODS.find((m) => m.id === t || m.label.toLowerCase() === t || t === m.id.replace("_", " ")) ?? null
+  }
+
+  /**
+   * A toggle by what people call it: label ("No pork", "Milk / dairy", "Avoid high sugar"), a
+   * word of it ("dairy", "sugar"), its id, or — with aliases — any alias ("gluten", "bacon").
+   */
+  private findToggleByName(phrase: string, withAliases: boolean): AllergenDef | null {
+    const p = phrase.trim()
+    if (p.length < 2) return null
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()
+    for (const a of ALLERGENS) {
+      const label = norm(a.label)
+      const core = label.replace(/^(no|avoid) /, "")
+      if (p === label || p === core || p === "no " + core || p === a.id || p === a.id.replace("_", " ")) return a
+      const parts = core.split(" ").filter((w) => w.length > 2)
+      if (parts.some((w) => p === w)) return a
+    }
+    if (withAliases) for (const a of ALLERGENS) if (a.aliases.some((al) => norm(al) === p)) return a
+    return null
   }
 
   private recheckActive(): void {
