@@ -49,6 +49,34 @@ export function matchDishByVoice(transcript: string, dishes: DishDef[]): DishDef
   return best
 }
 
+const ALLERGY_PHRASES = [
+  /(?:i am|i'm|im|we are|we're|he is|she is)?\s*(?:also\s+)?allergic to\s+(.+)/,
+  /(?:i|we)\s+(?:can'?t|cannot|don'?t|do not)\s+(?:eat|have|take)\s+(.+)/,
+  /^(?:no|avoid|add|without|not|never)\s+(.+)/,
+]
+const FILLER = /^(the|a|an|any|some|please|also|and|to|eat|all|any kind of|kind of|sort of|type of|anything with|things with|stuff with)\s+/
+
+/**
+ * "I'm allergic to mango", "no coriander", "I can't eat okra" → "mango" / "coriander" / "okra".
+ * Returns the thing named (1–3 words, lowercase) or null when the sentence is not about a food to avoid.
+ */
+export function parseAllergyPhrase(transcript: string): string | null {
+  // Light normalisation only: the dish matcher's doubled-letter collapsing would turn "allergic" into "alergic".
+  const text = transcript.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").replace(/\s+/g, " ").trim()
+  if (text.length === 0) return null
+  for (const re of ALLERGY_PHRASES) {
+    const m = text.match(re)
+    if (!m) continue
+    let item = m[1].trim()
+    for (let i = 0; i < 3; i++) item = item.replace(FILLER, "")
+    item = item.replace(/\s+(please|thanks|thank you|too|as well|either)$/, "").trim()
+    const words = item.split(" ").filter((w) => w.length > 0).slice(0, 3)
+    if (words.length === 0) return null
+    return words.join(" ")
+  }
+  return null
+}
+
 /** Thin ASR session wrapper. Construct once; start/stop as menus come and go. */
 export class VoiceListener {
   private asr: AsrModule | null = null

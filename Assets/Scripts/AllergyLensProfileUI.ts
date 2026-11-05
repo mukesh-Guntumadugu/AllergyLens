@@ -65,6 +65,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private buttons = new Map<string, Button>()
   private pendingStates = new Map<string, boolean>()
   private moodButtons = new Map<Mood, Button>()
+  private moodLabels = new Map<Mood, Text>()
+  private customText: Text | null = null
   private _mood: Mood = "everything"
   private applyingMood = false
   private _onToggle = new Event<ProfileToggleEvent>()
@@ -100,8 +102,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     // Height from the data: header + per group (label + grid) + Done + gaps.
     const groups = GROUP_ORDER.map((g) => ({group: g, items: allergensInGroup(g)})).filter((g) => g.items.length > 0)
     const moodRows = Math.ceil(MOODS.length / MOOD_COLS)
-    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H
-    let itemCount = 2 + 1 + moodRows
+    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H + GROUP_LABEL_H // + the "also" line
+    let itemCount = 2 + 1 + moodRows + 1
     for (const g of groups) {
       const rows = Math.ceil(g.items.length / COLS)
       H += GROUP_LABEL_H + rows * TOGGLE_H + (rows - 1) * GAP
@@ -144,6 +146,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       })
     }
 
+    // Anything the user added by voice ("I'm allergic to mango") — Main fills this line.
+    this.customText = UI.addColumnText(col, "", "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
+
     // Mood — one question, single-select chips (3 per row).
     UI.addColumnText(col, this.moodQuestion, "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
     for (let r = 0; r < MOODS.length; r += MOOD_COLS) {
@@ -182,6 +187,23 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     this.selectMood(mood, false)
   }
 
+  /**
+   * Grey out a mood chip that contradicts the profile (a vegetarian is never "in the mood
+   * for chicken"). A chip that is switched off cannot be pinched; Main falls back to
+   * "everything" when the selected one goes off.
+   */
+  setMoodEnabled(mood: Mood, enabled: boolean): void {
+    const btn = this.moodButtons.get(mood)
+    if (btn) btn.inactive = !enabled
+    const label = this.moodLabels.get(mood)
+    if (label) label.textFill.color = new vec4(1, 1, 1, enabled ? 1 : 0.3)
+  }
+
+  /** Show what was added by voice, e.g. ["Mango", "Coriander"]. */
+  setCustomLabels(labels: string[]): void {
+    if (this.customText) this.customText.text = labels.length > 0 ? `Also avoiding: ${labels.join(", ")}` : ""
+  }
+
   // ── Private ────────────────────────────────────────────────────────────
   private addMoodChip(row: SceneObject, mood: Mood, label: string, w: number, h: number): void {
     UI.flexChild(row, {w, h}, (so) => {
@@ -200,7 +222,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
           this.applyingMood = false
         }
       })
-      UI.addButtonLabel(so, label, w - 0.6, this.textDistanceCm, "Button")
+      this.moodLabels.set(mood, UI.addButtonLabel(so, label, w - 0.6, this.textDistanceCm, "Button"))
       this.moodButtons.set(mood, btn)
     })
   }

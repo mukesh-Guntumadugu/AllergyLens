@@ -204,6 +204,10 @@ export interface AllergenDef {
   label: string
   group: AllergenGroup
   aliases: string[]
+  /** one line shown under the toggle, e.g. what sesame hides in */
+  hint?: string
+  /** toggling this on also turns these ids on (vegan → vegetarian, milk, egg) */
+  implies?: string[]
 }
 
 /** Where a dish's ingredient list came from.

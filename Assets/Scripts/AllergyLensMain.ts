@@ -17,9 +17,9 @@ import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
 import {AllergyLensMenuOverlayUI, DishMark, MarkStyle, MENU_MARKERS} from "./AllergyLensMenuOverlayUI"
 import {AllergyLensProductOverlayUI, PRODUCT_MARKERS} from "./AllergyLensProductOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
-import {ALLERGENS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
+import {ALLERGENS, AllergenDef, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
 import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
-import {VoiceListener, matchDishByVoice} from "./AllergyLensVoice"
+import {VoiceListener, matchDishByVoice, parseAllergyPhrase} from "./AllergyLensVoice"
 
 @component
 export class AllergyLensMain extends BaseScriptComponent {
@@ -57,7 +57,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   showProfileAtStart: boolean = true
 
   @input
-  @hint("Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo.")
+  @hint("Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo. A word that is not an id (e.g. \"mango\") is added as a custom allergen, like saying \"I'm allergic to mango\".")
   defaultProfile: string = ""
 
   @input
@@ -96,6 +96,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   @ui.group_end
 
   private profile = new Profile()
+  /** Things added by voice or defaultProfile that are not in the knowledge base ("mango"). */
+  private customAllergens: AllergenDef[] = []
   private mood: Mood = "everything"
   private overlays: AllergyLensMenuOverlayUI[] = []
   private products: AllergyLensProductOverlayUI[] = []
@@ -126,6 +128,18 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.profile.set(e.id, e.on)
       this.audio?.playClick()
       print(`AllergyLens: profile ${e.id} = ${e.on ? "on" : "off"}`)
+      // Vegan implies vegetarian + no milk + no eggs: turn those on too (never off — they may be allergies in their own right).
+      const def = ALLERGENS.find((a) => a.id === e.id)
+      if (e.on && def && def.implies) {
+        for (const id of def.implies) {
+          if (!this.profile.has(id)) {
+            this.profile.set(id, true)
+            this.profilePanel.setToggle(id, true)
+            print(`AllergyLens: profile ${id} = on (implied by ${e.id})`)
+          }
+        }
+      }
+      this.updateMoodAvailability()
       this.recheckActive()
     })
     this.profilePanel.onMood.add((m) => {
@@ -195,6 +209,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
     this.applyDefaultProfile()
     this.applyDefaultMood()
+    this.updateMoodAvailability()
     if (this.voiceEnabled) {
       const inEditor = global.deviceInfoSystem.isEditor()
       if (inEditor && !this.voiceInPreview) print("AllergyLens: voice selection is off in the Lens Studio preview (set voiceInPreview to try it); pinch works")
@@ -212,6 +227,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const panelAtStart = this.showProfileAtStart && this.profile.isEmpty
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
+    if (panelAtStart) this.voice?.start() // "I'm allergic to …" while the panel is open
     this.dishDetail.hideDetail()
     print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s), ${this.products.length} product marker(s))`)
 
@@ -261,11 +277,62 @@ export class AllergyLensMain extends BaseScriptComponent {
     const ids = this.defaultProfile.split(",").map((s) => s.trim()).filter((s) => s.length > 0)
     for (const id of ids) {
       if (!ALLERGENS.some((a) => a.id === id)) {
-        print(`AllergyLens: defaultProfile id "${id}" is not in the allergen list; ignored`)
+        this.addCustomAllergen(id) // "mango" → a custom allergen, exactly like saying it
         continue
       }
       this.profile.set(id, true)
       this.profilePanel.setToggle(id, true)
+    }
+  }
+
+  /** Every allergen the checker should know: the knowledge base plus what the user added. */
+  private allergens(): AllergenDef[] {
+    return this.customAllergens.length > 0 ? ALLERGENS.concat(this.customAllergens) : ALLERGENS
+  }
+
+  /** Something not on the list ("mango"): one alias each for the word and its plural; matched like any other allergen. */
+  private addCustomAllergen(phrase: string): void {
+    const word = phrase.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim()
+    if (word.length < 2) return
+    const known = ALLERGENS.find((a) => a.id === word || a.label.toLowerCase() === word || a.aliases.indexOf(word) >= 0)
+    if (known) {
+      // "I'm allergic to cashews" → the tree-nut toggle
+      this.profile.set(known.id, true)
+      this.profilePanel.setToggle(known.id, true)
+      print(`AllergyLens: "${word}" → ${known.id} on`)
+      this.updateMoodAvailability()
+      this.recheckActive()
+      return
+    }
+    const id = `custom:${word.replace(/ /g, "-")}`
+    if (!this.customAllergens.some((a) => a.id === id)) {
+      const label = word.charAt(0).toUpperCase() + word.slice(1)
+      const aliases = word.endsWith("s") ? [word, word.slice(0, -1)] : [word, word + "s", word + "es"]
+      this.customAllergens.push({id, label, group: "allergy", aliases})
+      print(`AllergyLens: added custom allergen "${label}" (${aliases.join(", ")})`)
+    }
+    this.profile.set(id, true)
+    this.profilePanel.setCustomLabels(this.customAllergens.filter((a) => this.profile.has(a.id)).map((a) => a.label))
+    this.recheckActive()
+  }
+
+  /**
+   * Mood chips that contradict the profile are switched off: a vegetarian or vegan gets no
+   * Chicken / Red meat / Seafood; no beef + no pork switches off Red meat; fish + shellfish
+   * switches off Seafood. A selected chip that goes off falls back to Everything.
+   */
+  private updateMoodAvailability(): void {
+    const veg = this.profile.has("meat") || this.profile.has("vegan")
+    const off: {[m: string]: boolean} = {
+      chicken: veg,
+      red_meat: veg || (this.profile.has("beef") && this.profile.has("pork")),
+      seafood: veg || (this.profile.has("fish") && this.profile.has("shellfish")),
+    }
+    for (const m of MOODS) this.profilePanel.setMoodEnabled(m.id, !off[m.id])
+    if (off[this.mood]) {
+      print(`AllergyLens: mood ${this.mood} contradicts the profile; back to everything`)
+      this.mood = "everything"
+      this.profilePanel.setMood("everything")
     }
   }
 
@@ -283,6 +350,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.audio?.playClick()
     this.profilePanel.getSceneObject().enabled = false
     this.profileButton.getSceneObject().enabled = !this.anyMarkerActive()
+    if (!this.anyMarkerActive()) this.voice?.stop()
     print(`AllergyLens: profile done [${this.profile.ids().join(", ")}]`)
     this.recheckActive()
   }
@@ -292,6 +360,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.closeDetail()
     this.profilePanel.getSceneObject().enabled = true
     this.profileButton.getSceneObject().enabled = false
+    this.voice?.start()
     print("AllergyLens: profile reopened")
   }
 
@@ -325,8 +394,22 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   // ── Voice ──────────────────────────────────────────────────────────────
-  /** A final transcript while a menu is in view: match it to a dish and act like a pinch. */
+  /**
+   * A final transcript. With the profile panel open: "I'm allergic to mango" / "no coriander"
+   * adds it to the profile. With a menu in view: match a dish name and act like a pinch.
+   */
   private onVoice(text: string): void {
+    if (this.profilePanel.getSceneObject().enabled) {
+      const item = parseAllergyPhrase(text)
+      if (item) {
+        print(`AllergyLens: voice "${text}" → avoid ${item}`)
+        this.audio?.playClick()
+        this.addCustomAllergen(item)
+      } else {
+        print(`AllergyLens: voice "${text}" — say "I'm allergic to …" or "no …" to add something`)
+      }
+      return
+    }
     const overlay = this.overlays.find((o) => o.isActive)
     const restaurant = overlay ? getRestaurant(overlay.restaurantId) : undefined
     if (!overlay || !restaurant) return
@@ -378,7 +461,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const overlay = this.products.find((p) => p.barcode === barcode)
     const product = getProduct(barcode)
     if (!overlay || !product) return
-    const result = checkProduct(product, this.profile)
+    const result = checkProduct(product, this.profile, this.allergens())
     this.productResults.set(barcode, result)
     const level = result.verdict === "contains" ? "avoid" : result.verdict === "unverified" ? "caution" : "good"
     const name = product.brand && product.name.toLowerCase().indexOf(product.brand.toLowerCase()) < 0 ? `${product.brand} ${product.name}` : product.name
@@ -412,7 +495,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
     const restaurant = getRestaurant(restaurantId)
     if (!overlay || !restaurant) return
-    const results = checkMenu(restaurant.dishes, this.profile)
+    const results = checkMenu(restaurant.dishes, this.profile, this.allergens())
     this.results.set(restaurantId, results)
 
     // Highlight rules: Everything → light marks on every line; a category → only that
@@ -434,7 +517,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     overlay.setMarks(marks, everything ? null : moodLabel(this.mood))
 
-    const badge = rateRestaurant(restaurant, this.profile)
+    const badge = rateRestaurant(restaurant, this.profile, this.allergens())
     const stars = restaurant.rating ? ` · ★${restaurant.rating.stars.toFixed(1)}` : ""
     const complaints = restaurant.rating?.allergyComplaints ?? 0
     const reviewsLong = complaints > 0 ? ` · ${complaints} review${complaints === 1 ? "" : "s"} mention${complaints === 1 ? "s" : ""} allergies` : ""

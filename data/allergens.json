@@ -200,7 +200,7 @@
     },
     {
       "id": "sesame",
-      "label": "Sesame",
+      "label": "Sesame / tahini",
       "group": "allergy",
       "aliases": [
         "sesame",
@@ -210,7 +210,8 @@
         "halva",
         "halvah",
         "benne"
-      ]
+      ],
+      "hint": "sesame seeds, tahini, hummus, halva"
     },
     {
       "id": "beef",
@@ -227,8 +228,14 @@
         "veal",
         "beef gelatin",
         "beef tallow",
-        "boerewors"
-      ]
+        "boerewors",
+        "gelatin",
+        "gelatine",
+        "marshmallow",
+        "marshmallows",
+        "gummy"
+      ],
+      "hint": "also gelatin and gummies, which can be beef"
     },
     {
       "id": "pork",
@@ -248,20 +255,14 @@
         "pork belly",
         "pork gelatin",
         "char siu",
-        "boerewors"
-      ]
-    },
-    {
-      "id": "gelatin",
-      "label": "No gelatin",
-      "group": "religious",
-      "aliases": [
+        "boerewors",
         "gelatin",
         "gelatine",
         "marshmallow",
         "marshmallows",
         "gummy"
-      ]
+      ],
+      "hint": "bacon, ham, lard, sausage; also gelatin and gummies"
     },
     {
       "id": "alcohol",
@@ -281,55 +282,13 @@
         "bourbon",
         "tequila",
         "vermouth"
-      ]
-    },
-    {
-      "id": "trans_fat",
-      "label": "Avoid trans fat",
-      "group": "diet",
-      "aliases": [
-        "trans fat",
-        "hydrogenated",
-        "partially hydrogenated",
-        "shortening",
-        "margarine",
-        "deep-fried",
-        "deep fried"
-      ]
-    },
-    {
-      "id": "high_sugar",
-      "label": "Avoid high sugar",
-      "group": "diet",
-      "aliases": [
-        "sugar",
-        "syrup",
-        "corn syrup",
-        "honey",
-        "caramel",
-        "icing",
-        "frosting",
-        "glaze",
-        "sweetened",
-        "condensed milk",
-        "candied"
-      ]
-    },
-    {
-      "id": "chicken",
-      "label": "No chicken",
-      "group": "preference",
-      "aliases": [
-        "chicken",
-        "chicken broth",
-        "chicken stock",
-        "poultry"
-      ]
+      ],
+      "hint": "includes wine, beer and liqueur used in cooking"
     },
     {
       "id": "meat",
       "label": "Vegetarian",
-      "group": "preference",
+      "group": "diet",
       "aliases": [
         "beef",
         "pork",
@@ -353,7 +312,62 @@
         "anchovy",
         "fish sauce",
         "oyster sauce"
+      ],
+      "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine"
+    },
+    {
+      "id": "vegan",
+      "label": "Vegan",
+      "group": "diet",
+      "hint": "vegetarian plus no milk, eggs or honey",
+      "implies": [
+        "meat",
+        "milk",
+        "egg"
+      ],
+      "aliases": [
+        "honey",
+        "beeswax",
+        "royal jelly",
+        "gelatin",
+        "lard",
+        "whey",
+        "casein"
       ]
+    },
+    {
+      "id": "trans_fat",
+      "label": "Avoid trans fat",
+      "group": "diet",
+      "aliases": [
+        "trans fat",
+        "hydrogenated",
+        "partially hydrogenated",
+        "shortening",
+        "margarine",
+        "deep-fried",
+        "deep fried"
+      ],
+      "hint": "hydrogenated oils, margarine, deep-fried"
+    },
+    {
+      "id": "high_sugar",
+      "label": "Avoid high sugar",
+      "group": "diet",
+      "aliases": [
+        "sugar",
+        "syrup",
+        "corn syrup",
+        "honey",
+        "caramel",
+        "icing",
+        "frosting",
+        "glaze",
+        "sweetened",
+        "condensed milk",
+        "candied"
+      ],
+      "hint": "sugar, syrup, honey, icing; products over 15 g per 100 g"
     }
   ]
 }

@@ -4,9 +4,11 @@
 
 AllergyLens is a see-through AR Lens for Snap SPECS, built for
 [Learn AR with SPECS](https://learn-specs.devpost.com/) on Devpost. It runs
-against *your* profile: allergies (peanut, tree nut, milk, egg, wheat, soy,
-fish, shellfish, sesame), religious rules (no beef, no pork, no gelatin, no
-alcohol) and fitness goals (trans fat, high sugar). Nothing is drawn over the
+against *your* profile: the nine major allergens (peanut, tree nut, milk, egg,
+wheat, soy, fish, shellfish, sesame), religious or cultural rules (no beef,
+no pork, no alcohol; gelatin counts as beef or pork), diet (vegetarian, vegan,
+trans fat, high sugar), and anything else you say: "I'm allergic to mango"
+adds it on the spot. Nothing is drawn over the
 menu except the line marks, one small badge chip for the restaurant, and the
 detail card you asked for.
 
@@ -18,7 +20,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 
 | Part | State |
 |---|---|
-| Profile panel (17 toggles + 6 mood chips) as a separate step before the menu | Working, on the real camera path |
+| Profile panel (16 toggles in Allergies / Religious-cultural / Diet + 6 mood chips) as a separate step before the menu; chips that contradict the profile are greyed out; custom allergens by voice | Working, on the real camera path; voice only on the glasses |
 | Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks on the printed lines, confirmed on the handheld Laurel video 4 Nov |
 | Three verdicts per dish: safe / contains / unverified, from the data | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |

@@ -8,6 +8,10 @@ export interface AllergenDef {
   label: string
   group: AllergenGroup
   aliases: string[]
+  /** one line shown under the toggle, e.g. what sesame hides in */
+  hint?: string
+  /** toggling this on also turns these ids on (vegan → vegetarian, milk, egg) */
+  implies?: string[]
 }
 
 /** Where a dish's ingredient list came from.
@@ -303,7 +307,7 @@ export const ALLERGENS: AllergenDef[] = [
   },
   {
     "id": "sesame",
-    "label": "Sesame",
+    "label": "Sesame / tahini",
     "group": "allergy",
     "aliases": [
       "sesame",
@@ -313,7 +317,8 @@ export const ALLERGENS: AllergenDef[] = [
       "halva",
       "halvah",
       "benne"
-    ]
+    ],
+    "hint": "sesame seeds, tahini, hummus, halva"
   },
   {
     "id": "beef",
@@ -330,8 +335,14 @@ export const ALLERGENS: AllergenDef[] = [
       "veal",
       "beef gelatin",
       "beef tallow",
-      "boerewors"
-    ]
+      "boerewors",
+      "gelatin",
+      "gelatine",
+      "marshmallow",
+      "marshmallows",
+      "gummy"
+    ],
+    "hint": "also gelatin and gummies, which can be beef"
   },
   {
     "id": "pork",
@@ -351,20 +362,14 @@ export const ALLERGENS: AllergenDef[] = [
       "pork belly",
       "pork gelatin",
       "char siu",
-      "boerewors"
-    ]
-  },
-  {
-    "id": "gelatin",
-    "label": "No gelatin",
-    "group": "religious",
-    "aliases": [
+      "boerewors",
       "gelatin",
       "gelatine",
       "marshmallow",
       "marshmallows",
       "gummy"
-    ]
+    ],
+    "hint": "bacon, ham, lard, sausage; also gelatin and gummies"
   },
   {
     "id": "alcohol",
@@ -384,55 +389,13 @@ export const ALLERGENS: AllergenDef[] = [
       "bourbon",
       "tequila",
       "vermouth"
-    ]
-  },
-  {
-    "id": "trans_fat",
-    "label": "Avoid trans fat",
-    "group": "diet",
-    "aliases": [
-      "trans fat",
-      "hydrogenated",
-      "partially hydrogenated",
-      "shortening",
-      "margarine",
-      "deep-fried",
-      "deep fried"
-    ]
-  },
-  {
-    "id": "high_sugar",
-    "label": "Avoid high sugar",
-    "group": "diet",
-    "aliases": [
-      "sugar",
-      "syrup",
-      "corn syrup",
-      "honey",
-      "caramel",
-      "icing",
-      "frosting",
-      "glaze",
-      "sweetened",
-      "condensed milk",
-      "candied"
-    ]
-  },
-  {
-    "id": "chicken",
-    "label": "No chicken",
-    "group": "preference",
-    "aliases": [
-      "chicken",
-      "chicken broth",
-      "chicken stock",
-      "poultry"
-    ]
+    ],
+    "hint": "includes wine, beer and liqueur used in cooking"
   },
   {
     "id": "meat",
     "label": "Vegetarian",
-    "group": "preference",
+    "group": "diet",
     "aliases": [
       "beef",
       "pork",
@@ -456,7 +419,62 @@ export const ALLERGENS: AllergenDef[] = [
       "anchovy",
       "fish sauce",
       "oyster sauce"
+    ],
+    "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine"
+  },
+  {
+    "id": "vegan",
+    "label": "Vegan",
+    "group": "diet",
+    "hint": "vegetarian plus no milk, eggs or honey",
+    "implies": [
+      "meat",
+      "milk",
+      "egg"
+    ],
+    "aliases": [
+      "honey",
+      "beeswax",
+      "royal jelly",
+      "gelatin",
+      "lard",
+      "whey",
+      "casein"
     ]
+  },
+  {
+    "id": "trans_fat",
+    "label": "Avoid trans fat",
+    "group": "diet",
+    "aliases": [
+      "trans fat",
+      "hydrogenated",
+      "partially hydrogenated",
+      "shortening",
+      "margarine",
+      "deep-fried",
+      "deep fried"
+    ],
+    "hint": "hydrogenated oils, margarine, deep-fried"
+  },
+  {
+    "id": "high_sugar",
+    "label": "Avoid high sugar",
+    "group": "diet",
+    "aliases": [
+      "sugar",
+      "syrup",
+      "corn syrup",
+      "honey",
+      "caramel",
+      "icing",
+      "frosting",
+      "glaze",
+      "sweetened",
+      "condensed milk",
+      "candied"
+    ],
+    "hint": "sugar, syrup, honey, icing; products over 15 g per 100 g"
   }
 ]
 

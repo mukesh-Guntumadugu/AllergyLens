@@ -59,7 +59,7 @@ export const GROUP_ORDER: AllergenGroup[] = ["allergy", "religious", "diet", "pr
 
 export const GROUP_LABELS: Record<AllergenGroup, string> = {
   allergy: "Allergies",
-  religious: "Religious",
+  religious: "Religious / cultural",
   diet: "Diet",
   preference: "Preferences",
 }

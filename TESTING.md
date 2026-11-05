@@ -46,7 +46,12 @@ right column show when the camera pans to that column.
   Done doesn't react, use the hands-free setting above.
 
 Valid profile ids: `peanut tree_nut milk egg wheat soy fish shellfish sesame
-beef pork gelatin alcohol trans_fat high_sugar chicken meat`.
+beef pork alcohol meat vegan trans_fat high_sugar` (`meat` = vegetarian; `vegan`
+also turns on `meat`, `milk` and `egg`). Any other word, e.g. `mango`, is added
+as a custom allergen, exactly as if you had said "I'm allergic to mango".
+Mood chips that contradict the profile are greyed out (vegetarian → no
+Chicken / Red meat / Seafood; no beef + no pork → no Red meat; fish +
+shellfish → no Seafood).
 Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
 
 ## 3. Pick a dish
@@ -58,7 +63,10 @@ Valid moods: `everything chicken red_meat seafood vegetarian dessert`.
   "Better pick: Alu Gobi". Click again to close.
 - **Voice:** turn on the microphone button in the Preview panel and say the
   dish name ("mixed naan"). If the preview mic gives no transcript, pinch is
-  the fallback; voice is meant for the glasses.
+  the fallback; voice is meant for the glasses. With the profile panel open,
+  "I'm allergic to mango" / "no coriander" / "I can't eat okra" adds that
+  food to the profile; it shows as "Also avoiding: Mango" under the
+  allergies. (Voice stays off in the preview by default: `voiceInPreview`.)
 
 ## 3b. Check the logic on the command line
 
