@@ -315,13 +315,14 @@ validates the shape, re-checks any menu in view, and keeps the bundled data
 if the server is unreachable.
 
 As deployed on 5 Nov: the GX10 (`mukesh@gx10-733b.local`, 10.233.204.96 on
-the lab network) serves a clone of `main` from `~/allergylens-serve`, port
-8787, started with `tools/serve_data.py` (pid in `~/logs/allergylens-data.pid`,
-log in `~/logs/`). The GX10 has no `node`, so the knowledge-base join runs on
-the Mac and the result is pushed over:
+the lab network) runs `allergylens-data` as a systemd service from a clone of
+`main` in `~/allergylens-serve` (port 8787; `systemctl status allergylens-data`,
+`journalctl -u allergylens-data -f`). On every (re)start it rebuilds the data
+with the scraper's lake (`data-lake` → `~/AllergyLens/data-lake`) and serves
+the result. To pick up new scraper output:
 
 ```bash
-bash tools/server/sync_lake.sh        # pull the lake's gold output, build with it, push menus.lens.json, restart, check
+bash tools/server/sync_lake.sh        # from the Mac: pulls the lake, restarts the service, checks it
 ```
 
 That serves 28 restaurants (the 6 seed ones plus 22 scraped Ohio menus),

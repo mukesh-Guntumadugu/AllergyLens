@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Refresh the live data on the GX10 from this Mac (the GX10 has no node, so the join runs here):
+# Refresh the live data on the GX10 from this Mac. The service rebuilds with the lake on restart (node is on the GX10);
+# the Mac-side build + copy below is kept as a fallback for a server without node:
 #   1. pull the scraper's finished output (data-lake/gold: lens/menus.json, dishes.json, page images)
 #   2. node tools/build-data.js --with-lake  -> data/menus.lens.json (seed + lake, knowledge base joined)
 #   3. copy that file to the serve clone on the GX10 and restart the server (pid file)
@@ -17,10 +18,9 @@ rsync -az -e "$SSH" --include='*/' --include='menu-*.*' --exclude='*' "$HOST:All
 node tools/build-data.js --with-lake
 scp -q -o BatchMode=yes data/menus.lens.json "$HOST:allergylens-serve/data/menus.lens.json"
 node tools/build-data.js >/dev/null            # restore the committed snapshot (no lake)
-$SSH "$HOST" 'mkdir -p ~/logs; if [ -f ~/logs/allergylens-data.pid ]; then kill "$(cat ~/logs/allergylens-data.pid)" 2>/dev/null || true; sleep 1; fi
-  cd ~/allergylens-serve && git pull -q origin main 2>/dev/null || true
-  (setsid nohup python3 -u tools/serve_data.py --host 0.0.0.0 --port 8787 >> ~/logs/allergylens-data.log 2>&1 < /dev/null & echo $! > ~/logs/allergylens-data.pid)
-  sleep 2; curl -fsS -m 3 http://localhost:8787/health; echo'
+# With node on the GX10 the systemd service rebuilds with the lake on every restart, so a restart is enough.
+$SSH "$HOST" 'cd ~/allergylens-serve && git pull -q origin main 2>/dev/null || true
+  sudo -n systemctl restart allergylens-data && sleep 3 && curl -fsS -m 3 http://localhost:8787/health; echo'
 IP=$($SSH "$HOST" "hostname -I | awk '{print \$1}'")
 echo "live: http://$IP:8787/menus.json"
 node tools/check.js --profile milk --url "http://$IP:8787/menus.json" | head -3

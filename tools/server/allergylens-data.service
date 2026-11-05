@@ -9,8 +9,10 @@ Wants=network-online.target
 Type=simple
 User=__USER__
 WorkingDirectory=__REPO__
-ExecStartPre=/usr/bin/env node tools/build-data.js
-ExecStart=/usr/bin/env python3 tools/serve_data.py --host 0.0.0.0 --port 8787 --with-lake
+# Build the joined data WITH the scraper's lake (data-lake -> ~/AllergyLens/data-lake), then put the
+# compiled snapshot back so the serve clone stays clean for `git pull`. The server reads data/menus.lens.json.
+ExecStartPre=/bin/bash -c 'node tools/build-data.js --with-lake && git checkout -q -- Assets/Data/AllergyData.ts'
+ExecStart=/usr/bin/env python3 -u tools/serve_data.py --host 0.0.0.0 --port 8787
 Restart=always
 RestartSec=3
 
