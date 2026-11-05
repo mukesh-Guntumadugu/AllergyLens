@@ -134,7 +134,7 @@ miss, and nothing below is allowed to turn an unknown dish green.
 | tier | source | cost | state |
 |---|---|---|---|
 | 0 | `Assets/Data/AllergyData.ts` compiled into the Lens (4 restaurants, 49 dishes, 17 allergens, 10 products) | zero, offline | built |
-| 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure | one ~30 KB GET per session | built |
+| 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure. `tools/serve_data.py` serves it from the GX10 (seed + data lake, ETag, CORS) | one ~10 KB GET per session | built |
 | 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
 | 3 | Backend cache on the GX10 by place: a restaurant the pipeline already processed answers from `data-lake/gold/` in under a second (`tools/scrape/DESIGN.md` §4); a miss queues acquire → process → research and answers amber meanwhile | one small GET | designed, backend scripts built |
 | 4 | Unknown dish *name* only: web retrieval with citations (the same `ingredients_rag.py` step), or a small model through Snap's **Remote Service Gateway** (OpenAI / Gemini with a Snap-issued token, no personal API key; a user's own key through `InternetModule` for a limited session) | ~150 tokens per dish, cached forever | designed |
@@ -261,6 +261,19 @@ TESTING.md                  manual test guide
    `defaultProfile` to `peanut,milk` and `defaultMood` to `everything` or
    `vegetarian`, refresh.
 5. Click a marked line (click = pinch) for the card.
+
+### Live data from the GX10
+
+```bash
+python3 tools/serve_data.py --port 8787 --with-lake     # on the GX10; /menus.json, /products.json, /health
+```
+
+Then select `AllergyLens` in Lens Studio and set `menusUrl` to
+`http://<gx10-ip>:8787/menus.json`. The Lens fetches it once at start,
+validates the shape, re-checks any menu in view, and keeps the bundled data
+if the server is unreachable. `--with-lake` merges every restaurant the
+scraper has finished (`data-lake/gold/lens/menus.json`) over the committed
+seed, so new menus reach the glasses without a rebuild.
 
 ## Roadmap
 
