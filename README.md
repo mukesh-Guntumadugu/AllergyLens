@@ -1,66 +1,261 @@
 # AllergyLens
 
-A SPECS AR Lens for people who can't eat everything on the menu.
+**Look at a menu through SPECS and the dishes you can't eat are underlined in red, the ones you can get a green dot. Pinch a line and a card tells you what's in it, whether the kitchen can leave it out, or what to order instead.**
 
-You sit down at a restaurant and look at the menu. The dishes light up against
-*your* profile — allergies (peanuts, milk, eggs, shellfish, gluten, soy),
-religious rules (no beef, no pork) and fitness goals (avoid trans fat, high
-sugar). Transparent light green means eat it; light red means it contains
-something you avoid. Pinch a red dish and a small card tells you which
-ingredient is the problem and whether you can ask the server to leave it out.
+AllergyLens is a see-through AR Lens for Snap SPECS, built for
+[Learn AR with SPECS](https://learn-specs.devpost.com/) on Devpost. It runs
+against *your* profile: allergies (peanut, tree nut, milk, egg, wheat, soy,
+fish, shellfish, sesame), religious rules (no beef, no pork, no gelatin, no
+alcohol) and fitness goals (trans fat, high sugar). Nothing is drawn over the
+menu except the line marks, one small badge chip for the restaurant, and the
+detail card you asked for.
 
-Built for [Learn AR with SPECS](https://learn-specs.devpost.com/) on Devpost
-Learn. Planned with the Devpost Learn skill pack (see `devpost/design-brief.md`)
-and built by CLAD, Snap's coding agents, in Lens Studio 5.23.2 through the
-Lens Studio MCP.
+Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 
-## What's in the preview
+---
 
-- **Profile panel** at start with big pinch toggles, grouped into Allergies,
-  Religious and Fitness. Pinch **Done** to hide it.
-- **Menu card** (35 × 25 cm) standing on a virtual table about 60 cm in front
-  of you, with six dishes.
-- **Scan menu** button on the table. Pinch it and each dish is highlighted
-  directly on the menu: green = safe, red = conflicts with your profile.
-- **Dish detail**: pinch a red dish for a 12 cm card next to it
-  ("Contains peanuts. Can be left out: ask your server." /
-  "Can't be removed (peanut butter)."). Pinch again or X to close.
-- **Profile** button reopens the panel; rescanning updates the highlights.
+## Status (4 Nov 2026)
 
-Everything runs in Lens Studio's Interactive Preview with the mouse
-(click = pinch, WASD + Q/E to walk, right-drag to look).
+| Part | State |
+|---|---|
+| Profile panel (17 toggles + 6 mood chips) as a separate step before the menu | Working, on the real camera path |
+| Real printed menu recognised by the camera (image marker, 29.7 cm wide page) | Working — marks land on the printed lines |
+| Three verdicts per dish: safe / contains / unverified, from the data | Working |
+| Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
+| Restaurant badge chip (safe count, stars, allergy reviews) | Working |
+| Mood filter ("Vegetarian", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
+| Voice: say the dish name instead of pinching (SPECS ASR) | Built; only testable on the glasses |
+| Grocery products (Open Food Facts: ingredients, declared allergens, nutrition) | Data pipeline done, 10 sample products; Lens UI not built yet |
+| Live fallback when a dish is not in the database (web / LLM) | Designed below; not built yet |
+| LEAF integration tests | 9 scenarios, 9/9 pass |
 
-## The stand-in
+---
 
-Lens Studio's preview has no camera feed, so the Lens can't read a real menu
-there. The menu is placed in the room and each dish's ingredients are wired
-in by hand (`Assets/Scripts/AllergyLensMenuData.ts`). The real-device version
-would read the menu with the camera (image marker tracking for printed menus,
-or a vision model through Snap's Remote Service Gateway) and feed the same
-checker. Everything after recognition — the profile, the check, the
-highlights, the detail card — is built for real.
+## What the demo shows (3 minutes)
 
-## Layout
+The shot list with timings and voice-over is in
+[devpost/demo-script.md](devpost/demo-script.md). The flow:
+
+1. **Profile.** A panel floats in front of you. Pinch *Peanut* and *Milk*,
+   pick the mood *Vegetarian*, pinch *Done*. The panel disappears. Nothing is
+   in the world yet.
+2. **Look at the menu.** The camera recognises the printed Star of India menu.
+   Within a second the printed lines get marks: thin red underline + red dot
+   on *Paneer Nan* and *Kheer* (milk), green dot on *Alu Gobi*, amber dot on
+   dishes whose ingredients the restaurant doesn't publish. One badge chip
+   sits in the page's top margin: *Star of India · 14 of 31 safe · ★4.5 ·
+   1 allergy review*.
+3. **Pinch a red line.** A card opens beside it. *Mutter Paneer:* "Paneer is
+   about 35% of this dish — leaving it out guts the dish; you'd pay the same
+   for less. Ask for a swap: tofu." *Maharani Dal:* "Contains cream (about
+   10% of the dish). Ask the chef to leave them out." Pinch again to close.
+4. **Mood.** With *Vegetarian* on, only vegetarian lines are marked and the
+   safe ones get a green star ("order this"). Lines outside the glasses'
+   display band get a small *← Vegetarian* arrow at the edge.
+5. **Look away.** The marks fade out; the small Profile button comes back.
+6. **(Product segment)** Same profile, pick up a jar of peanut butter: the
+   label gets the same red underline + card from the Open Food Facts data.
+   *(Not built yet; see Roadmap.)*
+
+---
+
+## How it works
+
+```
+ OFFLINE (once per restaurant, on the ASUS GX10)            ON THE GLASSES (every time you look)
+ ─────────────────────────────────────────────────           ──────────────────────────────────────────────
+ menu photo ──► OCR (tesseract + qwen2.5-vl) ──┐             camera ──► MarkerTrackingComponent
+                dish lines WITH positions      │                          (Assets/Markers/MenuMarker.imgmarker)
+                                               ▼                                   │ page pose
+ dish name ──► enrichment (llama3.1 local) ──► data/menus.json ──┐                 ▼
+                ingredients, % shares,          data/dishes.json  │   AllergyLensMenuOverlayUI
+                substitutes, category           data/allergens.json ├─► build-data.js ─► Assets/Data/AllergyData.ts
+                                                data/products.json │        (compiled into the Lens)
+ Google Places API ──► stars, allergy reviews ──┘                 │                 │
+ Open Food Facts API ──► packaged products ───────────────────────┘                 ▼
+                                                                   AllergyLensChecker  (profile × ingredients → verdict)
+                                                                                    │
+                                                                                    ▼
+                                                                   marks on the printed lines · badge · detail card
+```
+
+**Recognition.** The printed menu is an image-marker. The OCR step stores each
+dish's box as fractions of the page (`layout: {x, y, w, h}`); the Lens knows
+the printed width (29.7 cm) so every mark is placed in centimetres on the
+page plane. No frames leave the device and nothing is sent anywhere to draw
+the marks.
+
+**The check** (`Assets/Scripts/AllergyLensChecker.ts`) is pure string
+matching: an ingredient matches an allergen if it contains any alias from
+`data/allergens.json` ("ghee", "whey" and "casein" all count as milk). It runs
+in microseconds, so the profile can change while the menu is in view and the
+marks update instantly.
+
+| verdict | when | drawn as |
+|---|---|---|
+| safe | ingredients known, nothing matched | green dot (green star in a mood category) |
+| contains | ≥ 1 ingredient matches the profile | thin red underline + red dot |
+| unverified | restaurant publishes nothing and the dish is not in the knowledge base | amber dot. **Unknown never becomes safe.** |
+
+Ingredients come from the restaurant when published, otherwise from the dish
+knowledge base (`data/dishes.json`: what a pad thai or butter chicken is
+*typically* made of). Matches from a typical recipe are always worded
+"typically contains … confirm with the restaurant".
+
+**The replacement rule.** Each known ingredient has a share of the dish. Under
+10 %: "ask the chef to leave it out". Over 10 %: removing it guts the dish and
+you'd pay the same for less, so the card offers the knowledge-base substitute
+("tofu for paneer") or the nearest safe dish on the same menu.
+
+**Modules** (`Assets/Scripts/`, all TypeScript, SIK 0.18 + UI Kit):
+
+| file | owns |
+|---|---|
+| `AllergyLensMain.ts` | the flow: profile → recognition → check → detail; voice; optional remote data |
+| `AllergyLensMenuOverlayUI.ts` | one per menu page: marks, badge chip, mood arrow, simulated page for the preview |
+| `AllergyLensChecker.ts` | verdicts, badge rule, replacement wording (pure, no scene access) |
+| `AllergyLensProfileUI.ts` / `DishDetailUI.ts` / `ProfileButtonUI.ts` | the three UI surfaces |
+| `AllergyLensVoice.ts` | fuzzy dish-name match + SPECS ASR session |
+| `AllergyLensMenuData.ts` | typed access to the generated data, remote `menus.json` validation |
+| `Assets/LeafTests/` | 9 LEAF scenarios driving the real Lens in the preview |
+
+---
+
+## When the dish is not in the database
+
+The bundled data is tier 0 and always wins. Everything below only runs on a
+miss, and nothing below is allowed to turn an unknown dish green.
+
+| tier | source | cost | state |
+|---|---|---|---|
+| 0 | `Assets/Data/AllergyData.ts` compiled into the Lens (4 restaurants, 49 dishes, 17 allergens, 10 products) | zero, offline | built |
+| 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure | one ~30 KB GET per session | built |
+| 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
+| 3 | LLM for an unknown dish *name* through Snap's **Remote Service Gateway** (OpenAI / Gemini with a Snap-issued token, no personal API key) or, for a limited session, the user's own key through `InternetModule` | ~150 tokens per dish, cached | designed |
+| 4 | Vision model for a menu with no marker: one down-scaled JPEG of the page, once, result saved as a `menus.json` entry | one image call per *page*, never per frame | designed |
+
+Guardrails that stay the same at every tier: results from a model are stored
+with `source.type: "llm"` and worded as *typical*; the amber "ask the
+restaurant" state is the default whenever a tier times out (4 s) or disagrees.
+
+---
+
+## Keeping it fast and cheap
+
+1. **The hot path is offline.** Marker tracking, the check and the drawing
+   never touch the network. A look at a known menu costs nothing.
+2. **Expensive work happens once per restaurant, not once per user.** OCR and
+   ingredient enrichment run on the GX10 with local models (tesseract,
+   qwen2.5-vl 7B, llama3.1 8B via Ollama): no API bill, and the result is a
+   JSON file every user gets for free.
+3. **Cache by menu, not by frame.** A page is recognised by its marker; its
+   data is keyed by restaurant id. A model is only ever asked about a dish
+   once; the answer goes into `menus.json`.
+4. **Small prompts, small models.** The LLM tier sends the dish name and
+   cuisine, not the photo, and asks for a fixed JSON (ingredients, shares,
+   substitutes). All unknown dishes on a page go in one batched call. A
+   Flash / mini class model is enough for "what is usually in a kheer".
+5. **One image, not a stream.** For an unmarked menu the vision tier gets a
+   single 512-px JPEG, after a stillness check, and the result is cached as a
+   marker-less page entry.
+6. **Budget caps built in.** Per-session call cap, 4 s timeout, and the Lens
+   degrades to amber instead of waiting. No spinner over the menu, ever.
+7. **Tiny payloads.** A restaurant entry is ~30 KB of JSON; the whole bundled
+   dataset is under 200 KB. Marker images are capped at 2048 px.
+8. **Free, open data where it exists.** Open Food Facts for products (ODbL,
+   attribution kept in `data/products.json`); the official Google Places API
+   for ratings instead of scraping.
+
+---
+
+## Data pipelines
+
+Two pipelines, both plain Python + one Node script, documented in
+[tools/scrape/README.md](tools/scrape/README.md) and
+[data/README.md](data/README.md).
+
+```
+Pipeline 1  restaurants   photo/web menu → dish lines with positions → ingredients, shares, substitutes → rating
+Pipeline 2  groceries     barcode / search / category → ingredients, allergen tags, nutrition, fitness flags
+```
+
+```bash
+node tools/build-data.js      # validates data/*.json and regenerates Assets/Data/AllergyData.ts
+```
+
+Current contents: 4 restaurants (Star of India is the real one: a printed menu,
+31 dish lines with positions, every line with ingredients and a category),
+the dish knowledge base, 17 allergens with aliases, 10 Open Food Facts
+products with declared allergens and fitness flags (sugar ≥ 15 g, trans fat
+≥ 0.5 g, sodium ≥ 480 mg per 100 g).
+
+---
+
+## Testing
+
+Three ways to run it, from most to least real:
+
+| mode | what you need | what it proves |
+|---|---|---|
+| **SPECS** | the glasses, the printed menu (A4/Letter) | the real thing incl. pinch, voice, see-through display band |
+| **Lens Studio Preview → Multimedia** with `data/menus/star-of-india/menu-1-pan.mp4` (or the webcam and a printout), device **SPECS 27** | Lens Studio 5.23.2 | real recognition path: marker lock, marks on the printed lines, badge |
+| **Interactive Preview** with `debugSimulateMarker` on | Lens Studio only | profile → marks → pinch → card logic, with the menu image drawn on a simulated page 60 cm ahead |
+
+The step-by-step manual guide is [TESTING.md](TESTING.md).
+
+Automated: 9 LEAF scenarios (`Assets/LeafTests/`) run inside the live Lens:
+profile panel and Done, peanut+milk marks and badge on the Star of India
+page, the replacement rule, detail card on pinch, marker lost, vegetarian and
+chicken moods incl. the edge arrow, light marks in "everything" mode, and the
+voice matcher. Turn on `autoRun` on the `LeafRunner` object, refresh, and
+read `[LEAF SUMMARY] 9/9 passed` in the Logger. Both debug flags are saved
+**off** in the committed scene.
+
+Toolchain: Lens Studio 5.23.2, Spectacles Interaction Kit 0.18, Spectacles UI
+Kit, Leaf; built with CLAD (Snap's coding agents) through the Lens Studio MCP;
+scrapers run on an ASUS GX10 with Ollama.
+
+---
+
+## Repo layout
 
 ```
 AllergyLens.esproj          Lens Studio project
-Assets/Scripts/             AllergyLens*.ts — main flow, menu data, checker, UI modules, audio
-Assets/LeafTests/           LEAF scenarios, one per done criterion
-Assets/GeneratedMeshes/     Table (SPECS text-to-3D)
-Assets/GeneratedSFX/        Click / scan / detail cues
-Assets/Icons/               Material icons used in the UI
-devpost/design-brief.md     Planning doc written by the plan-lens skill
-Packages/                   SpectaclesInteractionKit, SpectaclesUIKit, Leaf
+Assets/Scripts/             AllergyLens*.ts — flow, overlay, checker, UI, voice, audio
+Assets/LeafTests/           LEAF scenarios + the test interactor
+Assets/Data/AllergyData.ts  generated by tools/build-data.js — do not edit by hand
+Assets/Markers/             MenuMarker.imgmarker + menu-1.png (the printed Star of India menu)
+Assets/Icons, Materials, GeneratedSFX
+data/                       allergens.json, dishes.json, menus.json, products.json, menus/<restaurant>/
+tools/build-data.js         validate + join + generate
+tools/scrape/               the two pipelines (OCR, enrichment, ratings, Open Food Facts)
+devpost/                    design brief, demo script
+TESTING.md                  manual test guide
 ```
-
-## Tests
-
-Six LEAF scenarios cover the five done criteria in the brief plus a
-reachability check. Enable `autoRun` on the `LeafRunner` object and refresh
-the preview; results print to the Logger. Last run: 6/6 passed.
 
 ## Running it
 
-1. Open `AllergyLens.esproj` in Lens Studio 5.22 or later (built with 5.23.2).
-2. Switch the Preview panel to **Interactive Preview**.
-3. Toggle a few items on the profile panel, pinch **Done**, then **Scan menu**.
+1. Open `AllergyLens.esproj` in Lens Studio 5.23.2.
+2. Preview panel → source dropdown → **Multimedia → Open file…** →
+   `data/menus/star-of-india/menu-1-pan.mp4`; device **SPECS 27**.
+3. Refresh. The marker locks within a second or two; refresh again if not.
+4. Hands-free profile for recording: select `AllergyLens`, set
+   `defaultProfile` to `peanut,milk` and `defaultMood` to `everything` or
+   `vegetarian`, refresh.
+5. Click a marked line (click = pinch) for the card.
+
+## Roadmap
+
+- Product segment in the Lens: barcode or label marker → the same card from
+  `PRODUCTS` (data is already compiled in).
+- Tier 3 LLM fallback through the Remote Service Gateway, batched per page,
+  cached into `menus.json`.
+- More restaurants through Pipeline 1 (one photo + 10 minutes on the GX10 each).
+- Regional roll-ups over `data/` (most common allergens per cuisine).
+
+## Data attribution
+
+Product data from [Open Food Facts](https://openfoodfacts.org) (ODbL).
+Restaurant data from the restaurants' own printed menus and the Google Places
+API. Dish knowledge base from recipe references, each entry carries its
+source and collection date.
