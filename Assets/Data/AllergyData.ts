@@ -14,6 +14,8 @@ export interface AllergenDef {
   implies?: string[]
   /** phrases that contain an alias but are NOT this allergen ("coconut milk", "almond flour"); stripped before matching */
   exclude?: string[]
+  /** how people say it to the panel ("transfer" for trans fat, "pure veg"); voice only, never used on ingredients */
+  spoken?: string[]
 }
 
 /** Where a dish's ingredient list came from.
@@ -128,6 +130,10 @@ export const ALLERGENS: AllergenDef[] = [
     "exclude": [
       "peanut-free",
       "peanut free"
+    ],
+    "spoken": [
+      "peanut allergy",
+      "ground nuts"
     ]
   },
   {
@@ -161,6 +167,11 @@ export const ALLERGENS: AllergenDef[] = [
       "water chestnut",
       "water chestnuts",
       "butternut"
+    ],
+    "spoken": [
+      "nuts",
+      "nut allergy",
+      "tree nut"
     ]
   },
   {
@@ -229,6 +240,12 @@ export const ALLERGENS: AllergenDef[] = [
       "vegan cheese",
       "cashew cheese",
       "nutritional yeast"
+    ],
+    "spoken": [
+      "lactose",
+      "lactose intolerant",
+      "dairy products",
+      "dairy free"
     ]
   },
   {
@@ -254,6 +271,9 @@ export const ALLERGENS: AllergenDef[] = [
       "egg free",
       "vegan mayo",
       "vegan mayonnaise"
+    ],
+    "spoken": [
+      "egg allergy"
     ]
   },
   {
@@ -313,6 +333,13 @@ export const ALLERGENS: AllergenDef[] = [
       "corn tortillas",
       "tapioca flour",
       "potato flour"
+    ],
+    "spoken": [
+      "gluten free",
+      "gluten intolerant",
+      "celiac",
+      "coeliac",
+      "bread"
     ]
   },
   {
@@ -385,6 +412,11 @@ export const ALLERGENS: AllergenDef[] = [
       "calamari",
       "octopus",
       "shellfish"
+    ],
+    "spoken": [
+      "seafood allergy",
+      "prawns",
+      "shrimps"
     ]
   },
   {
@@ -424,7 +456,11 @@ export const ALLERGENS: AllergenDef[] = [
       "marshmallows",
       "gummy"
     ],
-    "hint": "also gelatin and gummies, which can be beef"
+    "hint": "also gelatin and gummies, which can be beef",
+    "spoken": [
+      "cow",
+      "no cow"
+    ]
   },
   {
     "id": "pork",
@@ -451,7 +487,12 @@ export const ALLERGENS: AllergenDef[] = [
       "marshmallows",
       "gummy"
     ],
-    "hint": "bacon, ham, lard, sausage; also gelatin and gummies"
+    "hint": "bacon, ham, lard, sausage; also gelatin and gummies",
+    "spoken": [
+      "pig",
+      "no pig",
+      "swine"
+    ]
   },
   {
     "id": "alcohol",
@@ -472,7 +513,14 @@ export const ALLERGENS: AllergenDef[] = [
       "tequila",
       "vermouth"
     ],
-    "hint": "includes wine, beer and liqueur used in cooking"
+    "hint": "includes wine, beer and liqueur used in cooking",
+    "spoken": [
+      "no drinks",
+      "no alcohol please",
+      "booze",
+      "liquor",
+      "wine"
+    ]
   },
   {
     "id": "meat",
@@ -502,7 +550,15 @@ export const ALLERGENS: AllergenDef[] = [
       "fish sauce",
       "oyster sauce"
     ],
-    "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine"
+    "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine",
+    "spoken": [
+      "veg",
+      "pure veg",
+      "veggie",
+      "no meat",
+      "no non veg",
+      "non veg"
+    ]
   },
   {
     "id": "vegan",
@@ -522,6 +578,11 @@ export const ALLERGENS: AllergenDef[] = [
       "lard",
       "whey",
       "casein"
+    ],
+    "spoken": [
+      "plant based",
+      "plant-based",
+      "no animal products"
     ]
   },
   {
@@ -537,7 +598,16 @@ export const ALLERGENS: AllergenDef[] = [
       "deep-fried",
       "deep fried"
     ],
-    "hint": "hydrogenated oils, margarine, deep-fried"
+    "hint": "hydrogenated oils, margarine, deep-fried",
+    "spoken": [
+      "transfer",
+      "transfers",
+      "trans fats",
+      "transfat",
+      "transfats",
+      "fried food",
+      "fried foods"
+    ]
   },
   {
     "id": "high_sugar",
@@ -562,6 +632,14 @@ export const ALLERGENS: AllergenDef[] = [
       "sugar free",
       "no added sugar",
       "unsweetened"
+    ],
+    "spoken": [
+      "sugary",
+      "sweet things",
+      "sweets",
+      "too much sugar",
+      "diabetic",
+      "diabetes"
     ]
   }
 ]

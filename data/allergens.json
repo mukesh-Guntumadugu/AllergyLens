@@ -19,6 +19,10 @@
       "exclude": [
         "peanut-free",
         "peanut free"
+      ],
+      "spoken": [
+        "peanut allergy",
+        "ground nuts"
       ]
     },
     {
@@ -52,6 +56,11 @@
         "water chestnut",
         "water chestnuts",
         "butternut"
+      ],
+      "spoken": [
+        "nuts",
+        "nut allergy",
+        "tree nut"
       ]
     },
     {
@@ -120,6 +129,12 @@
         "vegan cheese",
         "cashew cheese",
         "nutritional yeast"
+      ],
+      "spoken": [
+        "lactose",
+        "lactose intolerant",
+        "dairy products",
+        "dairy free"
       ]
     },
     {
@@ -145,6 +160,9 @@
         "egg free",
         "vegan mayo",
         "vegan mayonnaise"
+      ],
+      "spoken": [
+        "egg allergy"
       ]
     },
     {
@@ -204,6 +222,13 @@
         "corn tortillas",
         "tapioca flour",
         "potato flour"
+      ],
+      "spoken": [
+        "gluten free",
+        "gluten intolerant",
+        "celiac",
+        "coeliac",
+        "bread"
       ]
     },
     {
@@ -276,6 +301,11 @@
         "calamari",
         "octopus",
         "shellfish"
+      ],
+      "spoken": [
+        "seafood allergy",
+        "prawns",
+        "shrimps"
       ]
     },
     {
@@ -315,7 +345,11 @@
         "marshmallows",
         "gummy"
       ],
-      "hint": "also gelatin and gummies, which can be beef"
+      "hint": "also gelatin and gummies, which can be beef",
+      "spoken": [
+        "cow",
+        "no cow"
+      ]
     },
     {
       "id": "pork",
@@ -342,7 +376,12 @@
         "marshmallows",
         "gummy"
       ],
-      "hint": "bacon, ham, lard, sausage; also gelatin and gummies"
+      "hint": "bacon, ham, lard, sausage; also gelatin and gummies",
+      "spoken": [
+        "pig",
+        "no pig",
+        "swine"
+      ]
     },
     {
       "id": "alcohol",
@@ -363,7 +402,14 @@
         "tequila",
         "vermouth"
       ],
-      "hint": "includes wine, beer and liqueur used in cooking"
+      "hint": "includes wine, beer and liqueur used in cooking",
+      "spoken": [
+        "no drinks",
+        "no alcohol please",
+        "booze",
+        "liquor",
+        "wine"
+      ]
     },
     {
       "id": "meat",
@@ -393,7 +439,15 @@
         "fish sauce",
         "oyster sauce"
       ],
-      "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine"
+      "hint": "no meat, poultry, fish or shellfish; eggs and dairy are fine",
+      "spoken": [
+        "veg",
+        "pure veg",
+        "veggie",
+        "no meat",
+        "no non veg",
+        "non veg"
+      ]
     },
     {
       "id": "vegan",
@@ -413,6 +467,11 @@
         "lard",
         "whey",
         "casein"
+      ],
+      "spoken": [
+        "plant based",
+        "plant-based",
+        "no animal products"
       ]
     },
     {
@@ -428,7 +487,16 @@
         "deep-fried",
         "deep fried"
       ],
-      "hint": "hydrogenated oils, margarine, deep-fried"
+      "hint": "hydrogenated oils, margarine, deep-fried",
+      "spoken": [
+        "transfer",
+        "transfers",
+        "trans fats",
+        "transfat",
+        "transfats",
+        "fried food",
+        "fried foods"
+      ]
     },
     {
       "id": "high_sugar",
@@ -453,6 +521,14 @@
         "sugar free",
         "no added sugar",
         "unsweetened"
+      ],
+      "spoken": [
+        "sugary",
+        "sweet things",
+        "sweets",
+        "too much sugar",
+        "diabetic",
+        "diabetes"
       ]
     }
   ]

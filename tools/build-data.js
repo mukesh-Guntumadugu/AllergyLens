@@ -210,6 +210,8 @@ export interface AllergenDef {
   implies?: string[]
   /** phrases that contain an alias but are NOT this allergen ("coconut milk", "almond flour"); stripped before matching */
   exclude?: string[]
+  /** how people say it to the panel ("transfer" for trans fat, "pure veg"); voice only, never used on ingredients */
+  spoken?: string[]
 }
 
 /** Where a dish's ingredient list came from.

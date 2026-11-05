@@ -67,6 +67,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private moodButtons = new Map<Mood, Button>()
   private moodLabels = new Map<Mood, Text>()
   private customText: Text | null = null
+  private heardText: Text | null = null
   private _mood: Mood = "everything"
   private applyingMood = false
   private _onToggle = new Event<ProfileToggleEvent>()
@@ -102,8 +103,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     // Height from the data: header + per group (label + grid) + Done + gaps.
     const groups = GROUP_ORDER.map((g) => ({group: g, items: allergensInGroup(g)})).filter((g) => g.items.length > 0)
     const moodRows = Math.ceil(MOODS.length / MOOD_COLS)
-    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H + GROUP_LABEL_H // + the "also" line
-    let itemCount = 2 + 1 + moodRows + 1
+    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H + GROUP_LABEL_H * 2 // + "heard" + "also" lines
+    let itemCount = 2 + 1 + moodRows + 2
     for (const g of groups) {
       const rows = Math.ceil(g.items.length / COLS)
       H += GROUP_LABEL_H + rows * TOGGLE_H + (rows - 1) * GAP
@@ -118,6 +119,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const content = UI.obj(this.sceneObject, "Content", new vec3(0, 0, UI.CONTENT_Z))
     const col = UI.flexColumn(content, W, H, {gap: GAP, padX: PAD, padY: PAD, justify: FlexJustify.Start, align: FlexAlign.Stretch})
     UI.addColumnText(col, this.title, "Subheadline", d, HEADER_H)
+    // What the microphone heard and what happened — visible proof that voice works.
+    this.heardText = UI.addColumnText(col, "", "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Center, new vec4(0.6, 0.85, 1, 1))
 
     for (const g of groups) {
       UI.addColumnText(col, GROUP_LABELS[g.group], "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
@@ -197,6 +200,11 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     if (btn) btn.inactive = !enabled
     const label = this.moodLabels.get(mood)
     if (label) label.textFill.color = new vec4(1, 1, 1, enabled ? 1 : 0.3)
+  }
+
+  /** Show the last thing the microphone heard and what the Lens did with it. */
+  setHeard(text: string): void {
+    if (this.heardText) this.heardText.text = text
   }
 
   /** Show what was added by voice, e.g. ["Mango", "Coriander"]. */
