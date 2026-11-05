@@ -79,7 +79,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   voiceEnabled: boolean = true
 
   @input
-  @hint("Start the ASR session inside the Lens Studio preview too. Off by default: starting ASR in the preview crashed Lens Studio 5.23.2 during testing; on the device it runs normally.")
+  @hint("DO NOT TICK in Lens Studio 5.23.2: starting the ASR session inside the preview crashes the whole app (reproduced twice). Voice is for the glasses, where it runs normally.")
   voiceInPreview: boolean = false
 
   @input
