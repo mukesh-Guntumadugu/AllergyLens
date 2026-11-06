@@ -808,19 +808,37 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   // ── Optional remote data ───────────────────────────────────────────────
-  private async loadRemoteMenus(url: string): Promise<void> {
-    try {
-      const internet = require("LensStudio:InternetModule") as InternetModule
-      const response = await internet.fetch(url, {method: "GET"})
-      if (response.status !== 200) throw new Error(`HTTP ${response.status}`)
-      const json = await response.json()
-      const restaurants: RestaurantDef[] | null = validateMenus(json)
-      if (!restaurants) throw new Error("menus.json shape not recognised")
-      setRestaurants(restaurants)
-      this.recheckActive()
-      print(`AllergyLens: loaded ${restaurants.length} restaurants from ${url}`)
-    } catch (e) {
-      print(`AllergyLens: remote menus unavailable (${e}); using bundled data`)
-    }
+  // Retried: right after Lens start the network can answer with a transport
+  // status (seen as "HTTP 3" in the editor) before it is ready, and the
+  // bundled data would then be used for the whole session.
+  private static readonly REMOTE_ATTEMPTS = 4
+  private static readonly REMOTE_RETRY_S = 2.0
+
+  private loadRemoteMenus(url: string, attempt: number = 1): void {
+    this.fetchRemoteMenus(url).then(
+      (count) => print(`AllergyLens: loaded ${count} restaurants from ${url}`),
+      (e) => {
+        if (attempt < AllergyLensMain.REMOTE_ATTEMPTS) {
+          print(`AllergyLens: remote menus attempt ${attempt} failed (${e}); retrying`)
+          const t = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+          t.bind(() => this.loadRemoteMenus(url, attempt + 1))
+          t.reset(AllergyLensMain.REMOTE_RETRY_S)
+        } else {
+          print(`AllergyLens: remote menus unavailable (${e}); using bundled data`)
+        }
+      },
+    )
+  }
+
+  private async fetchRemoteMenus(url: string): Promise<number> {
+    const internet = require("LensStudio:InternetModule") as InternetModule
+    const response = await internet.fetch(url, {method: "GET"})
+    if (response.status !== 200) throw new Error(`HTTP ${response.status}`)
+    const json = await response.json()
+    const restaurants: RestaurantDef[] | null = validateMenus(json)
+    if (!restaurants) throw new Error("menus.json shape not recognised")
+    setRestaurants(restaurants)
+    this.recheckActive()
+    return restaurants.length
   }
 }
