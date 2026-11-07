@@ -1,8 +1,9 @@
 // AllergyLensProfileUI — the profile as a short guided setup, one question per screen:
 //   welcome → allergies → religious / cultural → diet → done.
-// Each screen: big question, a few icon tiles (pinch or say), a "Heard: …" line with a mic,
-// Back / Next. Allergies shows the six common ones and a More tile that reveals the rest
-// ("or just say it"); anything added by voice can be corrected on a keyboard (Edit).
+// Each screen: big question, a few text tiles (pinch or say), a "Heard: …" line with a mic,
+// Back / Next. Allergies shows the six common ones; everything else is spoken: More… makes the
+// Heard line the blank line ("sesame seeds, olive oil and garlic"), each item becomes a chip
+// (pinch it to remove), there is no limit, and Edit opens a keyboard over the chips to fix words.
 // Owns: the tiles and their on/off visuals, the step switch, the keyboard field. Expects no
 // scene @inputs beyond sizing. Must not hold the profile — it reports each flip, step change
 // and edit to Main (the single owner of profile state). Object names LEAF relies on:
@@ -27,11 +28,13 @@ const SCREEN_ICONS: {[s: string]: Texture} = {
 
 export type ProfileStep = "welcome" | "allergies" | "religious" | "diet"
 export const PROFILE_STEPS: ProfileStep[] = ["welcome", "allergies", "religious", "diet"]
+/** Every allergen id that has a tile on some screen; the rest of the profile shows as chips. */
+export const TILE_IDS: string[] = ["peanut", "tree_nut", "milk", "egg", "wheat", "shellfish", "beef", "pork", "alcohol", "meat", "vegan", "high_sugar", "trans_fat"]
 
 /** What each screen asks and which tiles it shows (ids from data/allergens.json). */
 const SCREENS: {[s in ProfileStep]: {question: string; sub: string; tiles: string[]; more: string[]}} = {
   welcome: {question: "", sub: "", tiles: [], more: []},
-  allergies: {question: "Any food allergies?", sub: "Say them, pinch them, or say “more”.", tiles: ["peanut", "tree_nut", "milk", "egg", "wheat", "shellfish"], more: ["fish", "soy", "sesame"]},
+  allergies: {question: "Any food allergies?", sub: "Pinch the common ones, or just say yours — any number.", tiles: ["peanut", "tree_nut", "milk", "egg", "wheat", "shellfish"], more: []},
   religious: {question: "Anything you avoid for religious or cultural reasons?", sub: "Say it or pinch it. Skip with Next.", tiles: ["beef", "pork", "alcohol"], more: []},
   diet: {question: "Any diet?", sub: "Say it or pinch it, then Done.", tiles: ["meat", "vegan", "high_sugar", "trans_fat"], more: []},
 }
@@ -55,7 +58,7 @@ const QUESTION_H = 3.0
 const SUB_H = 1.6
 const HEARD_H = 1.9
 const TILE_H = 3.6
-const CUSTOM_H = 2.6
+const CHIP_H = 2.6
 const FOOTER_H = 3.4
 const FOOT_BTN_W = 9.5
 const ICON = 2.4
@@ -89,10 +92,12 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private buttons = new Map<string, Button>()
   private pendingStates = new Map<string, boolean>()
   private screens = new Map<ProfileStep, SceneObject>()
-  private moreRows = new Map<ProfileStep, SceneObject>()
+  private chipArea: SceneObject | null = null
+  private chipObjects: SceneObject[] = []
+  private chipW = 8
+  private overflowText: Text | null = null
   private heardTexts: Text[] = []
   private micTexts: Text[] = []
-  private customText: Text | null = null
   private editRow: SceneObject | null = null
   private editField: TextInputField | null = null
   private greeting: Text | null = null
@@ -103,6 +108,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private _onDone = new Event<void>()
   private _onMore = new Event<void>()
   private _onEditCustom = new Event<string>()
+  private _onRemoveExtra = new Event<string>()
+  private extras: Array<{id: string; label: string}> = []
 
   /** A tile flipped: {id, on}. */
   get onToggle(): PublicApi<ProfileToggleEvent> {
@@ -116,9 +123,13 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   get onDone(): PublicApi<void> {
     return this._onDone.publicApi()
   }
-  /** User pinched More on the allergies screen. */
+  /** User pinched More… on the allergies screen: the Lens asks for the rest by voice. */
   get onMore(): PublicApi<void> {
     return this._onMore.publicApi()
+  }
+  /** User pinched a chip ("Sesame ×"): remove that item from the profile. */
+  get onRemoveExtra(): PublicApi<string> {
+    return this._onRemoveExtra.publicApi()
   }
   /** User corrected the voice-added items on the keyboard; the full text of the field. */
   get onEditCustom(): PublicApi<string> {
@@ -133,8 +144,10 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const innerW = W - PAD * 2
     const d = this.textDistanceCm * this.textScale
     const tileW = (innerW - GAP * (COLS - 1)) / COLS
-    // One fixed height for every screen (the allergies screen with More open is the tallest).
-    const H = PAD * 2 + HEADER_H + QUESTION_H + SUB_H + HEARD_H + TILE_H * 3 + CUSTOM_H + FOOTER_H + GAP * 8
+    // One fixed height for every screen: header, question, hint, Heard line, three tile rows, two chip rows, footer.
+    const CHIPS_H = CHIP_H * 2 + GAP
+    const H = PAD * 2 + HEADER_H + QUESTION_H + SUB_H + HEARD_H + TILE_H * 3 + CHIPS_H + FOOTER_H + GAP * 8
+    this.chipW = tileW
 
     this.sceneObject.createComponent("Component.Canvas")
     const plate = this.sceneObject.createComponent(BackPlate.getTypeName()) as BackPlate
@@ -157,7 +170,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   setStep(step: ProfileStep): void {
     this._step = step
     this.screens.forEach((so, s) => (so.enabled = s === step))
-    if (this.editRow) this.editRow.enabled = false
+    this.setEditing(false)
   }
 
   setToggle(id: string, on: boolean): void {
@@ -194,16 +207,40 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     for (const t of this.micTexts) t.textFill.color = on ? new vec4(0.4, 1, 0.5, 1) : new vec4(1, 1, 1, 0.3)
   }
 
-  /** Show what was added by voice, e.g. ["Mango", "Coriander"]; the Edit key corrects it on a keyboard. */
-  setCustomLabels(labels: string[]): void {
-    if (this.customText) this.customText.text = labels.length > 0 ? `Also: ${labels.join(", ")}` : ""
-    if (this.editField) this.editField.text = labels.join(", ")
+  /**
+   * Everything on the profile that has no tile on the allergies screen — fish, soy, sesame and
+   * anything spoken ("olive oil") — as chips, three per row, two rows, "+N more" beyond that.
+   * No limit on what is stored; the keyboard field always carries the full list.
+   */
+  setExtras(items: Array<{id: string; label: string}>): void {
+    this.extras = items.slice()
+    for (const so of this.chipObjects) so.destroy()
+    this.chipObjects = []
+    if (!this.chipArea) return
+    const d = this.textDistanceCm * this.textScale
+    const visible = items.slice(0, 6)
+    visible.forEach((item, i) => {
+      const col = i % COLS
+      const row = Math.floor(i / COLS)
+      const x = -(this.chipW + GAP) + col * (this.chipW + GAP)
+      const y = (CHIP_H + GAP) / 2 - row * (CHIP_H + GAP)
+      const so = UI.obj(this.chipArea!, `Extra-${item.id}`, new vec3(x, y, UI.LAYOUT_Z_LIFT))
+      const btn = so.createComponent(Button.getTypeName()) as Button
+      btn.size = new vec3(this.chipW, CHIP_H, 1)
+      btn.onTriggerUp.add(() => this._onRemoveExtra.invoke(item.id))
+      UI.addButtonLabel(so, `${item.label}  ×`, this.chipW - 0.8, d, "Callout")
+      so.enabled = !(this.editRow && this.editRow.enabled)
+      this.chipObjects.push(so)
+    })
+    if (this.overflowText) this.overflowText.text = items.length > 6 ? `+${items.length - 6} more (Edit shows all)` : ""
+    if (this.editField) this.editField.text = items.map((i) => i.label).join(", ")
   }
 
-  /** Reveal the extra allergy tiles (what "more" does). */
-  showMore(): void {
-    const row = this.moreRows.get("allergies")
-    if (row) row.enabled = true
+  /** Keyboard over the chip rows on / off (voice: "edit" / "keyboard"). */
+  setEditing(on: boolean): void {
+    if (this.editRow) this.editRow.enabled = on
+    for (const so of this.chipObjects) so.enabled = !on
+    if (this.overflowText) this.overflowText.enabled = !on
   }
 
   // ── Screens ────────────────────────────────────────────────────────────
@@ -224,7 +261,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     UI.addColumnText(col, "Let’s set up your profile in three quick steps.", "Body", d, SUB_H, HorizontalAlignment.Center)
     UI.addColumnText(col, "Say your answers, or pinch.", "Body", d, SUB_H, HorizontalAlignment.Center, UI.WHITE_SOFT)
     this.addHeardLine(col, innerW, d)
-    UI.flexChild(col, {w: innerW, h: TILE_H + CUSTOM_H}, () => {})
+    // Spacer so the footer sits where it does on the question screens (their body: question + hint + 3 tile rows + chips).
+    UI.flexChild(col, {w: innerW, h: TILE_H * 3 + CHIP_H * 2 + GAP - 7 - GAP - SUB_H}, () => {})
   }
 
   private buildQuestionScreen(col: SceneObject, innerW: number, d: number, tileW: number, step: ProfileStep): void {
@@ -234,56 +272,48 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - 0.8, HorizontalAlignment.Left)
     UI.addColumnText(col, screen.sub, "Body", d, SUB_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
     this.addHeardLine(col, innerW, d)
-    // Tiles, three per row; the allergies screen gets a More tile in the last slot.
+    // Tiles, three per row.
     const ids = screen.tiles.slice()
-    const slots = step === "allergies" ? ids.concat(["__more"]) : ids
-    for (let r = 0; r < slots.length; r += COLS) {
+    let rows = 0
+    for (let r = 0; r < ids.length; r += COLS) {
       const row = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-      for (const id of slots.slice(r, r + COLS)) {
-        if (id === "__more") this.addMoreTile(row, tileW, d)
-        else this.addTile(row, id, tileW, d)
-      }
+      for (const id of ids.slice(r, r + COLS)) this.addTile(row, id, tileW, d)
+      rows++
     }
-    if (screen.more.length > 0) {
-      const row = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-      for (const id of screen.more) this.addTile(row, id, tileW, d)
-      row.enabled = false
-      this.moreRows.set(step, row)
-    }
+    const CHIPS_H = CHIP_H * 2 + GAP
     if (step === "allergies") {
-      // What voice added, with a keyboard to fix a misheard word.
-      const custom = UI.flexRow(col, innerW, CUSTOM_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-      this.customText = UI.addRowText(custom, "", "Body", d, innerW - CUSTOM_H - 1 - GAP, HorizontalAlignment.Left, UI.WHITE_SOFT)
-      UI.flexChild(custom, {w: CUSTOM_H + 1, h: CUSTOM_H}, (so) => {
-        so.name = "EditCustomButton"
-        const btn = so.createComponent(Button.getTypeName()) as Button
-        btn.size = new vec3(CUSTOM_H + 1, CUSTOM_H, 1)
-        btn.onTriggerUp.add(() => this.toggleEdit())
-        UI.addButtonLabel(so, "Edit", CUSTOM_H + 1, d, "Callout")
-      })
-      const edit = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-      UI.flexChild(edit, {w: innerW - TILE_H - GAP, h: TILE_H}, (so) => {
-        so.name = "EditCustomField"
-        const field = so.createComponent(TextInputField.getTypeName()) as TextInputField
+      // Third row: More… (the Lens asks for the rest by voice) and Edit (keyboard over the chips).
+      const row = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      this.addActionTile(row, "MoreButton", "More…", tileW, d, () => this._onMore.invoke())
+      this.addActionTile(row, "EditCustomButton", "Edit", tileW, d, () => this.setEditing(!(this.editRow && this.editRow.enabled)))
+      rows++
+      // Chip area: a fixed-size box; chips, the "+N more" line and the keyboard field are placed by hand inside it
+      // (hidden flex children would still take space), so showing one or the other never moves the footer.
+      UI.flexChild(col, {w: innerW, h: CHIPS_H}, (box) => {
+        this.chipArea = box
+        this.overflowText = UI.addRowText(UI.obj(box, "Overflow", new vec3(0, -(CHIP_H + GAP) / 2 - CHIP_H / 2 - 0.2, UI.LAYOUT_Z_LIFT)), "", "Caption", d, innerW, HorizontalAlignment.Left, UI.WHITE_SOFT)
+        const edit = UI.obj(box, "EditRow", new vec3(0, 0, UI.LAYOUT_Z_LIFT))
+        const fieldW = innerW - TILE_H - GAP
+        const fieldSO = UI.obj(edit, "EditCustomField", new vec3(-(TILE_H + GAP) / 2, 0, 0))
+        const field = fieldSO.createComponent(TextInputField.getTypeName()) as TextInputField
         field.placeholderText = "Type the foods to avoid, comma-separated"
         this.editField = field
-      })
-      UI.flexChild(edit, {w: TILE_H, h: TILE_H}, (so) => {
-        so.name = "ApplyCustomButton"
-        const btn = so.createComponent(Button.getTypeName()) as Button
-        btn.size = new vec3(TILE_H, TILE_H, 1)
-        btn.onTriggerUp.add(() => {
-          if (this.editRow) this.editRow.enabled = false
+        const applySO = UI.obj(edit, "ApplyCustomButton", new vec3(fieldW / 2 + GAP / 2, 0, 0))
+        const apply = applySO.createComponent(Button.getTypeName()) as Button
+        apply.size = new vec3(TILE_H, TILE_H, 1)
+        apply.onTriggerUp.add(() => {
+          this.setEditing(false)
           this._onEditCustom.invoke(this.editField ? this.editField.text : "")
         })
-        const inner = UI.flexRow(so, TILE_H, TILE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
+        const inner = UI.flexRow(applySO, TILE_H, TILE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
         UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
         UI.addImage(inner, ICON_DONE, ICON, ICON)
+        edit.enabled = false
+        this.editRow = edit
       })
-      edit.enabled = false
-      this.editRow = edit
     } else {
-      UI.flexChild(col, {w: innerW, h: CUSTOM_H}, () => {})
+      // Keep the footer at the same height as on the allergies screen.
+      UI.flexChild(col, {w: innerW, h: TILE_H * (3 - rows) + GAP * (3 - rows) + CHIPS_H}, () => {})
     }
   }
 
@@ -331,16 +361,13 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     })
   }
 
-  private addMoreTile(row: SceneObject, w: number, d: number): void {
+  private addActionTile(row: SceneObject, name: string, label: string, w: number, d: number, onPinch: () => void): void {
     UI.flexChild(row, {w, h: TILE_H}, (so) => {
-      so.name = "MoreButton"
+      so.name = name
       const btn = so.createComponent(Button.getTypeName()) as Button
       btn.size = new vec3(w, TILE_H, 1)
-      btn.onTriggerUp.add(() => {
-        this.showMore()
-        this._onMore.invoke()
-      })
-      UI.addButtonLabel(so, "More…", w - 0.8, d, "Subheadline")
+      btn.onTriggerUp.add(onPinch)
+      UI.addButtonLabel(so, label, w - 0.8, d, "Subheadline")
     })
   }
 
@@ -357,14 +384,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     if (pending !== undefined) btn.isOn = pending
   }
 
-  private toggleEdit(): void {
-    if (!this.editRow) return
-    this.editRow.enabled = !this.editRow.enabled
-  }
-
   /** Show the keyboard field (voice: "edit" / "keyboard"); the allergies screen holds it. */
   openEdit(): void {
     if (this._step !== "allergies") this.setStep("allergies")
-    if (this.editRow) this.editRow.enabled = true
+    this.setEditing(true)
   }
 }

@@ -21,12 +21,12 @@ import {ALLERGENS, AllergenDef, AllergenGroup, GROUP_LABELS, MOODS, Mood, Restau
 import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
 import {VoiceListener, matchDishByVoice, parseAllergyPhrase} from "./AllergyLensVoice"
 import {AllergyLensSpeech, SpeechLine} from "./AllergyLensSpeech"
-import {PROFILE_STEPS, ProfileStep} from "./AllergyLensProfileUI"
+import {PROFILE_STEPS, ProfileStep, TILE_IDS} from "./AllergyLensProfileUI"
 
 /** What the Heard line shows on each screen before anything was said, and what the Lens says aloud. */
 const STEP_HINT: {[s in ProfileStep]: string} = {
   welcome: 'Say "start", or pinch Start.',
-  allergies: 'Say the ones you have ("peanuts and milk"), "more", or "next".',
+  allergies: 'Say yours, any number ("sesame, olive oil and garlic"), or "next".',
   religious: 'Say "no beef", "no pork", "no alcohol", or "next".',
   diet: 'Say "vegetarian", "vegan", "low sugar", "no trans fat", or "done".',
 }
@@ -172,15 +172,17 @@ export class AllergyLensMain extends BaseScriptComponent {
         }
       }
       this.updateMoodAvailability()
+      this.showCustomItems()
       this.recheckActive()
     })
     this.profilePanel.onStep.add((step) => this.onProfileStep(step))
     this.profilePanel.onMore.add(() => {
       this.audio?.playClick()
       this.speech?.say("more")
-      this.profilePanel.setHeard('Say the others, e.g. "soy and sesame", or "I\'m allergic to mango".')
+      this.profilePanel.setHeard("Say them, as many as you have: \u201csesame seeds, olive oil and garlic\u201d.")
     })
     this.profilePanel.onEditCustom.add((text) => this.applyCustomText(text))
+    this.profilePanel.onRemoveExtra.add((id) => this.removeExtra(id))
     this.profilePanel.onDone.add(() => this.onProfileDone())
     this.profileButton.onProfile.add(() => this.openProfile())
     this.dishDetail.onClose.add(() => this.closeDetail())
@@ -391,10 +393,42 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.recheckActive()
   }
 
-  /** "Also avoiding: Mango (Allergies) · Lamb (Religious / cultural)". */
+  /** Chips on the allergies screen: every profile item without a tile (fish, soy, sesame, anything spoken). */
   private showCustomItems(): void {
-    const active = this.customAllergens.filter((a) => this.profile.has(a.id))
-    this.profilePanel.setCustomLabels(active.map((a) => a.group === "allergy" ? a.label : `${a.label} (${GROUP_LABELS[a.group]})`))
+    const items: Array<{id: string; label: string}> = []
+    for (const a of ALLERGENS) if (this.profile.has(a.id) && TILE_IDS.indexOf(a.id) < 0) items.push({id: a.id, label: a.label.replace(/^(No|Avoid) /, "")})
+    for (const c of this.customAllergens) if (this.profile.has(c.id)) items.push({id: c.id, label: c.group === "allergy" ? c.label : `${c.label} (${GROUP_LABELS[c.group]})`})
+    this.profilePanel.setExtras(items)
+  }
+
+  /** A chip was pinched off. */
+  private removeExtra(id: string): void {
+    this.profile.set(id, false)
+    this.customAllergens = this.customAllergens.filter((c) => c.id !== id)
+    const known = ALLERGENS.find((a) => a.id === id)
+    if (known) this.profilePanel.setToggle(id, false)
+    this.audio?.playClick()
+    this.showCustomItems()
+    this.updateMoodAvailability()
+    this.recheckActive()
+    print(`AllergyLens: removed ${id} from the profile`)
+  }
+
+  /**
+   * One spoken item on the allergies screen: a known toggle ("fish", "no pork") goes on, anything
+   * else that looks like a food becomes a custom item. Returns what was done, or null.
+   */
+  private applySpokenItem(part: string): string | null {
+    const item = part.replace(/^(a|an|the|some|no|not|and|also|plus|avoid|i'm allergic to|im allergic to|allergic to|i am allergic to|allergy to|no more)\s+/, "").replace(/\s+(please|too|also|as well)$/, "").trim()
+    if (item.length < 3 || NOT_A_FOOD.test(item)) return null
+    const toggles = this.findTogglesInSentence(item)
+    if (toggles.length > 0) {
+      for (const t of toggles) { this.profile.set(t.id, true); this.profilePanel.setToggle(t.id, true) }
+      return toggles.map((t) => `${t.label} on`).join(", ")
+    }
+    if (item.split(" ").length > 3) return null
+    this.addCustomAllergen(item)
+    return `avoid ${item}`
   }
 
   /**
@@ -695,11 +729,10 @@ export class AllergyLensMain extends BaseScriptComponent {
       heard(this.stepBy(-1) ? "back" : "this is the first step")
       return
     }
-    if (/^(more|show more|others|other allergies|something else)$/.test(text)) {
+    if (/^(more|show more|even more|others|other allergies|something else|one more|another one)$/.test(text)) {
       if (this.profilePanel.step !== "allergies") { this.profilePanel.setStep("allergies"); this.onProfileStep("allergies") }
-      this.profilePanel.showMore()
       this.speech?.say("more")
-      heard('say the others, e.g. "soy", or "I\'m allergic to mango"')
+      heard("Say them, as many as you have: \u201csesame seeds, olive oil and garlic\u201d.")
       return
     }
     if (/^(edit|keyboard|type|type it|fix it|correct it|that's wrong|thats wrong)$/.test(text)) {
@@ -754,6 +787,22 @@ export class AllergyLensMain extends BaseScriptComponent {
       return
     }
     const off = /\b(turn off|switch off|remove|unselect|deselect|clear|undo|cancel|don't need|do not need|not anymore)\b/.test(cleaned)
+    // A list on the allergies screen: "sesame seeds, olive oil and garlic" → three items, known or custom.
+    if (this.profilePanel.step === "allergies" && !off) {
+      const listText = cleaned.replace(/^(i'm allergic to|im allergic to|i am allergic to|allergic to|i can't eat|i cannot eat|no|avoid)\s+/, "")
+      const parts = listText.split(/\s*,\s*|\s+and\s+|\s+plus\s+|\s+also\s+/).map((x) => x.trim()).filter((x) => x.length > 0)
+      if (parts.length > 1) {
+        const done = parts.map((x) => this.applySpokenItem(x)).filter((x): x is string => x !== null)
+        if (done.length > 0) {
+          this.audio?.playClick()
+          this.updateMoodAvailability()
+          this.showCustomItems()
+          this.recheckActive()
+          heard(done.join(", "))
+          return
+        }
+      }
+    }
     const found = this.findTogglesInSentence(cleaned)
     if (found.length > 0) {
       const on = !off
@@ -812,6 +861,17 @@ export class AllergyLensMain extends BaseScriptComponent {
       heard("Done")
       this.onProfileDone()
       return
+    }
+    if (this.profilePanel.step === "allergies" && cleaned.split(" ").length <= 3 && cleaned.length >= 3 && !NOT_A_FOOD.test(cleaned)) {
+      // On the allergies screen a bare food name is an answer: "garlic" → avoid garlic.
+      const did = this.applySpokenItem(cleaned)
+      if (did) {
+        this.audio?.playClick()
+        this.showCustomItems()
+        this.recheckActive()
+        heard(did)
+        return
+      }
     }
     print(`AllergyLens: voice "${raw}" — not understood on the ${this.profilePanel.step} screen`)
     this.speech?.say("heard_nothing")

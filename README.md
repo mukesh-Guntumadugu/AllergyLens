@@ -70,10 +70,12 @@ spoken or pinched (rebuilt 7 Nov):
 1. **Welcome** — the app mark, "Hi, <your Snapchat display name>", three steps
    announced out loud. Say "start" or pinch Start.
 2. **Allergies** — the six common ones as big tiles (peanuts, tree nuts, milk,
-   eggs, wheat, shellfish) plus **More…** for fish, soy, sesame and anything
-   else by voice ("I'm allergic to mango"). What voice added shows as
-   "Also: mango" with an **Edit** key that opens the keyboard to fix a
-   misheard word.
+   eggs, wheat, shellfish). Everything else is spoken, with no limit: say
+   "sesame seeds, olive oil and garlic" and each item becomes a chip (fish,
+   soy and sesame are recognised as the known allergens they are); pinch a
+   chip to remove it; **More…** asks "which others?" and the Heard line is
+   the blank line; **Edit** opens the keyboard over the chips with the full
+   comma-separated list to fix a misheard word.
 3. **Religious / cultural** — no beef, no pork, no alcohol.
 4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Then **Done**.
 
