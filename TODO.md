@@ -27,7 +27,7 @@ What exists today, end to end:
 
 ## 1a. Model path, done 2026-11-07 night
 
-- [x] Pre-fill of all 4,880 unknown served dish names through the model (running on the VPS; API restarts itself when done; ~$0.25)
+- [x] Pre-fill done 2026-11-07 23:40: 4,727 names, 2,567 filled, 2,156 not a dish, 4 transient failures, ~$0.32. Served: 289 printed / 1,188 cited / 3,129 model / 3,645 none (mostly non-dishes). Cache copied to the GX10 fallback too
 - [x] Accuracy test, two prompts: 83 % of trusted "contains" caught, ~90 % verdict agreement — `docs/model-accuracy-2026-11-07.md`
 - [x] Decided (user, 2026-11-07): a dish whose ingredients come only from the model is never green — amber "Likely fine… confirm with the restaurant"; a model-found allergen stays red. Built as `ingredientsSource: "model"` end to end
 

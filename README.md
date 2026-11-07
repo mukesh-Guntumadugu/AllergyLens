@@ -186,10 +186,13 @@ method in [docs/model-accuracy-2026-11-07.md](docs/model-accuracy-2026-11-07.md)
 Re-run any time: `tools/server/eval_llm.py` on the server, `node tools/eval_llm.js` here.
 
 **Pre-filled, not on demand.** `tools/server/prefill.py` ran every served
-dish with no ingredients (4,880 distinct names) through the model once on
-7 Nov, about 25 cents in total, so the served file carries the answers and
-the Lens never waits at the table; the on-demand path remains for dishes
-outside the data.
+dish with no ingredients through the model once on 7 Nov: 4,727 distinct
+names in 109 minutes, 2.6 M tokens, about 32 cents. 2,567 came back as
+dishes with ingredients; 2,156 the model called not a dish (beer lists,
+"choose two sides", price lines) and stay amber by design. The served file
+(3.3 MB, one GET at start) now carries ingredients for 4,606 of 8,251 dishes:
+289 printed by the restaurant, 1,188 from cited recipes, 3,129 from the
+model. The on-demand path remains for dishes outside the data.
 
 **What runs where.** The glasses do tracking, hands, speech-to-text, the
 checker and the drawing, all offline; every heavy step (OCR, vision models,
@@ -402,7 +405,7 @@ As deployed on 6 Nov: `https://srv1619809.hstgr.cloud` (Hostinger KVM 8,
 AlmaLinux 10, the same box that serves the user's other sites) runs
 `allergylens-api` behind the existing nginx with a Let's Encrypt certificate.
 `menusUrl` points there; it does not change on reboot. Verified from the Mac:
-**193 restaurants, 8,251 dishes** pass the Lens validator (2.4 MB, one GET at start); a cached dish answers `/lookup` in
+**193 restaurants, 8,251 dishes** pass the Lens validator (3.3 MB, one GET at start, 1.6 s); a cached dish answers `/lookup` in
 under a second; "Paneer Butter Masala" went researching → typical (16
 ingredients, cited) in 10 s and is now cached for everyone. The GX10 keeps
 the GPU jobs and the lake and pushes its catalog over:
