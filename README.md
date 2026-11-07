@@ -1,6 +1,6 @@
 # AllergyLens
 
-**Look at a menu through SPECS and the dishes you can't eat are underlined in red, the ones you can get a green dot. Pinch a line and a card tells you what's in it, whether the kitchen can leave it out, or what to order instead.**
+**Look at a menu through SPECS and the dishes you can't eat are underlined in red, the ones you can get a thin green underline. Pinch a line and a card tells you what's in it, whether the kitchen can leave it out, or what to order instead.**
 
 AllergyLens is a see-through AR Lens for Snap SPECS, built for
 [Learn AR with SPECS](https://learn-specs.devpost.com/) on Devpost. It runs
@@ -43,8 +43,8 @@ The shot list with timings and voice-over is in
    pick the mood *Vegetarian*, pinch *Done*. The panel disappears. Nothing is
    in the world yet.
 2. **Look at the menu.** The camera recognises the printed Laurel Café menu.
-   Within a second the printed lines get marks: thin red underline + red dot
-   on *Paneer Nan* and *Kheer* (milk), green dot on *Alu Gobi*, amber dot on
+   Within a second the printed lines get marks: thick red underline
+   on *Paneer Nan* and *Kheer* (milk), thin green underline on *Alu Gobi*, thin amber underline on
    dishes whose ingredients the restaurant doesn't publish. One badge chip
    sits in the page's top margin: *Laurel Café · 12 of 28 safe*.
 3. **Pinch a red line.** A card opens beside it. *Mutter Paneer:* "Paneer is
@@ -178,10 +178,10 @@ marks update instantly.
 
 | verdict | when | drawn as |
 |---|---|---|
-| safe | ingredients known, nothing matched | green dot (green star in a mood category) |
-| contains | ≥ 1 ingredient matches the profile | thin red underline + red dot |
-| unverified | restaurant publishes nothing and the dish is not in the knowledge base | amber dot. **Unknown never becomes safe.** |
-| likely fine | the only ingredient list is the small model's and nothing matched (`ingredientsSource: "model"`) | amber dot; card says "Likely fine. A typical recipe has nothing from your profile. Confirm with the restaurant." A model-found allergen is still red, worded *typically contains*. Decided 7 Nov after the accuracy test |
+| safe | ingredients known, nothing matched | thin green underline (soft green line + star in a mood category) |
+| contains | ≥ 1 ingredient matches the profile | thick red underline |
+| unverified | restaurant publishes nothing and the dish is not in the knowledge base | thin amber underline. **Unknown never becomes safe.** |
+| likely fine | the only ingredient list is the small model's and nothing matched (`ingredientsSource: "model"`) | thin amber underline; card says "Likely fine. A typical recipe has nothing from your profile. Confirm with the restaurant." A model-found allergen is still red, worded *typically contains*. Decided 7 Nov after the accuracy test |
 
 Ingredients come from the restaurant when published, otherwise from the dish
 knowledge base (`data/dishes.json`: what a pad thai or butter chicken is

@@ -80,7 +80,7 @@ interface Bar {
 }
 
 const FULL_ALPHA = 0.35
-const UNDERLINE_ALPHA = 0.55
+const UNDERLINE_ALPHA = 0.85
 const DOT_ALPHA = 0.8
 const DOT_SIZE = 0.5
 const STAR_SIZE = 0.9
@@ -426,9 +426,16 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const marked = s !== "none"
     bar.root.enabled = marked && this._active
     bar.full.enabled = s === "star-safe"
-    bar.underline.enabled = s === "underline-contains"
-    bar.dot.enabled = s === "dot-safe" || s === "dot-unverified" || s === "underline-contains"
+    bar.underline.enabled = s === "underline-contains" || s === "dot-safe" || s === "dot-unverified"
+    bar.dot.enabled = false
     bar.star.enabled = s === "star-safe"
+    // Thick red line for "contains", a thin one for safe / unverified (colour tells the rest).
+    const L = bar.dish.layout!
+    const lineW = L.w * this.widthCm
+    const lineH = L.h * this.heightCm
+    const thick = s === "underline-contains" ? Math.max(0.32, 0.6 * lineH) : Math.max(0.2, 0.35 * lineH)
+    bar.underline.getTransform().setLocalPosition(new vec3(0, -lineH / 2 - thick / 2 - 0.04, 0.05))
+    bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.6) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
     const t = this.tintFor(s)
     bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.fade)
     bar.underlineMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, UNDERLINE_ALPHA * this.fade)
@@ -531,8 +538,10 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     interactable.onTriggerEnd.add(() => this._onBarPinched.invoke({restaurantId: this.restaurantId, dishId: dish.id}))
 
     const full = this.quad(root, "Full", 0, 0, w, h, BAR_TEX)
-    const ulH = Math.max(0.12, 0.25 * lineH)
-    const underline = this.quad(root, "Underline", 0, -lineH / 2 + ulH / 2, lineW, ulH, BAR_TEX)
+    // Every verdict is an UNDERLINE under the dish name (thickness set per style in applyStyle): a line the
+    // length of the name still reads as attached to it when marker tracking is a few millimetres off, where a
+    // floating dot reads as a random square. The dot quad stays only as a disabled placeholder.
+    const underline = this.quad(root, "Underline", 0, -lineH / 2 - 0.15, lineW + 0.6, 0.2, BAR_TEX)
     const endX = lineW / 2 + 0.45
     const dot = this.quad(root, "Dot", endX, 0, DOT_SIZE, DOT_SIZE, BAR_TEX)
     const star = this.quad(root, "Star", endX + 0.1, 0, STAR_SIZE, STAR_SIZE, STAR_TEX, 1)

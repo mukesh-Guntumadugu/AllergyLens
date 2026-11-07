@@ -276,10 +276,10 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     return c.x >= c.y && c.y >= 0.7 && c.z < c.y && c.w > 0
   }
 
-  /** Everything mode: safe → green dot only. */
+  /** Everything mode: safe → thin green underline only (no dot, no full line, no star). */
   expectGreenDot(dishId: string): void {
     const b = this.expectTint(dishId, "green", AllergyLensLeafInteractor.isGreen)
-    if (!b.dot || b.full || b.underline || b.star) throw new Error(`Bar-${dishId}: expected a green dot only, got ${JSON.stringify(b)}`)
+    if (!b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected a green underline only, got ${JSON.stringify(b)}`)
   }
 
   /** Category mode: safe + in category → soft green full line + star. */
@@ -288,16 +288,16 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     if (!b.full || !b.star || b.underline || b.dot) throw new Error(`Bar-${dishId}: expected green full line + star, got ${JSON.stringify(b)}`)
   }
 
-  /** contains → thin red underline + red dot, never a full line. */
+  /** contains → thick red underline, never a full line or a dot. */
   expectRed(dishId: string): void {
     const b = this.expectTint(dishId, "red", AllergyLensLeafInteractor.isRed)
-    if (!b.underline || !b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected red underline + dot, got ${JSON.stringify(b)}`)
+    if (!b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected a red underline, got ${JSON.stringify(b)}`)
   }
 
-  /** unverified → amber dot only. */
+  /** unverified → thin amber underline only. */
   expectAmber(dishId: string): void {
     const b = this.expectTint(dishId, "amber", AllergyLensLeafInteractor.isAmber)
-    if (!b.dot || b.full || b.underline || b.star) throw new Error(`Bar-${dishId}: expected an amber dot only, got ${JSON.stringify(b)}`)
+    if (!b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected an amber underline only, got ${JSON.stringify(b)}`)
   }
 
   expectUnmarked(dishId: string): void {
