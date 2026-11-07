@@ -137,6 +137,9 @@ export class AllergyLensMain extends BaseScriptComponent {
   private audio: AllergyLensAudio | null = null
   private speech: AllergyLensSpeech | null = null
   private spokenPages = new Set<string>()
+  // The panel glides to the Profile button's spot when it closes and out of it when it reopens.
+  private panelHome: {pos: vec3; scale: vec3} | null = null
+  private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
   private voice: VoiceListener | null = null
   private safeCardTimer: DelayedCallbackEvent | null = null
@@ -151,6 +154,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.audio = new AllergyLensAudio(audioHost, this.sfxVolume)
     if (this.speechEnabled) this.speech = new AllergyLensSpeech(audioHost, 1.0)
     this.createEvent("OnStartEvent").bind(() => this.onStart())
+    this.createEvent("UpdateEvent").bind(() => this.tickPanelTween())
   }
 
   private onStart(): void {
@@ -160,16 +164,11 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.profile.set(e.id, e.on)
       this.audio?.playClick()
       print(`AllergyLens: profile ${e.id} = ${e.on ? "on" : "off"}`)
-      // Vegan implies vegetarian + no milk + no eggs: turn those on too (never off — they may be allergies in their own right).
-      const def = ALLERGENS.find((a) => a.id === e.id)
-      if (e.on && def && def.implies) {
-        for (const id of def.implies) {
-          if (!this.profile.has(id)) {
-            this.profile.set(id, true)
-            this.profilePanel.setToggle(id, true)
-            print(`AllergyLens: profile ${id} = on (implied by ${e.id})`)
-          }
-        }
+      // Vegan covers vegetarian + no milk + no eggs inside the checker (implies); the tiles stay one choice:
+      // picking Vegan switches Vegetarian off and vice versa.
+      if (e.on && (e.id === "vegan" || e.id === "meat")) {
+        const other = e.id === "vegan" ? "meat" : "vegan"
+        if (this.profile.has(other)) { this.profile.set(other, false); this.profilePanel.setToggle(other, false) }
       }
       this.updateMoodAvailability()
       this.showCustomItems()
@@ -460,8 +459,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   private onProfileDone(): void {
     this.audio?.playClick()
-    this.profilePanel.getSceneObject().enabled = false
-    this.profileButton.getSceneObject().enabled = !this.anyMarkerActive()
+    this.dismissPanel()
     if (!this.anyMarkerActive()) this.listen(false)
     if (this.rememberProfile) this.saveProfile()
     this.speech?.say("saved")
@@ -472,13 +470,74 @@ export class AllergyLensMain extends BaseScriptComponent {
   private openProfile(): void {
     this.audio?.playClick()
     this.closeDetail()
-    this.profilePanel.getSceneObject().enabled = true
     this.profileButton.getSceneObject().enabled = false
+    this.presentPanel()
     this.profilePanel.setStep("allergies")
     this.profilePanel.setHeard(STEP_HINT.allergies)
     this.listen(true)
     this.speech?.say("reopened")
     print("AllergyLens: profile reopened")
+  }
+
+  // ── Panel motion ───────────────────────────────────────────────────────
+  private rememberPanelHome(): void {
+    if (this.panelHome) return
+    const t = this.profilePanel.getTransform()
+    this.panelHome = {pos: t.getLocalPosition(), scale: t.getLocalScale()}
+  }
+
+  /** Done: the panel shrinks and slides to where the Profile button lives, then the button takes over. */
+  private dismissPanel(): void {
+    if (this.panelTween) return
+    this.rememberPanelHome()
+    const panelSO = this.profilePanel.getSceneObject()
+    const t = this.profilePanel.getTransform()
+    const to = this.profileButton.getTransform().getWorldPosition()
+    this.panelTween = {
+      t0: getTime(), dur: 0.4, from: t.getWorldPosition(), to, fromS: 1, toS: 0.12,
+      onDone: () => {
+        panelSO.enabled = false
+        t.setLocalPosition(this.panelHome!.pos)
+        t.setLocalScale(this.panelHome!.scale)
+        this.profileButton.getSceneObject().enabled = !this.anyMarkerActive()
+      },
+    }
+  }
+
+  /** Reopen: out of the button's spot back to its place in front of the user. */
+  private presentPanel(): void {
+    this.rememberPanelHome()
+    const panelSO = this.profilePanel.getSceneObject()
+    const t = this.profilePanel.getTransform()
+    t.setLocalPosition(this.panelHome!.pos)
+    t.setLocalScale(this.panelHome!.scale)
+    const home = t.getWorldPosition()
+    const from = this.profileButton.getTransform().getWorldPosition()
+    panelSO.enabled = true
+    if (this.panelTween) return
+    t.setWorldPosition(from)
+    t.setLocalScale(this.panelHome!.scale.uniformScale(0.12))
+    this.panelTween = {
+      t0: getTime(), dur: 0.35, from, to: home, fromS: 0.12, toS: 1,
+      onDone: () => {
+        t.setLocalPosition(this.panelHome!.pos)
+        t.setLocalScale(this.panelHome!.scale)
+      },
+    }
+  }
+
+  private tickPanelTween(): void {
+    const tw = this.panelTween
+    if (!tw || !this.panelHome) return
+    const k = Math.min(1, (getTime() - tw.t0) / tw.dur)
+    const e = 1 - (1 - k) * (1 - k) // ease-out
+    const t = this.profilePanel.getTransform()
+    t.setWorldPosition(vec3.lerp(tw.from, tw.to, e))
+    t.setLocalScale(this.panelHome.scale.uniformScale(tw.fromS + (tw.toS - tw.fromS) * e))
+    if (k >= 1) {
+      this.panelTween = null
+      tw.onDone()
+    }
   }
 
   private onProfileStep(step: ProfileStep): void {
@@ -786,7 +845,19 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.addCustomAllergen(item, group)
       return
     }
-    const off = /\b(turn off|switch off|remove|unselect|deselect|clear|undo|cancel|don't need|do not need|not anymore)\b/.test(cleaned)
+    const off = /\b(turn off|switch off|remove|unselect|deselect|unpick|clear|undo|cancel|don't need|do not need|not anymore)\b/.test(cleaned)
+    // "a vegan, not vegetarian" / "I don't want vegetarian, vegan instead": each toggle gets its own polarity
+    // from the words right before it, so one sentence can switch one on and another off.
+    const polar = this.findTogglesWithPolarity(cleaned)
+    if (polar.length > 0 && polar.some((x) => !x.on) && polar.some((x) => x.on)) {
+      for (const {toggle, on} of polar) this.applyToggle(toggle, on)
+      this.audio?.playClick()
+      heard(polar.map((x) => `${x.toggle.label} ${x.on ? "on" : "off"}`).join(", "))
+      this.updateMoodAvailability()
+      this.showCustomItems()
+      this.recheckActive()
+      return
+    }
     // A list on the allergies screen: "sesame seeds, olive oil and garlic" → three items, known or custom.
     if (this.profilePanel.step === "allergies" && !off) {
       const listText = cleaned.replace(/^(i'm allergic to|im allergic to|i am allergic to|allergic to|i can't eat|i cannot eat|no|avoid)\s+/, "")
@@ -805,16 +876,16 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     const found = this.findTogglesInSentence(cleaned)
     if (found.length > 0) {
-      const on = !off
+      const negatedAll = off || (polar.length > 0 && polar.every((x) => !x.on))
+      const on = !negatedAll
       for (const toggle of found) {
-        this.profile.set(toggle.id, on)
-        this.profilePanel.setToggle(toggle.id, on)
-        if (on && toggle.implies) for (const id of toggle.implies) { this.profile.set(id, true); this.profilePanel.setToggle(id, true) }
+        this.applyToggle(toggle, on)
         print(`AllergyLens: voice "${raw}" → ${toggle.id} ${on ? "on" : "off"}`)
       }
       this.audio?.playClick()
       heard(found.map((t) => `${t.label} ${on ? "on" : "off"}`).join(", "))
       this.updateMoodAvailability()
+      this.showCustomItems()
       this.recheckActive()
       return
     }
@@ -883,6 +954,47 @@ export class AllergyLensMain extends BaseScriptComponent {
    * word ("beef", "dairy", "gluten", "sugar"), its id, or an alias ("bacon") — as whole words.
    * Moods are checked first so "chicken" is the chip, not the vegetarian toggle's alias.
    */
+  /**
+   * Each toggle named in the sentence with its own on/off: the four words before the name decide
+   * ("not vegetarian", "don't want milk", "without eggs", "vegetarian off" → off). "No beef" is the
+   * toggle's own name, so "no" only negates toggles whose label does not start with No/Avoid.
+   */
+  private findTogglesWithPolarity(sentence: string): Array<{toggle: AllergenDef; on: boolean}> {
+    const s = ` ${sentence} `
+    const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()
+    const NEG = /\b(not|don't|dont|do not|no longer|without|never|unpick|unselect|deselect|remove|turn off|switch off|cancel|undo|skip|rather than|instead of|except)\b/
+    const out: Array<{toggle: AllergenDef; on: boolean}> = []
+    for (const a of this.findTogglesInSentence(sentence)) {
+      const label = norm(a.label)
+      const core = label.replace(/^(no|avoid) /, "")
+      const names = [label, core, a.id.replace("_", " ")].concat((a.spoken ?? []).map(norm)).filter((n) => n.length > 1)
+      let idx = -1
+      let hit = ""
+      for (const n of names) {
+        const i = s.indexOf(` ${n} `)
+        if (i >= 0 && (idx < 0 || i < idx)) { idx = i; hit = n }
+      }
+      if (idx < 0) { out.push({toggle: a, on: true}); continue }
+      const before = s.slice(0, idx).trim().split(" ").slice(-4).join(" ")
+      const after = s.slice(idx + hit.length + 2).trim().split(" ").slice(0, 2).join(" ")
+      const ownNo = /^(no|avoid) /.test(label) && hit === label
+      const negBefore = NEG.test(before) || (!ownNo && /\bno$/.test(before))
+      const negAfter = /^(off|out|no more|instead)\b/.test(after) && !/\binstead$/.test(before)
+      out.push({toggle: a, on: !(negBefore || negAfter)})
+    }
+    return out
+  }
+
+  /** One toggle on/off in the profile and on the panel. Vegan and Vegetarian are one choice: the other goes off. */
+  private applyToggle(toggle: AllergenDef, on: boolean): void {
+    this.profile.set(toggle.id, on)
+    this.profilePanel.setToggle(toggle.id, on)
+    if (on && (toggle.id === "vegan" || toggle.id === "meat")) {
+      const other = toggle.id === "vegan" ? "meat" : "vegan"
+      if (this.profile.has(other)) { this.profile.set(other, false); this.profilePanel.setToggle(other, false) }
+    }
+  }
+
   private findTogglesInSentence(sentence: string): AllergenDef[] {
     const s = ` ${sentence} `
     const has = (phrase: string) => phrase.length > 1 && s.indexOf(` ${phrase} `) >= 0

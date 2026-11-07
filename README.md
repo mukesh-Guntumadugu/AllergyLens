@@ -77,7 +77,15 @@ spoken or pinched (rebuilt 7 Nov):
    the blank line; **Edit** opens the keyboard over the chips with the full
    comma-separated list to fix a misheard word.
 3. **Religious / cultural** — no beef, no pork, no alcohol.
-4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Then **Done**.
+4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Vegetarian and vegan
+   are one choice (vegan covers vegetarian, milk and eggs inside the checker
+   without lighting those tiles). Then **Done**: the panel shrinks and glides
+   to the Profile button at the lower left, out of the way of the menu, and
+   comes back out of it when reopened.
+
+Every spoken toggle gets its own on/off from the words around it: "a vegan,
+not vegetarian" turns vegan on and vegetarian off; "I don't want milk" turns
+milk off; "no beef" is the religious tile's own name and turns it on.
 
 No "in the mood for" chips any more: that filter is voice on the menu
 ("show vegetarian", "chicken", "everything"). The profile is **remembered on

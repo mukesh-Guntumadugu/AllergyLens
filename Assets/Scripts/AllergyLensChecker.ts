@@ -90,12 +90,23 @@ export function ingredientMatches(ingredient: string, allergen: AllergenDef): bo
   return false
 }
 
+/**
+ * The allergens a check runs with: what is on the profile plus what an active one implies
+ * (vegan → vegetarian, milk, egg). The implied ones are never shown as picked on the panel;
+ * they only act here, so "vegan, not vegetarian" still keeps meat out of the plate.
+ */
+export function activeAllergens(profile: Profile, allergens: AllergenDef[] = ALLERGENS): AllergenDef[] {
+  const ids = new Set<string>()
+  for (const a of allergens) if (profile.has(a.id)) { ids.add(a.id); for (const i of a.implies ?? []) ids.add(i) }
+  return allergens.filter((a) => ids.has(a.id))
+}
+
 export function checkDish(dish: DishDef, profile: Profile, allergens: AllergenDef[] = ALLERGENS): DishResult {
   const source: IngredientsSource = dish.ingredientsSource ?? (dish.ingredients ? "restaurant" : "none")
   if (source === "none" || !dish.ingredients || dish.ingredients.length === 0) {
     return {dishId: dish.id, verdict: "unverified", source: "none", matches: []}
   }
-  const active = allergens.filter((a) => profile.has(a.id))
+  const active = activeAllergens(profile, allergens)
   const matches: IngredientMatch[] = []
   // Match the published ingredient lines AND the knowledge-base share keys (a restaurant
   // line like "rice pudding" says nothing about milk; the KB's shares do).
@@ -338,7 +349,7 @@ function tagToAllergen(tag: string, allergens: AllergenDef[]): AllergenDef | nul
  * that avoids trans fat or high sugar. No ingredient list and no statement → unverified.
  */
 export function checkProduct(product: ProductDef, profile: Profile, allergens: AllergenDef[] = ALLERGENS): ProductResult {
-  const active = allergens.filter((a) => profile.has(a.id))
+  const active = activeAllergens(profile, allergens)
   const matches: ProductMatch[] = []
   const seen = new Set<string>()
   const add = (a: AllergenDef, declared: boolean, via: string) => {
