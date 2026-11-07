@@ -16,7 +16,8 @@ What exists today, end to end:
 - [x] Lake joined into the served file (28 restaurants served, 2026-11-05)
 - [x] https tunnel; Lens logged "loaded 28 restaurants from https://visits-fame-wonderful-science.trycloudflare.com/menus.json" (2026-11-05 11:15)
 - [x] Retry added: the Lens now tries 4 times, 2 s apart, before falling back (2026-11-06; the first start after opening the project failed with "HTTP 3" because the network was not ready)
-- [ ] **GX10 is OFF or off the network right now** (2026-11-06 15:55: LAN ping fails, tunnel answers nothing). Until it is back the Lens runs on bundled data. To restore:
+- [x] GX10 back on 2026-11-06 evening (home LAN); the Lens now uses the VPS address instead of the tunnel, so the steps below only matter for the fallback
+- [ ] ~~**GX10 is OFF or off the network right now**~~ (2026-11-06 15:55: LAN ping fails, tunnel answers nothing). Until it is back the Lens runs on bundled data. To restore:
       1. power on / plug in the GX10, wait ~1 min (both services start on boot)
       2. on the Mac: `bash tools/server/tunnel_url.sh` → new https address
       3. paste `<address>/menus.json` into `menusUrl` on the AllergyLens object, save the scene
@@ -56,7 +57,9 @@ amber for everyone. Agreed flow:
 - [x] `GET /lookup?dish=<name>&cuisine=<c>` in `tools/serve_data.py` (cache first, then the retrieval step, result in `data/lookup-cache.json`) — built and tested locally 2026-11-06; GitHub [#5](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/5)
 - [x] Lens call on miss (`AllergyLensMain.ts`), timeout 4 s, verdict stays amber until the answer arrives, result merged into the session data (compile clean; preview run still to do)
 - [x] `node tools/check.js --dish "<name>" --cuisine <c> --profile <ids> --url …` from the command line
-- [ ] Deploy: GX10 (`cd ~/allergylens-serve && git pull && bash tools/server/install.sh`) once it is on; Hostinger VPS (`bash tools/server/install_vps.sh --domain …`) once the SSH details and a DNS name are given
+- [x] Deployed 2026-11-06: GX10 service with research (28 restaurants, home LAN 192.168.1.253); Hostinger VPS `https://srv1619809.hstgr.cloud` (nginx + certbot, API unit, gold copy, research) — miss path verified over https
+- [ ] `menusUrl` in the Lens → `https://srv1619809.hstgr.cloud/menus.json` (stable; the GX10 tunnel hostname changes on every reboot)
+- [ ] Refresh the VPS whenever the GX10 scrapes more: `bash tools/server/sync_vps.sh`
 - [ ] GitHub issues to work from: [#2 architecture](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/2), [#3 glanceable UI](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/3), [#4 voice + pinch](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/4)
 - [ ] Unknown page (no marker): one 512-px frame through the Remote Service Gateway to read the dish names first, then the lookup above. Needs a Snap gateway token. Second day.
 

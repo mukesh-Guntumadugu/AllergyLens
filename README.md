@@ -368,10 +368,22 @@ address from it (`…/lookup`). If the fetch fails the Lens retries four times,
 2 s apart, then logs "remote menus unavailable … using bundled data" and runs
 on the compiled snapshot, by design.
 
-### Public copy on a VPS (Hostinger)
+### Public copy on a VPS (Hostinger) — the address the Lens uses
 
-The GX10 keeps the GPU jobs and the lake; a plain VPS gives the Lens a stable
-https address and runs the miss path with no GPU. On an Ubuntu box:
+As deployed on 6 Nov: `https://srv1619809.hstgr.cloud` (Hostinger KVM 8,
+AlmaLinux 10, the same box that serves the user's other sites) runs
+`allergylens-api` behind the existing nginx with a Let's Encrypt certificate.
+`menusUrl` points there; it does not change on reboot. Verified from the Mac:
+28 restaurants pass the Lens validator; a cached dish answers `/lookup` in
+under a second; "Paneer Butter Masala" went researching → typical (16
+ingredients, cited) in 10 s and is now cached for everyone. The GX10 keeps
+the GPU jobs and the lake and pushes its catalog over:
+
+```bash
+bash tools/server/sync_vps.sh        # from the Mac: GX10 gold/ → VPS, git pull there, restart, health
+```
+
+To set it up on another box (Ubuntu or AlmaLinux; nginx + certbot if nginx already runs there, Caddy otherwise):
 
 ```bash
 git clone https://github.com/mukesh-Guntumadugu/AllergyLens.git ~/allergylens && cd ~/allergylens
@@ -383,6 +395,7 @@ Then `menusUrl` = `https://api.<your-domain>/menus.json`, and
 `node tools/check.js --dish "…" --url https://api.<your-domain>/menus.json`
 from anywhere. Researched dishes land in `data/lookup-cache.json` on the box
 (ignored by git); copy it back into the lake's catalog when it is worth keeping.
+The GX10 tunnel (`tools/server/tunnel_url.sh`) stays as the fallback address.
 
 ## Roadmap
 
