@@ -166,7 +166,7 @@ miss, and nothing below is allowed to turn an unknown dish green.
 | 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure. `tools/serve_data.py` serves it from the GX10 (seed + data lake, ETag, CORS) | one ~10 KB GET per session | built |
 | 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
 | 3 | **Miss path** `GET /lookup?dish=<name>&cuisine=<c>` on the same server: cache first (seed catalog, lake `gold/dishes.json`, `data/lookup-cache.json`) answers in milliseconds; a miss is queued for web retrieval (`ingredients_rag.py`: recipe pages with schema.org markup, citations kept, no model invents a recipe) and answers `"researching"`; the Lens asks again at 8 s and 16 s, the second visitor hits the cache. The Lens asks for up to 12 unknown dishes when a page is recognised, 4 s timeout, amber meanwhile | one small GET per unknown dish, research once per dish ever | built 6 Nov ([#5](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/5)) |
-| 4 | Unknown dish *name* with no recipe on the web: a small model through Snap's **Remote Service Gateway** (OpenAI / Gemini with a Snap-issued token, no personal API key; a user's own key through `InternetModule` for a limited session) | ~150 tokens per dish, cached forever | designed |
+| 4 | **Small model on the server** (`--llm`): a miss is answered by Claude Haiku 5.5 (or gpt-4.1-nano) as a fixed JSON list of *typical* ingredients plus a diet class, cached forever per dish, capped at 300 calls/hour. The key sits in `/etc/allergylens.env` on the server, never in the Lens. The call usually answers inside the Lens's first ask (the server waits up to 3 s), otherwise "researching" and the Lens asks again | ~600 input + 150 output tokens per new dish: about $0.0002 with Haiku, so a $20 budget covers ~100,000 dishes | built 6 Nov; the deployed default since web scraping stopped |
 | 5 | Menu with no marker: one down-scaled camera frame through the Remote Service Gateway to a vision model with the *same* line schema; the result is uploaded as a capture so the next visitor gets the cached answer (DESIGN.md §7.4) | one image call per *page*, never per frame | designed |
 
 Guardrails that stay the same at every tier: results from retrieval or a model
@@ -276,7 +276,8 @@ node tools/check.js --dish "chicken tikka masala" --cuisine indian --profile mil
 A local run of the miss path, with no GX10 (`python3 -m venv .venv && .venv/bin/pip install -r tools/server/requirements.txt`):
 
 ```bash
-.venv/bin/python tools/serve_data.py --port 8787 --research          # /lookup researches misses on the web
+ANTHROPIC_API_KEY=… .venv/bin/python tools/serve_data.py --port 8787 --llm   # /lookup asks the small model on a miss
+.venv/bin/python tools/serve_data.py --port 8787 --research                   # or: web retrieval (the pre-6-Nov path)
 node tools/check.js --dish "chicken tikka masala" --cuisine indian --profile milk --url http://127.0.0.1:8787/menus.json
 #   -> researching … 8 s … typical, 16 ingredients from 6 cited recipes, RED for milk (cream); second ask: 37 ms from cache
 ```
@@ -349,6 +350,12 @@ That serves 28 restaurants (the 6 seed ones plus 22 scraped Ohio menus),
 passes the Lens validator. Once `node` is installed on the GX10,
 `bash tools/server/install.sh` there turns it into a systemd service that
 builds and serves on its own.
+
+**Which miss path runs.** `--llm` wins over `--research`; the deployed services run `--llm`, and a server
+with no key in `/etc/allergylens.env` answers every miss "unknown" (amber) and says so in its log. To turn
+the model on: put `ANTHROPIC_API_KEY=…` (or `OPENAI_API_KEY=…`) in that file as root and
+`systemctl restart allergylens-api` (VPS) / `allergylens-data` (GX10). `/health` then reports the provider,
+model, call count and tokens used.
 
 **Plain `http://` is refused by the Lens** ("URL is not secure") unless the
 project's Experimental API switch is on, so the GX10 also runs a second

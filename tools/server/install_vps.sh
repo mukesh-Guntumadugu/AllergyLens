@@ -30,6 +30,10 @@ python3 -c "import venv" 2>/dev/null || $PKG python3-venv
 mkdir -p "$REPO/data-lake/gold" "$REPO/data-lake/bronze"
 node "$REPO/tools/build-data.js" --with-lake
 sed -e "s|__USER__|$USER_NAME|g" -e "s|__REPO__|$REPO|g" -e "s|__NODE_DIR__|$NODE_DIR|g" "$REPO/tools/server/allergylens-api.service" | $SUDO tee /etc/systemd/system/allergylens-api.service >/dev/null
+if [ ! -f /etc/allergylens.env ]; then
+  printf '# AllergyLens server secrets. One key is enough; the model path uses whichever is set.\n# ANTHROPIC_API_KEY=\n# OPENAI_API_KEY=\n# ALLERGYLENS_LLM_MODEL=   (optional: claude-haiku-5-5 / gpt-4.1-nano are the defaults)\n' | $SUDO tee /etc/allergylens.env >/dev/null
+  $SUDO chmod 600 /etc/allergylens.env
+fi
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable allergylens-api
 $SUDO systemctl restart allergylens-api

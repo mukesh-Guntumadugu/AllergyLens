@@ -14,6 +14,11 @@ Endpoints (JSON, CORS open, ETag + Cache-Control so a Lens fetches once per chan
                     markup, citations kept, no model invents a recipe) and the call answers
                     {"status": "researching"} at once; the Lens polls again a few seconds later and the
                     second visitor gets the cached answer. Without --research a miss answers "unknown".
+                    --llm: a miss is answered by a small model instead (Claude Haiku 5.5 with ANTHROPIC_API_KEY,
+                    or gpt-4.1-nano with OPENAI_API_KEY; the key is read from the environment, never from the
+                    Lens), as a fixed JSON list of typical ingredients, cached forever per dish, capped per hour.
+                    The call usually answers inside the request (the Lens waits up to 4 s); a slow one answers
+                    "researching" and the Lens asks again.
 
 Point the Lens at it: select `AllergyLens` in Lens Studio and set `menusUrl` to
 http://<gx10-ip>:8787/menus.json. The Lens validates the shape and falls back to the
@@ -27,6 +32,10 @@ from urllib.parse import parse_qs
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WITH_LAKE = False
 RESEARCH = False
+LLM = False
+LLM_MODEL = os.environ.get("ALLERGYLENS_LLM_MODEL")   # optional override of the per-provider default
+LLM_MAX_PER_HOUR = int(os.environ.get("ALLERGYLENS_LLM_MAX_PER_HOUR", "300"))
+LLM_WAIT_S = 3.0        # how long /lookup waits for the model before answering "researching"
 LAKE = os.path.join(ROOT, "data-lake")
 LOCAL_CACHE = os.path.join(ROOT, "data", "lookup-cache.json")   # the VPS has no lake; results land here
 SEARCH = "ddg"
@@ -73,15 +82,149 @@ def _lookup_payload(d, status=None, cached=True):
     typical = [i for i in d.get("typicalIngredients", []) if isinstance(i, str)]
     st = status or d.get("status") or ("typical" if typical else "unknown")
     sources = sorted({u for ev in d.get("evidence", {}).values() for u in ev.get("sources", [])})[:12]
+    src = d.get("source", {}) if isinstance(d.get("source"), dict) else {}
     return {"dish": d.get("name"), "status": st, "ingredients": typical if st == "typical" else [],
             "ingredientsSource": "typical" if st == "typical" else "none", "cuisine": d.get("cuisine"),
-            "sources": sources, "cached": cached}
+            "diet": d.get("diet"), "sources": sources, "cached": cached,
+            "from": src.get("type", "catalog") + (f" ({src.get('model')})" if src.get("model") else "")}
 
 
 _research_q = queue.Queue()
 _in_flight = set()
 _in_flight_lock = threading.Lock()
 _unknown_until = {}   # norm name -> time; a failed research is not retried for an hour
+_done_events = {}     # norm name -> threading.Event, set when the worker has an answer (so /lookup can wait briefly)
+_llm_calls = []       # timestamps of model calls in the last hour (spend cap)
+_llm_stats = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "provider": None, "model": None}
+
+
+# ─── the small-model path: dish name -> typical ingredients as fixed JSON ──────────────────────────
+LLM_SYSTEM = (
+    "You are an ingredient reference for a food-allergy app used on AR glasses. Given a dish name from a "
+    "restaurant menu and an optional cuisine hint, list the ingredients typically used in a standard restaurant "
+    "recipe of that dish. Rules: lowercase, simple ingredient names (\"cream\", \"peanut\", \"wheat flour\", "
+    "\"fish sauce\"), one per entry, 4 to 20 entries. Always include the typical hidden allergen carriers when they "
+    "belong to the standard recipe: ghee, butter, yogurt, cream, milk, cheese, egg, wheat flour, breadcrumbs, soy "
+    "sauce, fish sauce, oyster sauce, shrimp paste, peanut, peanut oil, sesame oil, tree nuts, gelatin, lard, "
+    "chicken stock, beef stock, pork, beef, alcohol. Do not invent unusual additions. If the text is not a "
+    "recognisable dish (a section header, a slogan, a price line, gibberish), set known to false and return an "
+    "empty list. Set diet to the most accurate of: vegan, vegetarian, pescatarian, non-vegetarian."
+)
+LLM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "known": {"type": "boolean"},
+        "dish": {"type": "string"},
+        "cuisine": {"type": "string"},
+        "diet": {"type": "string", "enum": ["vegan", "vegetarian", "pescatarian", "non-vegetarian", "unknown"]},
+        "typical_ingredients": {"type": "array", "items": {"type": "string"}},
+        "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+    },
+    "required": ["known", "dish", "cuisine", "diet", "typical_ingredients", "confidence"],
+    "additionalProperties": False,
+}
+
+
+def _llm_provider():
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "anthropic", LLM_MODEL or "claude-haiku-5-5"
+    if os.environ.get("OPENAI_API_KEY"):
+        return "openai", LLM_MODEL or "gpt-4.1-nano"
+    return None, None
+
+
+def _llm_guess(name, cuisine):
+    """One model call. Returns the parsed JSON dict or raises."""
+    provider, model = _llm_provider()
+    user = f"Dish: {name}\nCuisine hint: {cuisine or 'unknown'}"
+    if provider == "anthropic":
+        import anthropic
+        client = anthropic.Anthropic()
+        try:
+            resp = client.messages.create(
+                model=model, max_tokens=1024,
+                system=[{"type": "text", "text": LLM_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+                messages=[{"role": "user", "content": user}],
+                output_config={"format": {"type": "json_schema", "schema": LLM_SCHEMA}},
+            )
+        except anthropic.AuthenticationError:
+            raise RuntimeError("ANTHROPIC_API_KEY rejected")
+        except anthropic.RateLimitError as e:
+            raise RuntimeError(f"rate limited: {e}")
+        except anthropic.APIStatusError as e:
+            raise RuntimeError(f"API error {e.status_code}: {e.message}")
+        except anthropic.APIConnectionError:
+            raise RuntimeError("cannot reach api.anthropic.com")
+        if resp.stop_reason == "refusal":
+            raise RuntimeError("model declined")
+        _llm_stats["input_tokens"] += resp.usage.input_tokens
+        _llm_stats["output_tokens"] += resp.usage.output_tokens
+        text = next(b.text for b in resp.content if b.type == "text")
+        return json.loads(text)
+    if provider == "openai":
+        from openai import OpenAI
+        client = OpenAI()
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": LLM_SYSTEM}, {"role": "user", "content": user}],
+            response_format={"type": "json_schema", "json_schema": {"name": "dish", "schema": LLM_SCHEMA, "strict": True}},
+        )
+        if resp.usage:
+            _llm_stats["input_tokens"] += resp.usage.prompt_tokens
+            _llm_stats["output_tokens"] += resp.usage.completion_tokens
+        return json.loads(resp.choices[0].message.content)
+    raise RuntimeError("no API key in the environment (ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+
+
+def _llm_entry(name, cuisine, guess):
+    ings = []
+    for i in guess.get("typical_ingredients", []):
+        if isinstance(i, str):
+            i = i.strip().lower()
+            if i and i not in ings:
+                ings.append(i)
+    known = bool(guess.get("known")) and len(ings) >= 3
+    return {"name": name.lower(), "aliases": [], "cuisine": guess.get("cuisine") or cuisine,
+            "status": "typical" if known else "unknown", "typicalIngredients": ings if known else [],
+            "diet": guess.get("diet"), "confidence": guess.get("confidence"),
+            "source": {"type": "llm", "provider": _llm_stats["provider"], "model": _llm_stats["model"],
+                       "collected": time.strftime("%Y-%m-%d"), "note": "typical recipe, not this restaurant's"}}
+
+
+def _llm_worker():
+    provider, model = _llm_provider()
+    _llm_stats["provider"], _llm_stats["model"] = provider, model
+    if not provider:
+        sys.stderr.write("lookup: --llm given but no ANTHROPIC_API_KEY / OPENAI_API_KEY in the environment; misses answer unknown\n")
+    else:
+        sys.stderr.write(f"lookup: model path on ({provider} {model}, cap {LLM_MAX_PER_HOUR}/hour)\n")
+    while True:
+        name, cuisine = _research_q.get()
+        key = _norm(name)
+        t0 = time.time()
+        try:
+            now = time.time()
+            _llm_calls[:] = [t for t in _llm_calls if now - t < 3600]
+            if len(_llm_calls) >= LLM_MAX_PER_HOUR:
+                raise RuntimeError(f"hourly cap of {LLM_MAX_PER_HOUR} model calls reached")
+            _llm_calls.append(now)
+            _llm_stats["calls"] += 1
+            entry = _llm_entry(name, cuisine, _llm_guess(name, cuisine))
+            if entry["status"] == "typical":
+                _write_local_cache(entry)
+            else:
+                _unknown_until[key] = time.time() + 24 * 3600   # the model does not know it either; do not pay again today
+            sys.stderr.write(f"lookup: model '{name}' -> {entry['status']} ({len(entry['typicalIngredients'])} ingredients, {time.time()-t0:.1f}s)\n")
+        except Exception as e:
+            _unknown_until[key] = time.time() + 600
+            sys.stderr.write(f"lookup: model failed for '{name}': {e}\n")
+        finally:
+            with _in_flight_lock:
+                _in_flight.discard(key)
+                ev = _done_events.pop(key, None)
+            if ev:
+                ev.set()
+            _research_q.task_done()
 
 
 def _write_local_cache(entry):
@@ -128,6 +271,9 @@ def _research_worker():
         finally:
             with _in_flight_lock:
                 _in_flight.discard(_norm(name))
+                ev = _done_events.pop(_norm(name), None)
+            if ev:
+                ev.set()
             _research_q.task_done()
 
 
@@ -139,16 +285,24 @@ def lookup(name, cuisine):
     if d:
         return 200, _lookup_payload(d)
     key = _norm(name)
-    if not RESEARCH:
-        return 200, {"dish": name, "status": "unknown", "ingredients": [], "ingredientsSource": "none", "cached": False, "note": "server started without --research"}
+    if not (RESEARCH or LLM):
+        return 200, {"dish": name, "status": "unknown", "ingredients": [], "ingredientsSource": "none", "cached": False, "note": "server started without --llm / --research"}
     if _unknown_until.get(key, 0) > time.time():
         return 200, {"dish": name, "status": "unknown", "ingredients": [], "ingredientsSource": "none", "cached": False}
     with _in_flight_lock:
         queued = key in _in_flight
         if not queued:
             _in_flight.add(key)
+            _done_events[key] = threading.Event()
+        ev = _done_events.get(key)
     if not queued:
         _research_q.put((name, cuisine))
+    # The model usually answers in a second or two: wait briefly so the Lens gets the answer on its first ask.
+    if LLM and ev is not None and ev.wait(LLM_WAIT_S):
+        d = find_dish(name)
+        if d:
+            return 200, _lookup_payload(d, cached=False)
+        return 200, {"dish": name, "status": "unknown", "ingredients": [], "ingredientsSource": "none", "cached": False}
     return 200, {"dish": name, "status": "researching", "ingredients": [], "ingredientsSource": "none", "cached": False, "retryAfterS": 8}
 
 
@@ -202,7 +356,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             elif path in ("/health", "/"):
                 m, p = load_menus(), load_products()
-                self._send(200, {"ok": True, "restaurants": len(m.get("restaurants", [])), "products": len(p.get("products", [])), "withLake": WITH_LAKE, "research": RESEARCH, "researching": len(_in_flight)})
+                self._send(200, {"ok": True, "restaurants": len(m.get("restaurants", [])), "products": len(p.get("products", [])), "withLake": WITH_LAKE,
+                                 "research": RESEARCH, "llm": _llm_stats if LLM else False, "researching": len(_in_flight)})
                 return
             else:
                 self._send(404, {"error": "not found", "paths": ["/menus.json", "/products.json", "/lookup?dish=", "/health"]})
@@ -224,20 +379,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global WITH_LAKE, RESEARCH, SEARCH, LAKE
+    global WITH_LAKE, RESEARCH, SEARCH, LAKE, LLM
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--with-lake", action="store_true", help="merge data-lake/gold/lens/menus.json into /menus.json")
     ap.add_argument("--research", action="store_true", help="/lookup misses are researched on the web (needs requests + beautifulsoup4)")
+    ap.add_argument("--llm", action="store_true", help="/lookup misses are answered by a small model (ANTHROPIC_API_KEY or OPENAI_API_KEY in the environment); wins over --research")
     ap.add_argument("--search", choices=["ddg", "brave"], default="ddg", help="search backend for --research (brave needs BRAVE_API_KEY)")
     ap.add_argument("--lake", default=LAKE, help="data lake folder (gold/dishes.json read; bronze/ written by research)")
     a = ap.parse_args()
-    WITH_LAKE, RESEARCH, SEARCH, LAKE = a.with_lake, a.research, a.search, a.lake
-    if RESEARCH:
+    WITH_LAKE, RESEARCH, SEARCH, LAKE, LLM = a.with_lake, a.research, a.search, a.lake, a.llm
+    if LLM:
+        threading.Thread(target=_llm_worker, name="llm", daemon=True).start()
+    elif RESEARCH:
         threading.Thread(target=_research_worker, name="research", daemon=True).start()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
-    print(f"AllergyLens data server on http://{a.host}:{a.port}  (menus.json, products.json, lookup, health; with-lake={WITH_LAKE}, research={RESEARCH})")
+    print(f"AllergyLens data server on http://{a.host}:{a.port}  (menus.json, products.json, lookup, health; with-lake={WITH_LAKE}, llm={LLM}, research={RESEARCH})")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

@@ -11,9 +11,11 @@ Wants=network-online.target
 Type=simple
 User=__USER__
 WorkingDirectory=__REPO__
+# API key for the model path lives here (root-only, never in git): ANTHROPIC_API_KEY=… or OPENAI_API_KEY=…
+EnvironmentFile=-/etc/allergylens.env
 Environment=PATH=__NODE_DIR__:/usr/local/bin:/usr/bin:/bin
 ExecStartPre=/bin/bash -c 'node tools/build-data.js --with-lake && git checkout -q -- Assets/Data/AllergyData.ts'
-ExecStart=__REPO__/.venv/bin/python -u tools/serve_data.py --host 127.0.0.1 --port 8787 --with-lake --research --lake __REPO__/data-lake
+ExecStart=__REPO__/.venv/bin/python -u tools/serve_data.py --host 127.0.0.1 --port 8787 --with-lake --llm --lake __REPO__/data-lake
 Restart=always
 RestartSec=3
 

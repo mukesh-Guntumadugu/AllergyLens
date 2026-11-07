@@ -14,6 +14,10 @@ python3 -c "import venv" 2>/dev/null || sudo apt-get install -y python3-venv
 "$REPO/.venv/bin/pip" install -q -r "$REPO/tools/server/requirements.txt"
 node "$REPO/tools/build-data.js"
 sed -e "s|__USER__|$USER_NAME|" -e "s|__REPO__|$REPO|" "$REPO/tools/server/allergylens-data.service" | sudo tee /etc/systemd/system/allergylens-data.service >/dev/null
+if [ ! -f /etc/allergylens.env ]; then
+  printf '# AllergyLens server secrets. One key is enough; the model path uses whichever is set.\n# ANTHROPIC_API_KEY=\n# OPENAI_API_KEY=\n# ALLERGYLENS_LLM_MODEL=   (optional: claude-haiku-5-5 / gpt-4.1-nano are the defaults)\n' | sudo tee /etc/allergylens.env >/dev/null
+  sudo chmod 600 /etc/allergylens.env
+fi
 sudo systemctl daemon-reload
 sudo systemctl enable allergylens-data
 sudo systemctl restart allergylens-data      # (re)start so a running service picks up the new code

@@ -58,8 +58,10 @@ amber for everyone. Agreed flow:
 - [x] Lens call on miss (`AllergyLensMain.ts`), timeout 4 s, verdict stays amber until the answer arrives, result merged into the session data (compile clean; preview run still to do)
 - [x] `node tools/check.js --dish "<name>" --cuisine <c> --profile <ids> --url …` from the command line
 - [x] Deployed 2026-11-06: GX10 service with research (28 restaurants, home LAN 192.168.1.253); Hostinger VPS `https://srv1619809.hstgr.cloud` (nginx + certbot, API unit, gold copy, research) — miss path verified over https
-- [ ] `menusUrl` in the Lens → `https://srv1619809.hstgr.cloud/menus.json` (stable; the GX10 tunnel hostname changes on every reboot)
-- [ ] Refresh the VPS whenever the GX10 scrapes more: `bash tools/server/sync_vps.sh`
+- [x] `menusUrl` in the Lens → `https://srv1619809.hstgr.cloud/menus.json` (done 2026-11-06 evening; Lens log confirmed)
+- [x] Decision 2026-11-06: no more web scraping. Misses go to a small model on the server (`--llm`, Claude Haiku 5.5 or gpt-4.1-nano), cached per dish, 300 calls/hour cap. Built and deployed; **waiting for the API key**: as root on the VPS, put `ANTHROPIC_API_KEY=…` or `OPENAI_API_KEY=…` into `/etc/allergylens.env`, then `systemctl restart allergylens-api`
+- [ ] After the key is in: `node tools/check.js --dish "paneer tikka" --cuisine indian --profile milk --url https://srv1619809.hstgr.cloud/menus.json` must answer typical with ingredients; `/health` shows the model
+- [ ] ~~Refresh the VPS whenever the GX10 scrapes more~~ (scraping stopped; `sync_vps.sh` stays for a last catalog copy if needed)
 - [ ] GitHub issues to work from: [#2 architecture](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/2), [#3 glanceable UI](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/3), [#4 voice + pinch](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/4)
 - [ ] Unknown page (no marker): one 512-px frame through the Remote Service Gateway to read the dish names first, then the lookup above. Needs a Snap gateway token. Second day.
 
