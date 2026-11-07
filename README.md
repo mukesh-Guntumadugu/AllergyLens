@@ -176,6 +176,20 @@ times out (4 s) or disagrees. The live match rule is stricter than the build:
 a catalog key must cover at least half of the dish name, so "chicken tikka
 masala" is researched rather than answered by the entry "chicken".
 
+**How accurate is the model path.** Tested on 150 dishes with trusted
+ingredients (printed on the menu or cited recipes): the model catches 83 %
+of the real "contains" cases and agrees with the trusted verdict 90 % of the
+time; the misses are restaurant-specific extras no generic recipe can know,
+which is why printed ingredients always win in the join. Full tables and
+method in [docs/model-accuracy-2026-11-07.md](docs/model-accuracy-2026-11-07.md).
+Re-run any time: `tools/server/eval_llm.py` on the server, `node tools/eval_llm.js` here.
+
+**Pre-filled, not on demand.** `tools/server/prefill.py` ran every served
+dish with no ingredients (4,880 distinct names) through the model once on
+7 Nov, about 25 cents in total, so the served file carries the answers and
+the Lens never waits at the table; the on-demand path remains for dishes
+outside the data.
+
 **What runs where.** The glasses do tracking, hands, speech-to-text, the
 checker and the drawing, all offline; every heavy step (OCR, vision models,
 web retrieval, catalogs) runs on a server and comes back as small JSON. The

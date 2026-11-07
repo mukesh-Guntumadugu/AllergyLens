@@ -25,6 +25,12 @@ What exists today, end to end:
 - [ ] Stable hostname (optional, 15 min): a named Cloudflare tunnel so step 2–3 never repeat. Needs a Cloudflare account and a domain.
 - [ ] Demo-day safety: keep the GX10 on mains + Ethernet in the lab, or carry it. If it cannot be online, the bundled data still covers the three printed menus.
 
+## 1a. Model path, done 2026-11-07 night
+
+- [x] Pre-fill of all 4,880 unknown served dish names through the model (running on the VPS; API restarts itself when done; ~$0.25)
+- [x] Accuracy test, two prompts: 83 % of trusted "contains" caught, ~90 % verdict agreement — `docs/model-accuracy-2026-11-07.md`
+- [ ] Decide: a dish whose ingredients come only from the model — keep green when nothing matches (today), or show amber "likely safe, confirm"?
+
 ## 1b. Data funnel (counted 2026-11-07; nothing lost)
 
 | stage | count |
