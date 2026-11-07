@@ -77,7 +77,8 @@ spoken or pinched (rebuilt 7 Nov):
    a tile. A repeated answer counts once ("olive oil olive oil" → olive oil).
    Pinch a chip to remove it. **More…** always follows the last chip; it asks
    "which others?" out loud and opens the typing box with the keyboard, so you
-   can say "banana, apple" or type the list; Done applies it. Beyond five
+   can say "banana, apple" or type; the field opens empty, Done adds what
+   was typed as chips and clears it, so the next More… starts clean. Beyond five
    chips a pager chip ("+N more ›") pinches through the rest, four a page, so
    sixty spoken items stay visible and removable.
 3. **Religious / cultural** — no beef, no pork, no alcohol.

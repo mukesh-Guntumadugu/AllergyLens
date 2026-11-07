@@ -156,7 +156,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   get onMore(): PublicApi<void> {
     return this._onMore.publicApi()
   }
-  /** User corrected the spoken items on the keyboard; the full text of the field. */
+  /** Done on the keyboard: the typed text ("mango" or "mango, kiwi") is ADDED to the profile; the field clears. */
   get onEditCustom(): PublicApi<string> {
     return this._onEditCustom.publicApi()
   }
@@ -266,12 +266,12 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
    * anything spoken ("olive oil") — as chips, with the More… tile always AFTER the last chip. The
    * area has six slots (two rows): up to five chips plus More…; beyond that, four chips a page, a
    * pager chip ("+N more ›") that pinches through the pages, and More… in the last slot. Pinch a
-   * chip to remove it. No limit on what is stored; the keyboard field always carries the full list.
+   * chip to remove it. No limit on what is stored. The typing field is for ADDING: it opens empty, Done
+   * adds what was typed as chips and empties it again, so the next More… / keyboard starts clean.
    */
   setExtras(items: Array<{id: string; label: string}>): void {
     this.extras = items
     this.scheduleRender()
-    if (!this.isEditing) this.showTyped(items.map((i) => i.label).join(", "))
   }
 
   /**
@@ -379,6 +379,14 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     print("AllergyLens: keyboard open (own)")
   }
 
+  /** Done / the check / Return: what was typed is added, the field is emptied, the keyboard goes away. */
+  private submitTyped(): void {
+    const text = this.typed
+    this.setEditing(false)
+    this.showTyped("")
+    if (text.trim().length > 0) this._onEditCustom.invoke(text)
+  }
+
   /** A key of the own keyboard was pinched. */
   private typeKey(key: string): void {
     if (key === KEY_BACKSPACE) this.showTyped(this.typed.slice(0, -1))
@@ -398,8 +406,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       options.onReturnKeyPressed = () => {
         this.keyboardOpen = false
         global.textInputSystem.dismissKeyboard()
-        if (this.editRow) this.editRow.enabled = false
-        this._onEditCustom.invoke(this.typed)
+        this.submitTyped()
       }
       options.onKeyboardStateChanged = (isOpen: boolean) => {
         this.keyboardOpen = isOpen
@@ -425,7 +432,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     if (this.editText) {
       const empty = text.trim().length === 0
       const ownKeyboardUp = !!this.keyboardRoot && this.keyboardRoot.enabled
-      const shown = empty ? "Type the foods to avoid, comma-separated" : text + (ownKeyboardUp ? "|" : "")
+      const shown = empty ? "Type a food to avoid, then Done" : text + (ownKeyboardUp ? "|" : "")
       // Long lists: keep the end (where typing happens) in view.
       this.editText.text = shown.length > 44 ? "\u2026" + shown.slice(shown.length - 43) : shown
       this.editText.textFill.color = empty ? UI.WHITE_SOFT : UI.WHITE
@@ -577,15 +584,12 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const fieldBtn = fieldSO.createComponent(Button.getTypeName()) as Button
     fieldBtn.size = new vec3(fieldW, TILE_H, 1)
     fieldBtn.onTriggerUp.add(() => this.openKeyboard())
-    this.editText = UI.addButtonLabel(fieldSO, "Type the foods to avoid, comma-separated", fieldW - 1.2, d, "Body", UI.WHITE_SOFT)
+    this.editText = UI.addButtonLabel(fieldSO, "Type a food to avoid, then Done", fieldW - 1.2, d, "Body", UI.WHITE_SOFT)
     this.editText.horizontalAlignment = HorizontalAlignment.Left
     const applySO = UI.obj(edit, "ApplyCustomButton", new vec3(fieldW / 2 + GAP / 2, 0, 0))
     const apply = applySO.createComponent(Button.getTypeName()) as Button
     apply.size = new vec3(TILE_H, TILE_H, 1)
-    apply.onTriggerUp.add(() => {
-      this.setEditing(false)
-      this._onEditCustom.invoke(this.typed)
-    })
+    apply.onTriggerUp.add(() => this.submitTyped())
     const inner = UI.flexRow(applySO, TILE_H, TILE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
     UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
     UI.addImage(inner, ICON_DONE, ICON, ICON)
@@ -637,10 +641,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     x += spaceW + KEY_GAP
     addKey(KEY_BACKSPACE, x + key / 2, y, key, () => this.typeKey(KEY_BACKSPACE))
     x += key + KEY_GAP
-    addKey("Done", x + doneW / 2, y, doneW, () => {
-      this.setEditing(false)
-      this._onEditCustom.invoke(this.typed)
-    })
+    addKey("Done", x + doneW / 2, y, doneW, () => this.submitTyped())
     root.enabled = false
     this.keyboardRoot = root
   }

@@ -788,17 +788,19 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
   private panelSettling = false
 
-  /** The keyboard field's text ("mango, coriander") replaces every voice-added item. */
+  /** The keyboard field's text ("mango, coriander") adds each item. */
+  /** Typed on the keyboard and Done: each comma-separated part is ADDED (a known category lights its tile, anything else is a chip). */
   private applyCustomText(text: string): void {
-    for (const c of this.customAllergens) this.profile.set(c.id, false)
-    this.customAllergens = []
+    const added: string[] = []
     for (const part of text.split(/[,;]+/)) {
-      const word = part.trim()
-      if (word.length >= 2) this.addCustomAllergen(word)
+      const word = foodWords(part)
+      if (word.length < 2 || NOT_A_FOOD.test(word)) continue
+      this.addCustomAllergen(word)
+      added.push(word)
     }
     this.showCustomItems()
     this.audio?.playClick()
-    this.profilePanel.setHeard(`Edited: ${this.customAllergens.length > 0 ? this.customAllergens.map((c) => c.label).join(", ") : "nothing extra"}`)
+    this.profilePanel.setHeard(added.length > 0 ? `Added: ${added.join(", ")}` : "Nothing typed")
     this.recheckActive()
   }
 

@@ -41,5 +41,16 @@ export class AllergyLensLeafScenario10Keyboard extends Scenario {
     expect(ui.isVisible("Keyboard"), "keyboard hidden after Done").toBe(false)
     expect(ui.isVisible("EditRow"), "text field hidden after Done").toBe(false)
     expect(ui.isVisible("ProfilePanel"), "panel still open on the allergies step").toBe(true)
+
+    // Once more: the field opens EMPTY and the next Done adds to the profile instead of replacing it.
+    await ui.tap("KeyboardButton")
+    await sleep(300)
+    const again = collectTexts(requireByName("EditCustomField")).join(" ")
+    expect(again.indexOf("mango") < 0, `field is empty when the keyboard opens again (got "${again}")`).toBe(true)
+    for (const ch of "kiwi") await ui.tap(`Key-${ch}`)
+    await ui.tap("Key-Done")
+    await sleep(400)
+    expect(mainScript().hasProfileItem("custom:kiwi"), "kiwi added").toBe(true)
+    expect(mainScript().hasProfileItem("custom:mango"), "mango still there: Done adds, it does not replace").toBe(true)
   }
 }
