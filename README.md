@@ -100,6 +100,10 @@ catch that", menu recognised, and the verdict when a dish is pinched
 fine" / "ingredients not published"). Say "quiet" to mute and "speak" to
 unmute. Anything dynamic (dish names) stays on the card.
 
+**Controls in the panel's corner:** keyboard (a typing field appears below
+the panel, never over it), mic (listening on / off) and speaker (voice on /
+off); each is both the status and the switch.
+
 **Commands on the setup screens** (anywhere in a sentence, politeness ignored):
 `start`, `next`, `back`, `more`, `edit` / `keyboard`, `done` / `save`, `quiet`,
 `speak`, `clear`; a tile name turns it on ("peanuts and milk", "no pork",
@@ -108,8 +112,11 @@ to mango" adds a custom item; "allergies" / "diet" jumps to that screen. The
 "Heard: …" line under the question shows the transcript and what the Lens did
 with it, and the dot before it is green while speech-to-text is listening.
 
-**Speech-to-text:** Snap's ASR module on the glasses; VoiceML with the Mac
-mic in the Lens Studio preview. Both feed the same parser.
+**Speech-to-text:** Snap's ASR module, the engine the glasses use, in the
+Lens Studio preview as well since 7 Nov (`previewAsr` input on `AllergyLens`;
+off = the older VoiceML engine). The preview's own microphone switch must be
+on; the panel's mic icon and the dot before the Heard line show when audio is
+actually arriving, and the mic icon toggles listening.
 
 **Icons** are open-source Material Symbols (Apache 2.0), one per screen and
 the app mark, fetched by `tools/assets/fetch_icons.sh`; tiles are text only.

@@ -7,6 +7,8 @@
     - !<own> f8819744-b2fb-4738-b947-1953ec5ac0c6
     - !<own> 2925e4b8-dde8-4755-a563-e9104f5751b0
     - !<own> d6bff709-75dd-4cf0-85df-57affd3b9df5
+    - !<own> 9b9e7b00-8eda-47ab-9069-f4a4baae275f
+    - !<own> 025d053c-30e6-48ef-bd57-c188ac444340
   layers: !<Layers/267ee9a7-aff2-4f9d-9a49-f71214747d03>
     userLayers:
       - id: 1
@@ -192,6 +194,21 @@
     - !<own> 276368e3-f687-4cc6-947d-24de3a78c9af
   Components:
     []
+- !<SceneObject/025d053c-30e6-48ef-bd57-c188ac444340>
+  PrefabRemaps:
+    []
+  Name: LEAF Plugin Bridge
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> ca569dfa-a635-4065-9ae2-6897c3590a22
 - !<SceneObject/0451d993-a1f7-464e-9b69-32c0d9af8ed7>
   PrefabRemaps:
     []
@@ -1647,6 +1664,21 @@
     - !<own> a4de4ce7-f468-4966-8a06-e29eea60c023
   Components:
     []
+- !<SceneObject/9b9e7b00-8eda-47ab-9069-f4a4baae275f>
+  PrefabRemaps:
+    []
+  Name: AiPreviewAgent Handler
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> a0780577-2013-41d3-844c-de5096b960e2
 - !<SceneObject/9c3a7929-faa9-4369-a85c-c75a6ab4eee7>
   PrefabRemaps:
     []
@@ -1708,6 +1740,22 @@
     - !<own> 46ea93d6-d161-4453-9064-6ac11e1d6523
   Components:
     []
+- !<ScriptComponent/a0780577-2013-41d3-844c-de5096b960e2>
+  PrefabRemaps:
+    []
+  Name: AgentInspectScript
+  Enabled: true
+  ScriptAsset: !<reference> 0b25079c-f5bf-4c6d-96c4-f43b89dfa213
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      {}
+  ScriptTypes:
+    "":
+      {}
 - !<ScriptComponent/a30497c0-df88-4a23-a7a6-ee03ff1ea246>
   PrefabRemaps:
     []
@@ -2131,6 +2179,22 @@
     - !<own> 0a0e1d78-8246-4f5b-ab1a-fdc51837956d
   Components:
     []
+- !<ScriptComponent/ca569dfa-a635-4065-9ae2-6897c3590a22>
+  PrefabRemaps:
+    []
+  Name: MessagingBridge
+  Enabled: true
+  ScriptAsset: !<reference> 9aa407db-2872-4afc-a162-cf7faf2a0f29
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      {}
+  ScriptTypes:
+    "":
+      {}
 - !<Skin/ccf4d3bc-d3c2-4580-b9c5-62f164ef7eef>
   PrefabRemaps:
     []
@@ -2543,7 +2607,10 @@
   ScriptInputsDefault:
     productsRoot: true
     showProfileAtStart: true
+    previewAsr: true
     speechEnabled: true
+    panelFollowsHead: true
+    panelDistanceCm: true
     rememberProfile: true
     defaultProfile: true
     defaultMood: true
@@ -2563,7 +2630,10 @@
       markersRoot: !<reference.SceneObject> d4d72d8d-7a7e-4db6-930e-358c6d92ebea
       productsRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
+      previewAsr: true
       speechEnabled: true
+      panelFollowsHead: true
+      panelDistanceCm: !<float> 80.000000
       rememberProfile: true
       defaultProfile: ""
       defaultMood: everything

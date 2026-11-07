@@ -38,6 +38,7 @@
     menusUrl: false
     panelDistanceCm: false
     panelFollowsHead: false
+    previewAsr: false
     previewVoice: false
     productsRoot: false
     profileButton: false
@@ -62,6 +63,7 @@
       markersRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       productsRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
+      previewAsr: true
       speechEnabled: true
       panelFollowsHead: true
       panelDistanceCm: !<float> 80.000000
@@ -93,6 +95,7 @@
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts (ignored when defaultProfile is set)."}'
+    - "// @input bool previewAsr = true {\"hint\":\"Use Snap's ASR speech-to-text (the engine the glasses use) in the Lens Studio preview too. Off = the older VoiceML engine with the preview mic.\"}"
     - "// @input bool speechEnabled = true {\"hint\":\"The Lens speaks: welcome, each step's question, saved, menu recognised, and the verdict on a pinch (pre-rendered clips, Assets/Audio/Speech). Say \\\"quiet\\\" to mute.\"}"
     - '// @input bool panelFollowsHead = true {"hint":"The profile panel stays at a fixed distance in front of the user and turns to face them (lazy follow), so it always reads the same size. Off = it stays where it was placed."}'
     - '// @input float panelDistanceCm = 80 {"hint":"Distance (cm) the panel keeps in front of the user while it follows.", "widget":"slider", "min":50, "max":120, "step":5}'

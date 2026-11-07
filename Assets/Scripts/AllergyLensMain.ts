@@ -88,6 +88,10 @@ export class AllergyLensMain extends BaseScriptComponent {
   showProfileAtStart: boolean = true
 
   @input
+  @hint("Use Snap's ASR speech-to-text (the engine the glasses use) in the Lens Studio preview too. Off = the older VoiceML engine with the preview mic.")
+  previewAsr: boolean = true
+
+  @input
   @hint("The Lens speaks: welcome, each step's question, saved, menu recognised, and the verdict on a pinch (pre-rendered clips, Assets/Audio/Speech). Say \"quiet\" to mute.")
   speechEnabled: boolean = true
 
@@ -283,7 +287,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (this.voiceEnabled) {
       const inEditor = global.deviceInfoSystem.isEditor()
       if (inEditor && !this.previewVoice) print("AllergyLens: voice is off in the Lens Studio preview (tick previewVoice to talk to the panel through the preview mic); pinch works")
-      else this.voice = new VoiceListener((text) => this.onVoice(text), inEditor, (live) => this.onMicLive(live)) // preview → VoiceML, glasses → ASR
+      else this.voice = new VoiceListener((text) => this.onVoice(text), inEditor && !this.previewAsr, (live) => this.onMicLive(live)) // glasses → ASR; preview → ASR unless previewAsr is off
     }
     this.safeCardTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.safeCardTimer.bind(() => this.closeDetail())
