@@ -178,7 +178,9 @@ export class VoiceListener {
         })
         this.vml.onListeningError.add((e: VoiceML.ListeningErrorEventArgs) => {
           const any = e as unknown as {error?: string; description?: string}
-          print(`AllergyLens: voice (VoiceML) error ${any.error ?? ""} ${any.description ?? ""}`)
+          print(`AllergyLens: voice (VoiceML) error ${any.error ?? ""} ${any.description ?? ""}; listening again`)
+          this.vmlListening = false
+          if (this.active) this.vmlListen()
         })
       }
       this.active = true

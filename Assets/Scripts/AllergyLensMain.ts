@@ -42,6 +42,15 @@ const SECTION_WORDS: {[word: string]: AllergenGroup} = {
   diet: "diet", dietary: "diet", diets: "diet",
 }
 const NOT_A_FOOD = /^(this|that|these|those|thing|things|something|anything|it|them|one|one more|more|another|another one|option|options|stuff|here|there|some|some more|the same|same|also|too|as well)$/
+/** Words that carry no food: dropped from a spoken part before it can become a custom item ("well i'm also allergic to" → nothing). */
+const FILLER_WORDS = new Set(("well so yeah yes yep okay ok um uh hmm like just really actually basically i i'm im am me my we you he she they it is are was be " +
+  "have has had do does did can could would should will also too as well and or but then please thanks thank think guess mean " +
+  "allergic allergy allergies allergen allergens intolerant intolerance sensitive sensitivity eat eating food foods to of for with " +
+  "the a an some any more another one other others add avoid no not don't dont want need got get").split(" "))
+
+function foodWords(part: string): string {
+  return part.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").split(" ").filter((w) => w.length > 0 && !FILLER_WORDS.has(w)).join(" ")
+}
 
 @component
 export class AllergyLensMain extends BaseScriptComponent {
@@ -195,6 +204,20 @@ export class AllergyLensMain extends BaseScriptComponent {
     })
     this.profilePanel.onEditCustom.add((text) => this.applyCustomText(text))
     this.profilePanel.onRemoveExtra.add((id) => this.removeExtra(id))
+    // Corner controls: mic = listening on/off, speaker = voice on/off.
+    this.profilePanel.onMicToggle.add(() => {
+      const on = !(this.voice?.isListening ?? false)
+      this.listen(on)
+      this.profilePanel.setHeard(on ? STEP_HINT[this.profilePanel.step] : "Microphone off. Pinch the mic to listen again.")
+      this.audio?.playClick()
+    })
+    this.profilePanel.onSpeakerToggle.add(() => {
+      if (!this.speech) return
+      this.speech.setMuted(!this.speech.muted)
+      this.profilePanel.setSpeaking(!this.speech.muted)
+      this.audio?.playClick()
+    })
+    this.profilePanel.setSpeaking(!!this.speech && !this.speech.muted)
     this.profilePanel.onDone.add(() => this.onProfileDone())
     this.profileButton.onProfile.add(() => this.openProfile())
     this.dishDetail.onClose.add(() => this.closeDetail())
@@ -280,7 +303,9 @@ export class AllergyLensMain extends BaseScriptComponent {
     // Profile is a separate step before the menu: panel at start (unless a default
     // profile makes the run hands-free); the small Profile button only when the panel is
     // closed and no menu is in view.
-    const restored = this.profile.isEmpty && this.rememberProfile && this.restoreProfile()
+    // The glasses remember the profile; the Lens Studio preview never does, so every preview run starts at Welcome.
+    const remember = this.rememberProfile && !global.deviceInfoSystem.isEditor()
+    const restored = this.profile.isEmpty && remember && this.restoreProfile()
     const panelAtStart = this.showProfileAtStart && this.profile.isEmpty && !restored
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
@@ -466,7 +491,7 @@ export class AllergyLensMain extends BaseScriptComponent {
    * else that looks like a food becomes a custom item. Returns what was done, or null.
    */
   private applySpokenItem(part: string): string | null {
-    const item = part.replace(/^(a|an|the|some|no|not|and|also|plus|avoid|i'm allergic to|im allergic to|allergic to|i am allergic to|allergy to|no more)\s+/, "").replace(/\s+(please|too|also|as well)$/, "").trim()
+    const item = foodWords(part)
     if (item.length < 3 || NOT_A_FOOD.test(item)) return null
     const toggles = this.findTogglesInSentence(item)
     if (toggles.length > 0) {
@@ -509,7 +534,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.audio?.playClick()
     this.dismissPanel()
     if (!this.anyMarkerActive()) this.listen(false)
-    if (this.rememberProfile) this.saveProfile()
+    if (this.rememberProfile && !global.deviceInfoSystem.isEditor()) this.saveProfile()
     this.speech?.say("saved")
     print(`AllergyLens: profile done [${this.profile.ids().join(", ")}]`)
     this.recheckActive()
@@ -703,7 +728,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       const custom = JSON.parse(store.getString(STORE_CUSTOM) || "[]") as Array<{label: string; group: AllergenGroup}>
       if (ids.length === 0 && custom.length === 0) return false
       for (const id of ids) if (ALLERGENS.some((a) => a.id === id)) { this.profile.set(id, true); this.profilePanel.setToggle(id, true) }
-      for (const c of custom) this.addCustomAllergen(c.label, c.group)
+      for (const c of custom) if (foodWords(c.label).length >= 3) this.addCustomAllergen(foodWords(c.label), c.group)
       this.updateMoodAvailability()
       print(`AllergyLens: profile restored from the device [${this.profile.ids().join(", ")}]`)
       return true
@@ -907,11 +932,13 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     if (/^(quiet|mute|be quiet|stop talking|silence)$/.test(text)) {
       this.speech?.setMuted(true)
+      this.profilePanel.setSpeaking(false)
       heard("voice off")
       return
     }
     if (/^(speak|unmute|talk|voice on|talk to me)$/.test(text)) {
       this.speech?.setMuted(false)
+      this.profilePanel.setSpeaking(true)
       heard("voice on")
       return
     }
@@ -1039,8 +1066,8 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.onProfileDone()
       return
     }
-    if (this.profilePanel.step === "allergies" && cleaned.split(" ").length <= 3 && cleaned.length >= 3 && !NOT_A_FOOD.test(cleaned)) {
-      // On the allergies screen a bare food name is an answer: "garlic" → avoid garlic.
+    if (this.profilePanel.step === "allergies" && foodWords(cleaned).split(" ").filter((w) => w.length > 0).length <= 3 && foodWords(cleaned).length >= 3) {
+      // On the allergies screen a bare food name is an answer: "garlic" → avoid garlic ("well, I'm also allergic to" alone is nothing).
       const did = this.applySpokenItem(cleaned)
       if (did) {
         this.audio?.playClick()
