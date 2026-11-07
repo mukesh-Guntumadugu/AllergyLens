@@ -102,7 +102,17 @@ unmute. Anything dynamic (dish names) stays on the card.
 
 **Controls in the panel's corner:** keyboard (a typing field appears below
 the panel, never over it), mic (listening on / off) and speaker (voice on /
-off); each is both the status and the switch.
+off); each is both the status and the switch. Snap's speech stream ends on
+its own after a few minutes; the Lens reconnects with a growing pause and
+says "I can hear you now" when it is back. In the Lens Studio preview the
+Preview panel's own mic and speaker switches stand in for the glasses'
+hardware: a Lens cannot flip them, so when no audio arrives the Lens says
+"I can't hear you yet, turn on the microphone in the Preview panel". On the
+glasses there is no second switch.
+
+**After Done** the panel glides to a large, see-through account icon in the
+lower-right corner of the view (`AllergyLensProfileButtonUI`, 7 cm, Material
+"account_circle"); pinch it, or say "edit profile", to come back.
 
 **Commands on the setup screens** (anywhere in a sentence, politeness ignored):
 `start`, `next`, `back`, `more`, `edit` / `keyboard`, `done` / `save`, `quiet`,
