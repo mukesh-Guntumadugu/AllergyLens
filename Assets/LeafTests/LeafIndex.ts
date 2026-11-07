@@ -9,6 +9,8 @@ import {AllergyLensLeafScenario6MoodVegetarian} from "./AllergyLensLeafScenario6
 import {AllergyLensLeafScenario7MoodChicken} from "./AllergyLensLeafScenario7MoodChicken"
 import {AllergyLensLeafScenario8EverythingLight} from "./AllergyLensLeafScenario8EverythingLight"
 import {AllergyLensLeafScenario9VoiceMatch} from "./AllergyLensLeafScenario9VoiceMatch"
+import {AllergyLensLeafScenario10Keyboard} from "./AllergyLensLeafScenario10Keyboard"
+import {AllergyLensLeafScenario11VoiceItems} from "./AllergyLensLeafScenario11VoiceItems"
 
 @component
 export class LeafIndex extends BaseScriptComponent {
@@ -23,5 +25,7 @@ export class LeafIndex extends BaseScriptComponent {
     {id: "allergylens-7-mood-chicken", typename: AllergyLensLeafScenario7MoodChicken.getTypeName()},
     {id: "allergylens-8-everything-light", typename: AllergyLensLeafScenario8EverythingLight.getTypeName()},
     {id: "allergylens-9-voice-match", typename: AllergyLensLeafScenario9VoiceMatch.getTypeName()},
+    {id: "allergylens-10-keyboard", typename: AllergyLensLeafScenario10Keyboard.getTypeName(), parameters: {keepOpen: "false"}},
+    {id: "allergylens-11-voice-items", typename: AllergyLensLeafScenario11VoiceItems.getTypeName()},
   ]
 }

@@ -66,6 +66,7 @@ interface MainApi {
   resetProfile(): void
   setProfileItem(id: string, on: boolean): boolean
   hasProfileItem(id: string): boolean
+  hearVoice(text: string): void
 }
 
 interface OverlayApi {

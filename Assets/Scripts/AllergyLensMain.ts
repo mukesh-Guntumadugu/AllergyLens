@@ -48,6 +48,31 @@ const FILLER_WORDS = new Set(("well so yeah yes yep okay ok um uh hmm like just 
   "allergic allergy allergies allergen allergens intolerant intolerance sensitive sensitivity eat eating food foods to of for with " +
   "the a an some any more another one other others add avoid no not don't dont want need got get").split(" "))
 
+/**
+ * Speech-to-text often glues a repeated answer into one transcript ("olive oil olive oil olive oil"
+ * when the user said it three times waiting for a reaction): collapse any phrase said twice in a row.
+ */
+function collapseRepeats(text: string): string {
+  const words = text.split(" ").filter((w) => w.length > 0)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (let n = 1; n <= 4 && !changed; n++) {
+      for (let i = 0; i + 2 * n <= words.length; i++) {
+        if (words.slice(i, i + n).join(" ") === words.slice(i + n, i + 2 * n).join(" ")) {
+          words.splice(i + n, n)
+          changed = true
+          break
+        }
+      }
+    }
+  }
+  return words.join(" ")
+}
+
+/** Which group a bare food named on a setup screen belongs to. */
+const STEP_GROUP: {[s in ProfileStep]: AllergenGroup} = {welcome: "allergy", allergies: "allergy", religious: "religious", diet: "diet"}
+
 function foodWords(part: string): string {
   return part.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").split(" ").filter((w) => w.length > 0 && !FILLER_WORDS.has(w)).join(" ")
 }
@@ -208,8 +233,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profilePanel.onStep.add((step) => this.onProfileStep(step))
     this.profilePanel.onMore.add(() => {
       this.audio?.playClick()
-      this.speech?.say("more")
-      this.profilePanel.setHeard("Say them, as many as you have: \u201csesame seeds, olive oil and garlic\u201d.")
+      this.onMoreRequested()
     })
     this.profilePanel.onEditCustom.add((text) => this.applyCustomText(text))
     this.profilePanel.onRemoveExtra.add((id) => this.removeExtra(id))
@@ -466,10 +490,11 @@ export class AllergyLensMain extends BaseScriptComponent {
   private addCustomAllergen(phrase: string, group: AllergenGroup = "allergy"): void {
     const word = phrase.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim()
     if (word.length < 2) return
+    // Only a category's own name flips its tile ("shellfish", "tree nuts", "dairy"). A specific food
+    // ("octopus", "cashews", "bacon") stays the user's own word: its own chip, matched as that word.
     const known = ALLERGENS.find((a) => a.id === word || a.label.toLowerCase() === word || a.label.toLowerCase().replace(/^(no|avoid) /, "") === word
-      || a.aliases.indexOf(word) >= 0 || (a.spoken ?? []).indexOf(word) >= 0)
+      || (a.spoken ?? []).indexOf(word) >= 0)
     if (known) {
-      // "I'm allergic to cashews" → the tree-nut toggle
       this.profile.set(known.id, true)
       this.profilePanel.setToggle(known.id, true)
       print(`AllergyLens: "${word}" → ${known.id} on`)
@@ -487,6 +512,22 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profile.set(id, true)
     this.showCustomItems()
     this.recheckActive()
+  }
+
+  /**
+   * More… (pinched or said): ask for the rest out loud AND open the typing box with the keyboard, so
+   * the user can either say "banana, apple" (each becomes a chip) or type the list.
+   */
+  private onMoreRequested(): void {
+    this.speech?.say("more")
+    this.profilePanel.setEditing(true)
+    this.profilePanel.setHeard("Say them (\u201csesame, olive oil and garlic\u201d), or type them.")
+  }
+
+  /** Tests feed a transcript here, exactly as speech-to-text would deliver it. Public for LEAF. */
+  hearVoice(text: string): void {
+    if (this.profilePanel.getSceneObject().enabled) this.handlePanelVoice(text)
+    else this.onVoice(text)
   }
 
   /** Chips on the allergies screen: every profile item without a tile (fish, soy, sesame, anything spoken). */
@@ -514,7 +555,7 @@ export class AllergyLensMain extends BaseScriptComponent {
    * One spoken item on the allergies screen: a known toggle ("fish", "no pork") goes on, anything
    * else that looks like a food becomes a custom item. Returns what was done, or null.
    */
-  private applySpokenItem(part: string): string | null {
+  private applySpokenItem(part: string, group: AllergenGroup = "allergy"): string | null {
     const item = foodWords(part)
     if (item.length < 3 || NOT_A_FOOD.test(item)) return null
     const toggles = this.findTogglesInSentence(item)
@@ -522,8 +563,8 @@ export class AllergyLensMain extends BaseScriptComponent {
       for (const t of toggles) { this.profile.set(t.id, true); this.profilePanel.setToggle(t.id, true) }
       return toggles.map((t) => `${t.label} on`).join(", ")
     }
-    if (item.split(" ").length > 3) return null
-    this.addCustomAllergen(item)
+    if (item.split(" ").length > 4) return null
+    this.addCustomAllergen(item, group)
     return `avoid ${item}`
   }
 
@@ -697,7 +738,8 @@ export class AllergyLensMain extends BaseScriptComponent {
     const rot = cam.getWorldRotation()
     const look = rot.multiplyVec3(new vec3(0, 0, -1))
     const up = rot.multiplyVec3(new vec3(0, 1, 0))
-    const yOff = this.panelHome ? this.panelHome.pos.y : -2
+    // While the typing field and keyboard hang below the plate, the panel rides up by half of them so the whole stack is centred in view.
+    const yOff = (this.panelHome ? this.panelHome.pos.y : -2) + this.profilePanel.belowPanelCm / 2
     return {pos: cam.getWorldPosition().add(look.uniformScale(this.panelDistanceCm)).add(up.uniformScale(yOff)), rot}
   }
 
@@ -972,7 +1014,9 @@ export class AllergyLensMain extends BaseScriptComponent {
    *   "allergies" / "religious" / "diet"              → just acknowledged (the whole panel is in view)
    */
   private handlePanelVoice(raw: string): void {
-    const text = raw.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").replace(/\s+/g, " ").trim()
+    // textC keeps the commas speech-to-text puts between list items ("banana, apple"); text has none.
+    const textC = collapseRepeats(raw.toLowerCase().replace(/[^a-z0-9',\s]/g, " ").replace(/\s*,\s*/g, " , ").replace(/\s+/g, " ").trim())
+    const text = textC.replace(/ , /g, " ").replace(/\s+/g, " ").trim()
     const short = raw.length > 48 ? raw.slice(0, 45) + "…" : raw
     const heard = (what: string) => this.profilePanel.setHeard(`Heard: "${short}" → ${what}`)
     if (/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done|save|save it)$/.test(text)) {
@@ -991,8 +1035,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     if (/^(more|show more|even more|others|other allergies|something else|one more|another one)$/.test(text)) {
       if (this.profilePanel.step !== "allergies") { this.profilePanel.setStep("allergies"); this.onProfileStep("allergies") }
-      this.speech?.say("more")
-      heard("Say them, as many as you have: \u201csesame seeds, olive oil and garlic\u201d.")
+      this.onMoreRequested()
       return
     }
     if (/^(edit|keyboard|type|type it|fix it|correct it|that's wrong|thats wrong)$/.test(text)) {
@@ -1021,9 +1064,9 @@ export class AllergyLensMain extends BaseScriptComponent {
     // Natural speech: drop politeness and filler, then look for every toggle named anywhere in
     // the sentence ("please pick no beef on the religious side, right" → No beef on;
     // "no beef and no pork" → both). "turn off / remove / don't need" anywhere → off.
-    const cleaned = text
-      .replace(/\b(uh|um|ah|please|okay|ok|right|yeah|yes|so|can you|could you|pick|select|tick|choose|mark|set|put|on the \w+ side|on \w+ side|for me|i want|i'd like|i would like|to do|would like to)\b/g, " ")
-      .replace(/\s+/g, " ").trim()
+    const POLITE = /\b(uh|um|ah|please|okay|ok|right|yeah|yes|so|can you|could you|pick|select|tick|choose|mark|set|put|on the \w+ side|on \w+ side|for me|i want|i'd like|i would like|to do|would like to)\b/g
+    const cleaned = text.replace(POLITE, " ").replace(/\s+/g, " ").trim()
+    const cleanedC = textC.replace(POLITE, " ").replace(/\s+/g, " ").replace(/^(, )+|( ,)+$/g, "").trim()
     // "allergies, add mango" / "religious add lamb" / "diet, also keto": an item for that section.
     const sectionAdd = /^(allergies|allergy|allergic|religious|religion|cultural|culture|diet|dietary|diets)\s*,?\s*(add|also|plus|and|include|put)\s+(.+)$/.exec(cleaned)
     if (sectionAdd) {
@@ -1063,7 +1106,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     // A list on the allergies screen: "sesame seeds, olive oil and garlic" → three items, known or custom.
     if (this.profilePanel.step === "allergies" && !off) {
-      const listText = cleaned.replace(/^(i'm allergic to|im allergic to|i am allergic to|allergic to|i can't eat|i cannot eat|no|avoid)\s+/, "")
+      const listText = cleanedC.replace(/^(i'm allergic to|im allergic to|i am allergic to|allergic to|i can't eat|i cannot eat|no|avoid)\s+/, "")
       const parts = listText.split(/\s*,\s*|\s+and\s+|\s+plus\s+|\s+also\s+/).map((x) => x.trim()).filter((x) => x.length > 0)
       if (parts.length > 1) {
         const done = parts.map((x) => this.applySpokenItem(x)).filter((x): x is string => x !== null)
@@ -1136,9 +1179,10 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.onProfileDone()
       return
     }
-    if (this.profilePanel.step === "allergies" && foodWords(cleaned).split(" ").filter((w) => w.length > 0).length <= 3 && foodWords(cleaned).length >= 3) {
-      // On the allergies screen a bare food name is an answer: "garlic" → avoid garlic ("well, I'm also allergic to" alone is nothing).
-      const did = this.applySpokenItem(cleaned)
+    if (this.profilePanel.step !== "welcome" && foodWords(cleaned).split(" ").filter((w) => w.length > 0).length <= 4 && foodWords(cleaned).length >= 3) {
+      // On a question screen a bare food name is an answer: "garlic" → avoid garlic, "octopus" → avoid octopus
+      // (its own chip, not the Shellfish tile); "well, I'm also allergic to" alone is nothing.
+      const did = this.applySpokenItem(cleaned, STEP_GROUP[this.profilePanel.step])
       if (did) {
         this.audio?.playClick()
         this.showCustomItems()
@@ -1203,27 +1247,14 @@ export class AllergyLensMain extends BaseScriptComponent {
     const has = (phrase: string) => phrase.length > 1 && s.indexOf(` ${phrase} `) >= 0
     const out: AllergenDef[] = []
     const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()
-    const isMoodWord = !!this.moodByName(sentence)
-    const matchedWords = new Set<string>()
-    // Pass 1: names. Pass 2: synonyms, but never for the umbrella toggles (Vegetarian and
-    // Vegan list beef, pork, chicken… as synonyms; "no pork" must not switch Vegetarian on)
-    // and never on a word that already named another toggle.
+    // Names only (label, its core word, id, spoken forms). Ingredient aliases ("octopus", "bacon",
+    // "cashews") deliberately do NOT flip a tile: a specific food the user names becomes its own chip.
     for (const a of ALLERGENS) {
       const label = norm(a.label)
       const core = label.replace(/^(no|avoid) /, "")
       const words = core.split(" ").filter((w) => w.length > 2)
       const spoken = (a.spoken ?? []).map(norm)
-      const hitWord = [label, core, a.id, a.id.replace("_", " ")].concat(words).concat(spoken).find((w) => has(w))
-      if (hitWord !== undefined) {
-        out.push(a)
-        matchedWords.add(hitWord)
-      }
-    }
-    if (!isMoodWord) {
-      for (const a of ALLERGENS) {
-        if (out.indexOf(a) >= 0 || a.implies || a.id === "meat") continue
-        if (a.aliases.some((al) => has(norm(al)) && !matchedWords.has(norm(al)))) out.push(a)
-      }
+      if ([label, core, a.id, a.id.replace("_", " ")].concat(words).concat(spoken).some((w) => has(w))) out.push(a)
     }
     // "vegetarian" names the Diet toggle AND a mood chip: with the panel open the toggle wins.
     return out

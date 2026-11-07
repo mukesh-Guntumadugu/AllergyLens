@@ -61,7 +61,7 @@ The shot list with timings and voice-over is in
 
 ---
 
-## Voice first: there is no keyboard on the glasses
+## Voice first, keyboard when you want it
 
 The profile is a short guided setup, one question per screen, and every step can be
 spoken or pinched (rebuilt 7 Nov):
@@ -71,10 +71,13 @@ spoken or pinched (rebuilt 7 Nov):
 2. **Allergies** — the six common ones as big tiles (peanuts, tree nuts, milk,
    eggs, wheat, shellfish). Everything else is spoken, with no limit: say
    "sesame seeds, olive oil and garlic" and each item becomes a chip (fish,
-   soy and sesame are recognised as the known allergens they are); pinch a
-   chip to remove it; **More…** asks "which others?" and the Heard line is
-   the blank line; **Edit** opens the keyboard over the chips with the full
-   comma-separated list to fix a misheard word.
+   soy and sesame are recognised as the known allergens they are). A specific
+   food stays your own word: "octopus" is an Octopus chip, not the Shellfish
+   tile; only a category's own name ("shellfish", "tree nuts", "dairy") flips
+   a tile. A repeated answer counts once ("olive oil olive oil" → olive oil).
+   Pinch a chip to remove it. **More…** asks "which others?" out loud and
+   opens the typing box with the keyboard, so you can say "banana, apple" or
+   type the list; Done applies it.
 3. **Religious / cultural** — no beef, no pork, no alcohol.
 4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Vegetarian and vegan
    are one choice (vegan covers vegetarian, milk and eggs inside the checker
@@ -100,9 +103,15 @@ catch that", menu recognised, and the verdict when a dish is pinched
 fine" / "ingredients not published"). Say "quiet" to mute and "speak" to
 unmute. Anything dynamic (dish names) stays on the card.
 
-**Controls in the panel's corner:** keyboard (a typing field appears below
-the panel, never over it), mic (listening on / off) and speaker (voice on /
-off); each is both the status and the switch. Snap's speech stream ends on
+**Controls beside the panel:** keyboard, mic (listening on / off) and
+speaker (voice on / off); each is both the status and the switch. The
+keyboard icon (or More…, or saying "edit") shows a typing field below the
+panel, never over it, and a keyboard: on the glasses the SPECS system
+keyboard (`TextInputSystem.requestKeyboard`), in the Lens Studio preview the
+Lens's own pinch keyboard, styled like the SPECS one (a dark plate under the
+field, three letter rows, comma, space, backspace, Done), because the preview
+cannot draw the system keyboard. The own keyboard is also the fallback on the
+glasses if the system keyboard reports an error. Snap's speech stream ends on
 its own after a few minutes; the Lens reconnects with a growing pause and
 says "I can hear you now" when it is back. In the Lens Studio preview the
 Preview panel's own mic and speaker switches stand in for the glasses'

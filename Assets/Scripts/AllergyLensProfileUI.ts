@@ -3,9 +3,12 @@
 // Space is the constraint on glasses, so each screen is only: the question (with one icon), the
 // "Heard: …" line, the tiles, the chips for anything spoken, and Back / Next. No header. Three small
 // controls sit in a strip OUTSIDE the panel on its right side, so no text can ever run under them:
-// keyboard (opens the SPECS system keyboard at once, with the typed text shown in a field BELOW the
-// panel), mic (listening on / off) and speaker (voice on / off) — each both a status and a switch. In the Lens Studio preview with SPECS 27 the
-// system keyboard is replaced by Lens Studio's "Keyboard Simulation" sheet (hardware keys type).
+// keyboard, mic (listening on / off) and speaker (voice on / off) — each both a status and a switch.
+// Keyboard: on the glasses one pinch on the icon brings up the SPECS system keyboard (TextInputSystem),
+// with the typed text shown in a field BELOW the panel. In the Lens Studio preview the system keyboard
+// cannot be drawn, so the Lens shows its OWN keyboard there, styled like the SPECS one: a dark plate
+// under the field with pinchable keys (three letter rows, comma, space, backspace, Done). The same own
+// keyboard is the fallback on the glasses if the system keyboard reports an error.
 // Owns: the tiles, chips and controls and their visuals, the step switch. Expects no scene @inputs
 // beyond sizing. Must not hold the profile — it reports every flip, step change, control and edit
 // to Main (the single owner of profile state). Object names LEAF relies on: "Toggle-<allergen id>",
@@ -70,6 +73,11 @@ const CTRL_ICON = 1.7
 const ICON = 2.2
 const BODY_ROWS = 2      // tile rows reserved on every question screen
 const CHIP_ROWS = 2
+const KEY_GAP = 0.25     // own keyboard: gap between keys; the key size follows the panel width, at most KEY_MAX
+const KEY_PAD = 0.6
+const KEY_MAX = 2.6
+const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+const KEY_BACKSPACE = "\u232B"
 
 @component
 export class AllergyLensProfileUI extends BaseScriptComponent {
@@ -109,9 +117,12 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private chipW = 8
   private overflowText: Text | null = null
   private editRow: SceneObject | null = null
+  private keyboardRoot: SceneObject | null = null
+  private keyboardH = 0
   private editText: Text | null = null
   private typed = ""
-  private keyboardOpen = false
+  private keyboardOpen = false          // the SPECS system keyboard is up
+  private systemKeyboardFailed = false  // it reported an error → own keyboard from then on
   private greeting: Text | null = null
   private panelH = 20
   private _step: ProfileStep = "welcome"
@@ -187,8 +198,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       this.buildFooter(col, innerW, d, step)
       screen.enabled = step === this._step
     }
-    // The typing field lives BELOW the panel, outside the plate, so it never covers anything.
+    // The typing field and the own keyboard live BELOW the panel, outside the plate, so they never cover anything.
     this.buildEditRow(innerW, d, H)
+    this.buildKeyboard(W, d, H)
     // The three controls live in a strip to the RIGHT of the plate, top-aligned, outside every row.
     this.buildControlStrip(W, H)
   }
@@ -270,29 +282,65 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       this.chipObjects.push(so)
     })
     if (this.overflowText) this.overflowText.text = items.length > slots ? `+${items.length - slots} more (keyboard shows all)` : ""
-    if (!this.keyboardOpen) this.showTyped(items.map((i) => i.label).join(", "))
+    if (!this.isEditing) this.showTyped(items.map((i) => i.label).join(", "))
   }
 
   /**
-   * Typing on / off: the SPECS system keyboard comes up at once (one pinch on the icon), the text is
-   * shown in the field below the panel, Return applies it. Off dismisses the keyboard and hides the field.
+   * Typing on / off: one pinch on the icon shows the text field below the panel and brings up the
+   * keyboard — the SPECS system keyboard on the glasses, the Lens's own pinch keyboard in the preview
+   * (or on the glasses if the system one fails). Done / the check applies; off hides everything.
    */
   setEditing(on: boolean): void {
     if (this.editRow) this.editRow.enabled = on
-    if (on) this.requestKeyboard()
-    else if (this.keyboardOpen) {
-      try {
-        global.textInputSystem.dismissKeyboard()
-      } catch (e) {
-        print(`AllergyLens: keyboard dismiss failed (${e})`)
+    if (on) this.openKeyboard()
+    else {
+      if (this.keyboardRoot) this.keyboardRoot.enabled = false
+      if (this.keyboardOpen) {
+        try {
+          global.textInputSystem.dismissKeyboard()
+        } catch (e) {
+          print(`AllergyLens: keyboard dismiss failed (${e})`)
+        }
+        this.keyboardOpen = false
       }
-      this.keyboardOpen = false
     }
+    this.showTyped(this.typed)
+  }
+
+  get isEditing(): boolean {
+    return !!this.editRow && this.editRow.enabled
+  }
+
+  /** How far the field (and the own keyboard, when it is up) hang below the plate; Main raises the panel by half of it. */
+  get belowPanelCm(): number {
+    if (!this.isEditing) return 0
+    return TILE_H + GAP * 2 + (this.keyboardRoot && this.keyboardRoot.enabled ? this.keyboardH : 0)
   }
 
   openEdit(): void {
     if (this._step !== "allergies") this.setStep("allergies")
     this.setEditing(true)
+  }
+
+  private get useSystemKeyboard(): boolean {
+    return !global.deviceInfoSystem.isEditor() && !this.systemKeyboardFailed
+  }
+
+  private openKeyboard(): void {
+    if (this.useSystemKeyboard) this.requestKeyboard()
+    else this.showOwnKeyboard()
+  }
+
+  private showOwnKeyboard(): void {
+    if (this.keyboardRoot) this.keyboardRoot.enabled = true
+    print("AllergyLens: keyboard open (own)")
+  }
+
+  /** A key of the own keyboard was pinched. */
+  private typeKey(key: string): void {
+    if (key === KEY_BACKSPACE) this.showTyped(this.typed.slice(0, -1))
+    else if (key === "space") this.showTyped(this.typed + " ")
+    else this.showTyped(this.typed + key)
   }
 
   private requestKeyboard(): void {
@@ -314,11 +362,18 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
         this.keyboardOpen = isOpen
         print(`AllergyLens: keyboard ${isOpen ? "open" : "closed"}`)
       }
-      options.onError = (error: number, description: string) => print(`AllergyLens: keyboard error ${error}: ${description}`)
+      options.onError = (error: number, description: string) => {
+        print(`AllergyLens: system keyboard error ${error}: ${description} — using the Lens's own keyboard`)
+        this.systemKeyboardFailed = true
+        this.keyboardOpen = false
+        if (this.isEditing) this.showOwnKeyboard()
+      }
       global.textInputSystem.requestKeyboard(options)
       this.keyboardOpen = true
     } catch (e) {
-      print(`AllergyLens: keyboard unavailable (${e})`)
+      print(`AllergyLens: system keyboard unavailable (${e}) — using the Lens's own keyboard`)
+      this.systemKeyboardFailed = true
+      this.showOwnKeyboard()
     }
   }
 
@@ -326,7 +381,10 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     this.typed = text
     if (this.editText) {
       const empty = text.trim().length === 0
-      this.editText.text = empty ? "Type the foods to avoid, comma-separated" : text
+      const ownKeyboardUp = !!this.keyboardRoot && this.keyboardRoot.enabled
+      const shown = empty ? "Type the foods to avoid, comma-separated" : text + (ownKeyboardUp ? "|" : "")
+      // Long lists: keep the end (where typing happens) in view.
+      this.editText.text = shown.length > 44 ? "\u2026" + shown.slice(shown.length - 43) : shown
       this.editText.textFill.color = empty ? UI.WHITE_SOFT : UI.WHITE
     }
   }
@@ -475,7 +533,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     const fieldSO = UI.obj(edit, "EditCustomField", new vec3(-(TILE_H + GAP) / 2, 0, 0))
     const fieldBtn = fieldSO.createComponent(Button.getTypeName()) as Button
     fieldBtn.size = new vec3(fieldW, TILE_H, 1)
-    fieldBtn.onTriggerUp.add(() => this.requestKeyboard())
+    fieldBtn.onTriggerUp.add(() => this.openKeyboard())
     this.editText = UI.addButtonLabel(fieldSO, "Type the foods to avoid, comma-separated", fieldW - 1.2, d, "Body", UI.WHITE_SOFT)
     this.editText.horizontalAlignment = HorizontalAlignment.Left
     const applySO = UI.obj(edit, "ApplyCustomButton", new vec3(fieldW / 2 + GAP / 2, 0, 0))
@@ -490,5 +548,57 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     UI.addImage(inner, ICON_DONE, ICON, ICON)
     edit.enabled = false
     this.editRow = edit
+  }
+
+  /**
+   * The Lens's own keyboard, styled like the SPECS one: a dark plate as wide as the panel, hanging
+   * under the text field, with three letter rows and comma · space · backspace · Done. Every key is a
+   * UIKit Button, so a pinch types. Shown in the preview (the system keyboard cannot be drawn there)
+   * and on the glasses only if the system keyboard fails.
+   */
+  private buildKeyboard(W: number, d: number, H: number): void {
+    const key = Math.min(KEY_MAX, (W - KEY_PAD * 2 - KEY_GAP * 9) / 10)
+    const rows = KEY_ROWS.length + 1
+    const plateW = KEY_PAD * 2 + 10 * key + 9 * KEY_GAP
+    const plateH = KEY_PAD * 2 + rows * key + (rows - 1) * KEY_GAP
+    this.keyboardH = plateH
+    const top = -H / 2 - TILE_H - GAP * 2
+    const root = UI.obj(this.sceneObject, "Keyboard", new vec3(0, top - plateH / 2, 0))
+    const plate = root.createComponent(BackPlate.getTypeName()) as BackPlate
+    plate.size = new vec2(plateW, plateH)
+    const keys = UI.obj(root, "Keys", new vec3(0, plateH / 2 - KEY_PAD - key / 2, UI.CONTENT_Z))
+    const addKey = (label: string, x: number, y: number, w: number, onPinch: () => void) => {
+      const so = UI.obj(keys, `Key-${label}`, new vec3(x, y, 0))
+      const btn = so.createComponent(Button.getTypeName()) as Button
+      btn.size = new vec3(w, key, 1)
+      btn.onTriggerUp.add(onPinch)
+      UI.addButtonLabel(so, label, w - 0.4, d, "Callout")
+    }
+    KEY_ROWS.forEach((letters, r) => {
+      const rowW = letters.length * key + (letters.length - 1) * KEY_GAP
+      const y = -r * (key + KEY_GAP)
+      for (let i = 0; i < letters.length; i++) {
+        const ch = letters[i]
+        addKey(ch, -rowW / 2 + key / 2 + i * (key + KEY_GAP), y, key, () => this.typeKey(ch))
+      }
+    })
+    // Bottom row: , · space · ⌫ · Done — as wide as the letter rows.
+    const y = -KEY_ROWS.length * (key + KEY_GAP)
+    const rowW = 10 * key + 9 * KEY_GAP
+    const doneW = key * 2 + KEY_GAP
+    const spaceW = rowW - (key + KEY_GAP) * 2 - KEY_GAP - doneW
+    let x = -rowW / 2
+    addKey(",", x + key / 2, y, key, () => this.typeKey(","))
+    x += key + KEY_GAP
+    addKey("space", x + spaceW / 2, y, spaceW, () => this.typeKey("space"))
+    x += spaceW + KEY_GAP
+    addKey(KEY_BACKSPACE, x + key / 2, y, key, () => this.typeKey(KEY_BACKSPACE))
+    x += key + KEY_GAP
+    addKey("Done", x + doneW / 2, y, doneW, () => {
+      this.setEditing(false)
+      this._onEditCustom.invoke(this.typed)
+    })
+    root.enabled = false
+    this.keyboardRoot = root
   }
 }
