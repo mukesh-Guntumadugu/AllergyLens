@@ -89,7 +89,9 @@ export class VoiceListener {
   private vmlEnabled = false
   private vmlListening = false
   private active = false
-  private failed = false
+  private failed = false      // last start() threw: reported, but a later start() tries again
+  private stopping = false    // stopTranscribing() makes ASR report an error we must not treat as a drop
+  private _lastError = ""
 
   private _micLive = false
 
@@ -111,8 +113,15 @@ export class VoiceListener {
     if (this.onMicLive) this.onMicLive(live)
   }
 
+  get lastError(): string {
+    return this._lastError
+  }
+
+  /** Start (or restart) speech-to-text. A previous failure never blocks a new attempt. */
   start(): void {
-    if (this.active || this.failed) return
+    if (this.active) return
+    this.failed = false
+    this.stopping = false
     if (this.useVoiceML) {
       this.startVoiceML()
       return
@@ -126,10 +135,13 @@ export class VoiceListener {
         if (e.isFinal && e.text && e.text.trim().length > 0) this.onFinalTranscript(e.text)
       })
       options.onTranscriptionErrorEvent.add((code: AsrModule.AsrStatusCode) => {
-        this.failed = true
+        // The stream ends on its own after a few minutes (and when we stop it): not fatal. Main reconnects.
+        const wasStopping = this.stopping
         this.active = false
+        this._lastError = `ASR error ${code}`
+        if (wasStopping) return
+        print(`AllergyLens: voice stream dropped (ASR error ${code}); reconnecting`)
         this.setMicLive(false)
-        print(`AllergyLens: voice unavailable (ASR error ${code}); pinch still works`)
       })
       this.asr.startTranscribing(options)
       this.active = true
@@ -138,13 +150,16 @@ export class VoiceListener {
     } catch (e) {
       this.failed = true
       this.active = false
+      this._lastError = String(e)
       print(`AllergyLens: voice unavailable (${e}); pinch still works`)
+      this.setMicLive(false)
     }
   }
 
   stop(): void {
     if (!this.active) return
     this.active = false
+    this.stopping = true
     try {
       if (this.vml) {
         if (this.vmlListening) this.vml.stopListening()

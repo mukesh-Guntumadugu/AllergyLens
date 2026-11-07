@@ -164,6 +164,9 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelHome: {pos: vec3; scale: vec3} | null = null
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
+  private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
+  private micRetryTimer: DelayedCallbackEvent | null = null
+  private micRetries = 0
   private testMode = false   // set by the LEAF tests: no profile is saved on the device, and any saved one is cleared
   private micHintTimer: DelayedCallbackEvent | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
@@ -210,7 +213,8 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profilePanel.onRemoveExtra.add((id) => this.removeExtra(id))
     // Corner controls: mic = listening on/off, speaker = voice on/off.
     this.profilePanel.onMicToggle.add(() => {
-      const on = !(this.voice?.isListening ?? false)
+      // Off while listening; otherwise (off, or dropped) a fresh start.
+      const on = !(this.wantListening && (this.voice?.isListening ?? false))
       this.listen(on)
       this.profilePanel.setHeard(on ? STEP_HINT[this.profilePanel.step] : "Microphone off. Pinch the mic to listen again.")
       this.audio?.playClick()
@@ -297,8 +301,18 @@ export class AllergyLensMain extends BaseScriptComponent {
       if (!this.profilePanel.getSceneObject().enabled || !this.voice || this.voice.micLive) return
       this.profilePanel.setListening(false)
       this.profilePanel.setHeard(global.deviceInfoSystem.isEditor()
-        ? "No mic yet: turn on the microphone in the Preview panel."
-        : "No microphone yet. Pinching works.")
+        ? "Mic not live: reconnecting\u2026 (check the Preview panel's mic switch)"
+        : "Mic not live: reconnecting\u2026 Pinching works meanwhile.")
+    })
+    // Snap's speech stream ends on its own after a few minutes: come back with a growing pause.
+    this.micRetryTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+    this.micRetryTimer.bind(() => {
+      if (!this.wantListening || !this.voice || this.voice.isListening) return
+      this.micRetries++
+      print(`AllergyLens: voice reconnect attempt ${this.micRetries}`)
+      this.voice.start()
+      this.profilePanel.setListening(this.voice.micLive)
+      if (!this.voice.micLive && this.micRetries < 8) this.micRetryTimer?.reset(Math.min(30, 1.5 * Math.pow(2, this.micRetries - 1)))
     })
     this.buttonShowTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.buttonShowTimer.bind(() => {
@@ -640,22 +654,31 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   /** Speech-to-text on/off, with the panel's mic dot following it. */
   private listen(on: boolean): void {
+    this.wantListening = on
+    this.micRetries = 0
+    this.micRetryTimer?.cancel()
     if (on) this.voice?.start()
     else this.voice?.stop()
     this.profilePanel.setListening(on && (this.voice?.micLive ?? false))
-    if (on && this.voice && !this.voice.micLive) this.micHintTimer?.reset(2.5)
+    if (on && this.voice && !this.voice.micLive) {
+      this.micHintTimer?.reset(2.5)
+      this.micRetryTimer?.reset(1.5)
+    }
   }
 
-  /** The microphone came alive (or went away) while we were listening. */
+  /** The microphone came alive, or the stream dropped while we wanted it. */
   private onMicLive(live: boolean): void {
     const panelOpen = this.profilePanel.getSceneObject().enabled
     this.profilePanel.setListening(live && (this.voice?.isListening ?? false))
-    if (live && panelOpen) {
+    if (live) {
+      this.micRetries = 0
+      this.micRetryTimer?.cancel()
       this.micHintTimer?.cancel()
-      this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
+      if (panelOpen) this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
       print("AllergyLens: microphone live")
-    } else if (!live && panelOpen) {
-      this.micHintTimer?.reset(0.5)
+    } else if (this.wantListening) {
+      if (panelOpen) this.micHintTimer?.reset(0.5)
+      this.micRetryTimer?.reset(1.5)
     }
   }
 
