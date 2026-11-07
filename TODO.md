@@ -25,6 +25,16 @@ What exists today, end to end:
 - [ ] Stable hostname (optional, 15 min): a named Cloudflare tunnel so step 2–3 never repeat. Needs a Cloudflare account and a domain.
 - [ ] Demo-day safety: keep the GX10 on mains + Ethernet in the lab, or carry it. If it cannot be online, the bundled data still covers the three printed menus.
 
+## 1b. Data funnel (counted 2026-11-07; nothing lost)
+
+| stage | count |
+|---|---|
+| restaurants discovered | 20,212 |
+| images judged / menus among them | 26,233 / 3,164 |
+| menu images extracted → dish lines | 449 → 21,600 lines, 194 restaurants, 8,168 cleaned dishes in gold |
+| merged into the Lens file and served (VPS + GX10) | 193 restaurants, 8,251 dishes (done 2026-11-07 02:30) |
+| menu images gated but not extracted | 2,715 — a GPU pass on the GX10 (`ROLE=extract tools/scrape/run_pipeline.sh`, then `merge_gold.py`, then `sync_vps.sh`); no web access; user's call given the deadline |
+
 ## 2. Three new menus (per menu, ~30–45 min each)
 
 A scraped restaurant without a printed page is served (tier 1) but only shows marks when a

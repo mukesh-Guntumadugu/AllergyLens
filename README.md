@@ -345,9 +345,15 @@ the result. To pick up new scraper output:
 bash tools/server/sync_lake.sh        # from the Mac: pulls the lake, restarts the service, checks it
 ```
 
-That serves 28 restaurants (the 6 seed ones plus 22 scraped Ohio menus),
-1,446 dishes, and `node tools/check.js --url http://10.233.204.96:8787/menus.json`
-passes the Lens validator. Once `node` is installed on the GX10,
+That serves 193 restaurants (the 6 seed ones plus 187 scraped Ohio menus),
+8,251 dishes, and `node tools/check.js --url …/menus.json` passes the Lens
+validator. Where those numbers come from (the lake on 7 Nov): 20,212
+restaurants discovered, 82,606 files fetched, 26,233 images judged of which
+3,164 are menus, 449 of those extracted into 21,600 dish lines (194 restaurants,
+8,168 cleaned dishes in `gold/menus/`), merged into the Lens file by
+`tools/scrape/merge_gold.py`. 2,715 gated menu images are still unextracted
+(a GPU pass on the GX10, no web access needed). The 197 entries in
+`data/dishes.json` are recipe *types*, not menu lines. Once `node` is installed on the GX10,
 `bash tools/server/install.sh` there turns it into a systemd service that
 builds and serves on its own.
 
@@ -381,7 +387,7 @@ As deployed on 6 Nov: `https://srv1619809.hstgr.cloud` (Hostinger KVM 8,
 AlmaLinux 10, the same box that serves the user's other sites) runs
 `allergylens-api` behind the existing nginx with a Let's Encrypt certificate.
 `menusUrl` points there; it does not change on reboot. Verified from the Mac:
-28 restaurants pass the Lens validator; a cached dish answers `/lookup` in
+**193 restaurants, 8,251 dishes** pass the Lens validator (2.4 MB, one GET at start); a cached dish answers `/lookup` in
 under a second; "Paneer Butter Masala" went researching → typical (16
 ingredients, cited) in 10 s and is now cached for everyone. The GX10 keeps
 the GPU jobs and the lake and pushes its catalog over:
