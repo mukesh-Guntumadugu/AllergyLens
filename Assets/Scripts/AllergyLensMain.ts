@@ -864,9 +864,20 @@ export class AllergyLensMain extends BaseScriptComponent {
     // The microphone hears the Lens's own voice: while a prompt plays (plus the speech-to-text tail) every
     // transcript is the Lens, and a later transcript that repeats the prompt's words is its echo. Both are dropped,
     // otherwise "step three, any diet, vegetarian, vegan…" would toggle Vegetarian and Vegan on by itself.
-    if (this.speech && (this.speech.isSpeaking || this.speech.isEcho(text))) {
-      print(`AllergyLens: voice "${text}" ignored (the Lens's own voice)`)
-      return
+    if (this.speech) {
+      // Words the Lens itself just said are removed; what the user said over them is kept ("… Olives." → "olives").
+      const own = this.speech.stripEcho(text)
+      if (own !== text) {
+        if (own.trim().length < 3) {
+          print(`AllergyLens: voice "${text}" ignored (the Lens's own voice)`)
+          return
+        }
+        print(`AllergyLens: voice "${text}" → the Lens's words removed → "${own}"`)
+        text = own
+      } else if (this.speech.isSpeaking && this.speech.isEcho(text)) {
+        print(`AllergyLens: voice "${text}" ignored (the Lens's own voice)`)
+        return
+      }
     }
     if (this.profilePanel.getSceneObject().enabled) {
       this.handlePanelVoice(text)

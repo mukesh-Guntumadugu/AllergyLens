@@ -54,6 +54,7 @@ export class AllergyLensSpeech {
   private _muted = false
   private speakingUntil = 0
   private lastLine: SpeechLine | null = null
+  private previousLine: SpeechLine | null = null
 
   constructor(private host: SceneObject, private volume: number = 1.0) {}
 
@@ -89,6 +90,7 @@ export class AllergyLensSpeech {
     }
     this.current = p
     p.play(1)
+    this.previousLine = this.lastLine
     this.lastLine = line
     this.speakingUntil = getTime() + DURATION_S[line]
     print(`AllergyLens: says "${line}"`)
@@ -104,6 +106,20 @@ export class AllergyLensSpeech {
    * Is this transcript the Lens's own last line coming back through the microphone? More than half
    * of its words appear in that line (a real answer like "vegan" or "no pork" shares at most one word).
    */
+  /**
+   * The user often answers while the Lens is still talking, and speech-to-text glues both into one
+   * transcript ("…which other allergies? Just say them. Olives."). Remove the words of the last two
+   * spoken lines and return what the user actually said ("olives"); "" when nothing is left.
+   */
+  stripEcho(transcript: string): string {
+    const said = new Set<string>()
+    for (const l of [this.lastLine, this.previousLine]) if (l) for (const w of LINE_TEXT[l].split(" ")) said.add(w)
+    const words = transcript.toLowerCase().replace(/[^a-z' ]+/g, " ").split(" ").filter((w) => w.length > 0)
+    const kept = words.filter((w) => !said.has(w))
+    // Only call it an echo when the Lens's words are a real share of the transcript.
+    return words.length - kept.length >= 3 ? kept.join(" ") : transcript
+  }
+
   isEcho(transcript: string): boolean {
     if (!this.lastLine) return false
     const said = new Set(LINE_TEXT[this.lastLine].split(" "))
