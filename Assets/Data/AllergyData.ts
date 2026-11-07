@@ -2641,12 +2641,30 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "croissants",
         "name": "Croissants",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
-        "category": "unknown",
+        "ingredients": [
+          "egg",
+          "wheat flour",
+          "butter",
+          "yeast",
+          "sugar",
+          "milk",
+          "european-style butter",
+          "flour"
+        ],
+        "ingredientsSource": "typical",
+        "category": "vegetarian",
         "removable": [],
-        "shares": {},
-        "substitutes": {},
+        "shares": {
+          "flour": 50,
+          "butter": 30,
+          "milk": 10,
+          "egg": 5,
+          "sugar": 5
+        },
+        "substitutes": {
+          "butter": null,
+          "flour": null
+        },
         "layout": {
           "x": 0.43,
           "y": 0.687,
@@ -3309,12 +3327,27 @@ export const RESTAURANTS: RestaurantDef[] = [
         "id": "dondurma",
         "name": "Dondurma (ice cream)",
         "icon": null,
-        "ingredients": null,
-        "ingredientsSource": "none",
+        "ingredients": [
+          "milk",
+          "sugar",
+          "cream",
+          "salep",
+          "mastic"
+        ],
+        "ingredientsSource": "typical",
         "category": "dessert",
         "removable": [],
-        "shares": {},
-        "substitutes": {},
+        "shares": {
+          "milk": 60,
+          "sugar": 20,
+          "cream": 15,
+          "salep": 3,
+          "mastic": 2
+        },
+        "substitutes": {
+          "milk": "vegan version on request",
+          "cream": "vegan version on request"
+        },
         "layout": {
           "x": 0.64,
           "y": 0.595,

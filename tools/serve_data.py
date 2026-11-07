@@ -44,7 +44,16 @@ SEARCH = "ddg"
 
 # ─── /lookup: dish name -> ingredients, cache first, web retrieval on a miss ─────────────────────
 def _norm(name):
-    return re.sub(r"[^a-z0-9 ]+", " ", (name or "").lower()).strip()
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]+", " ", (name or "").lower())).strip()
+
+
+def _singular(w):
+    return w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w
+
+
+def _match_form(text):
+    """Same rule as build-data.js lookupDish: lowercase words in singular form, parentheticals dropped."""
+    return " ".join(_singular(w) for w in _norm(re.sub(r"\([^)]*\)", " ", text or "")).split())
 
 
 def _catalogs():
@@ -63,13 +72,13 @@ def find_dish(menu_name):
     least half of the name's words, so "chicken tikka masala" is not answered by the entry "chicken"
     (build-data.js accepts any contained key; the live path is stricter because a wrong hit here would
     turn a dish green from the wrong recipe)."""
-    n = _norm(menu_name)
+    n = _match_form(menu_name)
     words = n.split()
     best = None
     for _, dishes in _catalogs():
         for d in dishes:
             for key in [d.get("name", "")] + list(d.get("aliases", [])):
-                k = _norm(key)
+                k = _match_form(key)
                 if not k or (" " + k + " ") not in (" " + n + " "):
                     continue
                 if len(k.split()) * 2 < len(words):

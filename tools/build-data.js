@@ -75,13 +75,17 @@ for (const d of dishKb.dishes) {
 // the name's words (same rule as serve_data.find_dish), so "jack & coke · bahama mama" is not joined to an
 // entry named "jack" and "chicken tikka masala" is not answered by "chicken". With thousands of model-answered
 // names in the catalog, the old any-substring rule produced wrong joins.
+// Words are compared in singular form ("croissants" = "croissant") and a parenthetical in the menu name
+// ("Dondurma (ice cream)") is not counted against the key.
+const singular = (w) => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
+const matchForm = (text) => norm(text).split(" ").filter(Boolean).map(singular).join(" ");
 function lookupDish(menuName) {
-  const n = norm(menuName);
+  const n = matchForm(String(menuName).replace(/\([^)]*\)/g, " "));
   const words = n.split(" ").filter(Boolean).length;
   let best = null;
   for (const d of dishKb.dishes) {
     for (const key of [d.name, ...(d.aliases || [])]) {
-      const k = norm(key);
+      const k = matchForm(key);
       if (!k || !(" " + n + " ").includes(" " + k + " ")) continue;
       if (k.split(" ").length * 2 < words) continue;
       if (!best || k.length > best.key.length) best = { key: k, dish: d };
