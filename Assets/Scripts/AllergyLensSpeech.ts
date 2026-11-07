@@ -19,6 +19,8 @@ const CLIPS = {
   safe: requireAsset("../Audio/Speech/safe.mp3") as AudioTrackAsset,
   unknown: requireAsset("../Audio/Speech/unknown.mp3") as AudioTrackAsset,
   muted: requireAsset("../Audio/Speech/muted.mp3") as AudioTrackAsset,
+  mic_hint: requireAsset("../Audio/Speech/mic_hint.mp3") as AudioTrackAsset,
+  mic_back: requireAsset("../Audio/Speech/mic_back.mp3") as AudioTrackAsset,
 }
 
 export type SpeechLine = keyof typeof CLIPS
@@ -28,6 +30,7 @@ export type SpeechLine = keyof typeof CLIPS
 const DURATION_S: {[l in SpeechLine]: number} = {
   welcome: 6.4, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
   heard_nothing: 3.8, menu_found: 4.5, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
+  mic_hint: 5.0, mic_back: 1.2,
 }
 const LINE_TEXT: {[l in SpeechLine]: string} = {
   welcome: "welcome to allergy lens let's set up your profile in three quick steps say your answers or pinch",
@@ -44,6 +47,8 @@ const LINE_TEXT: {[l in SpeechLine]: string} = {
   safe: "looks fine for you",
   unknown: "ingredients not published ask the restaurant",
   muted: "voice off say speak to turn it back on",
+  mic_hint: "i can't hear you yet in lens studio turn on the microphone in the preview panel",
+  mic_back: "i can hear you now",
 }
 /** Speech-to-text finalises ~1 s after the sound stops; transcripts inside this tail are still the Lens's own voice. */
 const ECHO_TAIL_S = 1.6

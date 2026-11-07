@@ -6,7 +6,7 @@ set -euo pipefail
 OUT="$(cd "$(dirname "$0")/../.." && pwd)/Assets/Icons/profile"
 TMP="$(mktemp -d)"
 mkdir -p "$OUT"
-for pair in "allergies:no_food" "religious:self_improvement" "diet:eco" "logo:restaurant_menu" "keyboard:keyboard" "mic:mic" "mic_off:mic_off" "speaker:volume_up" "speaker_off:volume_off" "edit:edit"; do
+for pair in "allergies:no_food" "religious:self_improvement" "diet:eco" "logo:restaurant_menu" "keyboard:keyboard" "mic:mic" "mic_off:mic_off" "speaker:volume_up" "speaker_off:volume_off" "edit:edit" "account:account_circle"; do
   name="${pair%%:*}"; sym="${pair##*:}"
   curl -fsSL -o "$TMP/$sym.svg" "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/$sym/default/48px.svg"
   qlmanage -t -s 256 -o "$TMP" "$TMP/$sym.svg" >/dev/null 2>&1

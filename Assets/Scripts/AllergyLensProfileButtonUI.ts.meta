@@ -28,6 +28,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    idleAlpha: false
     sizeCm: false
   ScriptTypesHidden:
     {}
@@ -39,6 +40,7 @@
     []
   DefaultScriptInputs:
     - sizeCm: 4.500000
+      idleAlpha: 0.800000
   ScriptTypes:
     -
       {}
@@ -47,5 +49,6 @@
     - '// @ui {"widget":"separator"}'
     - '// @ui {"widget":"label", "label":"<span style=\"color: #60A5FA;\">Settings</span>"}'
     - '// @ui {"widget":"group_start", "label":"Settings"}'
-    - '// @input float sizeCm = 4.5 {"hint":"Button size in cm (square). Keep it ≥ 4 cm so it is an easy pinch target.", "widget":"slider", "min":3, "max":8, "step":0.5}'
+    - '// @input float sizeCm = 7 {"hint":"Icon size in cm. 7 cm at 55 cm reads clearly and is an easy pinch target.", "widget":"slider", "min":4, "max":12, "step":0.5}'
+    - '// @input float idleAlpha = 0.8 {"hint":"Icon opacity when idle (it is see-through, not a solid plate).", "widget":"slider", "min":0.3, "max":1, "step":0.05}'
     - '// @ui {"widget":"group_end"}'

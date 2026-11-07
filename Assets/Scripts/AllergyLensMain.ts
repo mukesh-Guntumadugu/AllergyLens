@@ -167,6 +167,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
   private micRetryTimer: DelayedCallbackEvent | null = null
   private micRetries = 0
+  private micHintSpoken = false
+  private micWasLost = false
   private testMode = false   // set by the LEAF tests: no profile is saved on the device, and any saved one is cleared
   private micHintTimer: DelayedCallbackEvent | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
@@ -303,6 +305,10 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.profilePanel.setHeard(global.deviceInfoSystem.isEditor()
         ? "Mic not live: reconnecting\u2026 (check the Preview panel's mic switch)"
         : "Mic not live: reconnecting\u2026 Pinching works meanwhile.")
+      if (global.deviceInfoSystem.isEditor() && !this.micHintSpoken) {
+        this.micHintSpoken = true
+        this.speech?.say("mic_hint")
+      }
     })
     // Snap's speech stream ends on its own after a few minutes: come back with a growing pause.
     this.micRetryTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
@@ -675,8 +681,11 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.micRetryTimer?.cancel()
       this.micHintTimer?.cancel()
       if (panelOpen) this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
+      if (this.micWasLost) this.speech?.say("mic_back")
+      this.micWasLost = false
       print("AllergyLens: microphone live")
     } else if (this.wantListening) {
+      this.micWasLost = true
       if (panelOpen) this.micHintTimer?.reset(0.5)
       this.micRetryTimer?.reset(1.5)
     }

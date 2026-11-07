@@ -1,15 +1,15 @@
-// AllergyLensProfileButtonUI — one small world-locked pinch button, near the user at
-// the bottom of the view, that reopens the profile panel. Owns: the button. Expects no
-// scene @inputs. Must not decide anything — it only reports the pinch to Main.
+// AllergyLensProfileButtonUI — the way back to the profile once setup is done: one pinch target
+// in the lower corner of the view, head-locked with the UI group it sits in. Transparent: an
+// open-source icon (Material "account_circle") over a faint ring, no solid plate, big enough to
+// read and pinch from 55 cm. Owns: the icon and its collider. Expects no scene @inputs beyond
+// size. Must not decide anything — it only reports the pinch to Main.
 // SceneObject name "ProfileButton" so LEAF can find it.
 
-import {Button} from "SpectaclesUIKit.lspkg/Scripts/Components/Button/Button"
-import {ElementContent} from "SpectaclesUIKit.lspkg/Scripts/Components/Content/ElementContent"
-import {FlexAlign, FlexJustify} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Flex/FlexTypes"
+import {Interactable} from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
 import * as UI from "./AllergyLensSharedUI"
 
-const ICON_PROFILE = requireAsset("../Icons/person.png") as Texture
+const ICON_PROFILE = requireAsset("../Icons/profile/account.png") as Texture
 
 @component
 export class AllergyLensProfileButtonUI extends BaseScriptComponent {
@@ -18,12 +18,18 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
   @ui.label('<span style="color: #60A5FA;">Settings</span>')
   @ui.group_start("Settings")
   @input
-  @hint("Button size in cm (square). Keep it ≥ 4 cm so it is an easy pinch target.")
-  @widget(new SliderWidget(3, 8, 0.5))
-  sizeCm: number = 4.5
+  @hint("Icon size in cm. 7 cm at 55 cm reads clearly and is an easy pinch target.")
+  @widget(new SliderWidget(4, 12, 0.5))
+  sizeCm: number = 7
+
+  @input
+  @hint("Icon opacity when idle (it is see-through, not a solid plate).")
+  @widget(new SliderWidget(0.3, 1, 0.05))
+  idleAlpha: number = 0.8
   @ui.group_end
 
   private _onProfile = new Event<void>()
+  private icon: Image | null = null
 
   /** User pinched the Profile button. */
   get onProfile(): PublicApi<void> {
@@ -31,17 +37,23 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
   }
 
   onAwake(): void {
-    this.sceneObject.createComponent("Component.Canvas")
     const S = this.sizeCm
-    const row = UI.flexRow(this.sceneObject, S, S, {justify: FlexJustify.Center, align: FlexAlign.Center})
-    UI.flexChild(row, {w: S, h: S}, (so) => {
-      so.name = "ProfileButton"
-      const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(S, S, 1)
-      btn.onTriggerUp.add(() => this._onProfile.invoke())
-      const ec = so.createComponent(ElementContent.getTypeName()) as ElementContent
-      ec.leadingIcon = ICON_PROFILE
-      ec.leadingIconSize = Math.min(S - 1.4, 2.6)
-    })
+    const root = UI.obj(this.sceneObject, "ProfileButton")
+    // Pinch target: a thin box the size of the icon, plus SIK's Interactable (same recipe as the menu bars).
+    const collider = root.createComponent("Physics.ColliderComponent") as ColliderComponent
+    const shape = Shape.createBoxShape()
+    shape.size = new vec3(S, S, 1.5)
+    collider.shape = shape
+    collider.fitVisual = false
+    const interactable = root.createComponent(Interactable.getTypeName()) as Interactable
+    interactable.onTriggerEnd.add(() => this._onProfile.invoke())
+    interactable.onHoverEnter.add(() => this.setAlpha(1))
+    interactable.onHoverExit.add(() => this.setAlpha(this.idleAlpha))
+    // The icon itself, see-through; no plate behind it.
+    this.icon = UI.addImage(root, ICON_PROFILE, S, S, new vec4(1, 1, 1, this.idleAlpha), false)
+  }
+
+  private setAlpha(a: number): void {
+    if (this.icon) this.icon.mainPass.baseColor = new vec4(1, 1, 1, a)
   }
 }
