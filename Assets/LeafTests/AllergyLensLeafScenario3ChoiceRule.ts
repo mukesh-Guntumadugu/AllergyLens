@@ -64,9 +64,11 @@ export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
     expect(best !== null, "a safe neighbour exists").toBe(true)
     expect(s3.includes(`Better pick: ${best!.name}`), `${s3} (expected ${best!.name})`).toBe(true)
 
-    // 4. Unverified wording — any dish whose ingredients are not published in this data build.
-    const unpublished = star.dishes.find((d) => d.ingredientsSource === "none")!
-    expect(!!unpublished, "data has an unpublished dish").toBe(true)
+    // 4. Unverified wording — a dish whose ingredients are not published (a synthetic one: this page has none).
+    const unpublished: DishDef = {
+      id: "test-unpublished", name: "House Special", icon: null, ingredients: null, ingredientsSource: "none",
+      removable: [], shares: {}, substitutes: {}, layout: null, category: "unknown", price: null, section: null, markers: [],
+    }
     const t4 = describeChoice(unpublished, checkDish(unpublished, milk), star, kurmaResults)
     expect(t4.headline, t4.headline).toBe("Ingredients not published.")
     expect(t4.body.includes("Ask the restaurant"), t4.body).toBe(true)

@@ -4,6 +4,7 @@
 import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
+import {dishCategory} from "../Scripts/AllergyLensMenuData"
 import {AllergyLensLeafInteractor, LAUREL} from "./AllergyLensLeafInteractor"
 
 @component
@@ -14,14 +15,14 @@ export class AllergyLensLeafScenario6MoodVegetarian extends Scenario {
     await ui.prepareProfile(["milk"], "vegetarian")
     await ui.simulateMarker("laurel-cafe")
 
-    ui.expectGreenStar("gobi-nan")
-    ui.expectGreenStar("alu-gobi")
-    ui.expectRed("paneer-nan")
-    for (const id of ["chicken-nan", "iced-tea", "milk", "sweet-lassi", "mango-lassi", "kulfi", "gulab-jamun"]) ui.expectUnmarked(id)
-    // Nothing outside the category is marked.
+    // Veg dishes without milk → green star; a veg dish with milk → red; nothing outside the category is marked.
+    ui.expectGreenStar("side-fries")
+    ui.expectGreenStar("fresh-lemonade")
+    ui.expectRed("french-toast")
+    for (const id of ["grilled-chicken-sandwich", "full-breakfast", "beef-burger-fries", "cheesecake-slice", "strawberry-iced-tea"]) ui.expectUnmarked(id)
     for (const d of LAUREL.dishes) {
       if (!d.layout) continue
-      if (d.category !== "vegetarian") ui.expectUnmarked(d.id)
+      if (dishCategory(d) !== "vegetarian") ui.expectUnmarked(d.id)
     }
     const badge = ui.badge()
     expect(badge.text.toLowerCase().includes("veg dish"), badge.text).toBe(true)

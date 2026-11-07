@@ -55,3 +55,6 @@ data/menus.lens.json
 
 # written by tools/serve_data.py --research (researched dishes); server-local, never committed
 data/lookup-cache.json
+
+# Added by Lens Studio (LEAF plugin)
+leaf_plugin_settings.json

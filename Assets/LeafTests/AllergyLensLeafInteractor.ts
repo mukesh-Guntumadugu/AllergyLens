@@ -11,6 +11,8 @@ import {ALLERGENS, RESTAURANTS} from "../Data/AllergyData"
 /** Every toggle id, straight from the data module. */
 export const ALL_PROFILE_IDS: string[] = ALLERGENS.map((a) => a.id)
 export const LAUREL = RESTAURANTS.find((r) => r.id === "laurel-cafe")!
+/** The marker object Main creates at start for the Laurel Café page (no marker is authored in the scene any more). */
+export const MARKER_OBJECT = "MenuMarker-laurel-cafe"
 
 /** Depth-first search that INCLUDES disabled objects. */
 export function findByName(name: string): SceneObject | null {
@@ -62,6 +64,8 @@ interface MainApi {
   currentMood: string
   setMood(id: string): boolean
   resetProfile(): void
+  setProfileItem(id: string, on: boolean): boolean
+  hasProfileItem(id: string): boolean
 }
 
 interface OverlayApi {
@@ -72,7 +76,7 @@ interface OverlayApi {
 }
 
 export function overlayScript(): OverlayApi {
-  const marker = requireByName("MenuMarker")
+  const marker = requireByName(MARKER_OBJECT)
   for (const c of marker.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
     const api = c as unknown as OverlayApi
     if (typeof api.badgeLevel === "string") return api
@@ -159,7 +163,7 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   }
 
   getToggleState(id: string): boolean {
-    return this.toggleButton(`Toggle-${id}`).isOn
+    return mainScript().hasProfileItem(id)
   }
 
   /**
@@ -171,9 +175,9 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
    */
   async setToggle(id: string, on: boolean): Promise<void> {
     if (this.getToggleState(id) === on) return
-    this.toggleButton(`Toggle-${id}`).isOn = on
-    await sleep(60)
-    if (this.getToggleState(id) !== on) throw new Error(`Toggle-${id} did not flip to ${on}`)
+    // Through Main's API: the setup is one screen at a time, so most tiles are on a disabled
+    // screen (their UIKit Button is not even initialised); Main keeps the tile in sync.
+    if (!mainScript().setProfileItem(id, on)) throw new Error(`profile item ${id} did not flip to ${on}`)
   }
 
   /** Make the profile exactly `onIds` (everything else off). Panel must be open. */
@@ -188,9 +192,11 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
   async done(): Promise<void> {
     for (let i = 0; i < 4 && this.isVisible("ProfilePanel"); i++) {
       if (this.isVisible("StartButton")) await this.tap("StartButton")
-      else if (this.isVisible("NextButton")) await this.tap("NextButton")
+      else if (this.isVisible("NextButton-allergies")) await this.tap("NextButton-allergies")
+      else if (this.isVisible("NextButton-religious")) await this.tap("NextButton-religious")
       else {
         await this.tap("DoneButton")
+        await sleep(700) // the panel glides to the Profile button (0.4 s) before it hides
         break
       }
       await sleep(150)

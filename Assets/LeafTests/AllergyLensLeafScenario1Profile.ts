@@ -14,9 +14,19 @@ export class AllergyLensLeafScenario1Profile extends Scenario {
     await sleep(1000)
     await ui.ensureProfileOpen()
     expect(ui.isVisible("ProfilePanel"), "profile panel visible").toBe(true)
-    for (const id of ["peanut", "milk", "beef", "pork"]) {
+    // The setup is one screen at a time: welcome → allergies → religious → diet. Tiles are
+    // pinchable only on their own screen, so walk forward and check each screen's tiles.
+    if (ui.isVisible("StartButton")) await ui.tap("StartButton")
+    await sleep(200)
+    for (const id of ["peanut", "milk"]) {
       const hits = findInteractablesByName(`Toggle-${id}`, undefined, true)
-      expect(hits.length, `Toggle-${id} is a pinchable interactable`).toBeGreaterThan(0)
+      expect(hits.length, `Toggle-${id} is a pinchable interactable on the allergies screen`).toBeGreaterThan(0)
+    }
+    await ui.tap("NextButton-allergies")
+    await sleep(200)
+    for (const id of ["beef", "pork"]) {
+      const hits = findInteractablesByName(`Toggle-${id}`, undefined, true)
+      expect(hits.length, `Toggle-${id} is a pinchable interactable on the religious screen`).toBeGreaterThan(0)
     }
     await ui.done()
     expect(ui.isVisible("ProfilePanel"), "profile panel hidden after Done").toBe(false)

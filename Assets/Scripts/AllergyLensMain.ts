@@ -151,6 +151,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelHome: {pos: vec3; scale: vec3} | null = null
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
+  private testMode = false   // set by the LEAF tests: no profile is saved on the device, and any saved one is cleared
   private micHintTimer: DelayedCallbackEvent | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
   private voice: VoiceListener | null = null
@@ -336,6 +337,11 @@ export class AllergyLensMain extends BaseScriptComponent {
   setCameraTracking(enabled: boolean): void {
     for (const o of this.overlays) o.setCameraTracking(enabled)
     for (const p of this.products) p.setCameraTracking(enabled)
+    if (!enabled && !this.testMode) {
+      // Only the LEAF tests turn the camera off: from here on nothing is remembered on the device.
+      this.testMode = true
+      this.clearSavedProfile()
+    }
     print(`AllergyLens: camera marker tracking ${enabled ? "enabled" : "disabled"}`)
   }
 
@@ -368,6 +374,21 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.updateMoodAvailability()
     this.recheckActive()
     return this.mood === id
+  }
+
+  /** One profile item on/off by id, through the same path a pinch takes (panel tile kept in sync). Public for LEAF. */
+  setProfileItem(id: string, on: boolean): boolean {
+    const def = ALLERGENS.find((a) => a.id === id)
+    if (!def) return false
+    this.applyToggle(def, on)
+    this.updateMoodAvailability()
+    this.showCustomItems()
+    this.recheckActive()
+    return this.profile.has(id) === on
+  }
+
+  hasProfileItem(id: string): boolean {
+    return this.profile.has(id)
   }
 
   /** Everything off: toggles, custom allergens, mood back to Everything. Public for LEAF. */
@@ -652,6 +673,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   // ── Remembered profile (persistent storage on the glasses) ─────────────
   private saveProfile(): void {
+    if (this.testMode) return
     try {
       const store = global.persistentStorageSystem.store
       store.putString(STORE_IDS, ALLERGENS.filter((a) => this.profile.has(a.id)).map((a) => a.id).join(","))
@@ -659,6 +681,17 @@ export class AllergyLensMain extends BaseScriptComponent {
       print("AllergyLens: profile saved on the device")
     } catch (e) {
       print(`AllergyLens: could not save the profile (${e})`)
+    }
+  }
+
+  /** Tests call this (through setCameraTracking(false)): forget the saved profile so a later manual run starts at Welcome. */
+  private clearSavedProfile(): void {
+    try {
+      const store = global.persistentStorageSystem.store
+      store.remove(STORE_IDS)
+      store.remove(STORE_CUSTOM)
+    } catch (e) {
+      print(`AllergyLens: could not clear the saved profile (${e})`)
     }
   }
 

@@ -12,10 +12,10 @@ export class AllergyLensLeafScenario5MarkerLost extends Scenario {
     await ui.isolateFromCamera()
     if (ui.isVisible("ProfilePanel")) await ui.done()
     await ui.simulateMarker("laurel-cafe")
-    expect(ui.bar("paneer-nan").shown, "bars shown while tracked").toBe(true)
+    expect(ui.bar("egg-bacon-croissant").shown, "bars shown while tracked").toBe(true)
     await ui.simulateMarkerLost()
     await sleep(1500)
-    expect(ui.bar("paneer-nan").shown, "marks hidden within 1.5 s of losing the marker").toBe(false)
+    expect(ui.bar("egg-bacon-croissant").shown, "marks hidden within 1.5 s of losing the marker").toBe(false)
     expect(ui.isVisible("Badge"), "badge hidden too").toBe(false)
     expect(ui.isVisible("ProfileButton"), "Profile button back after the marker is gone").toBe(true)
   }

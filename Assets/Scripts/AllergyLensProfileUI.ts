@@ -7,7 +7,7 @@
 // Owns: the tiles and their on/off visuals, the step switch, the keyboard field. Expects no
 // scene @inputs beyond sizing. Must not hold the profile — it reports each flip, step change
 // and edit to Main (the single owner of profile state). Object names LEAF relies on:
-// "Toggle-<allergen id>", "StartButton", "NextButton", "BackButton", "DoneButton", "MoreButton".
+// "Toggle-<allergen id>", "StartButton", "NextButton-<step>", "BackButton-<step>", "DoneButton", "MoreButton".
 
 import {BackPlate} from "SpectaclesUIKit.lspkg/Scripts/BackPlate"
 import {Button} from "SpectaclesUIKit.lspkg/Scripts/Components/Button/Button"
@@ -327,11 +327,12 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private buildFooter(col: SceneObject, innerW: number, d: number, step: ProfileStep): void {
     const row = UI.flexRow(col, innerW, FOOTER_H, {gap: GAP, justify: FlexJustify.SpaceBetween, align: FlexAlign.Center})
     const n = PROFILE_STEPS.indexOf(step)
-    if (n >= 2) this.addFooterButton(row, "BackButton", "‹ Back", null, d, () => this.go(PROFILE_STEPS[n - 1]))
+    // Names are unique per screen (the allergies and religious screens both have a Next) so tests can find the live one.
+    if (n >= 2) this.addFooterButton(row, `BackButton-${step}`, "‹ Back", null, d, () => this.go(PROFILE_STEPS[n - 1]))
     else UI.flexChild(row, {w: FOOT_BTN_W, h: FOOTER_H}, () => {})
     if (step === "welcome") this.addFooterButton(row, "StartButton", "Start ›", null, d, () => this.go("allergies"))
     else if (step === "diet") this.addFooterButton(row, "DoneButton", "Done", ICON_DONE, d, () => this._onDone.invoke())
-    else this.addFooterButton(row, "NextButton", "Next ›", null, d, () => this.go(PROFILE_STEPS[n + 1]))
+    else this.addFooterButton(row, `NextButton-${step}`, "Next ›", null, d, () => this.go(PROFILE_STEPS[n + 1]))
   }
 
   private go(step: ProfileStep): void {
