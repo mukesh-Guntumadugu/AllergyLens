@@ -20,8 +20,19 @@ import {AllergyLensAudio} from "./AllergyLensAudio"
 import {ALLERGENS, AllergenDef, AllergenGroup, GROUP_LABELS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
 import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
 import {VoiceListener, matchDishByVoice, parseAllergyPhrase} from "./AllergyLensVoice"
+import {AllergyLensSpeech, SpeechLine} from "./AllergyLensSpeech"
+import {PROFILE_STEPS, ProfileStep} from "./AllergyLensProfileUI"
 
-const WELCOME = 'Welcome. Pinch an option, or just say it: "peanuts", "no pork", "vegetarian", "allergies, add mango", "done".'
+/** What the Heard line shows on each screen before anything was said, and what the Lens says aloud. */
+const STEP_HINT: {[s in ProfileStep]: string} = {
+  welcome: 'Say "start", or pinch Start.',
+  allergies: 'Say the ones you have ("peanuts and milk"), "more", or "next".',
+  religious: 'Say "no beef", "no pork", "no alcohol", or "next".',
+  diet: 'Say "vegetarian", "vegan", "low sugar", "no trans fat", or "done".',
+}
+const STEP_SPEECH: {[s in ProfileStep]: SpeechLine} = {welcome: "welcome", allergies: "step_allergies", religious: "step_religious", diet: "step_diet"}
+const STORE_IDS = "allergylens.profile.ids"
+const STORE_CUSTOM = "allergylens.profile.custom"
 
 /** "allergies, add mango" / "religious, add lamb" / "diet, add keto" → where a spoken addition belongs. */
 const SECTION_WORDS: {[word: string]: AllergenGroup} = {
@@ -65,6 +76,14 @@ export class AllergyLensMain extends BaseScriptComponent {
   @input
   @hint("Show the profile panel when the Lens starts (ignored when defaultProfile is set).")
   showProfileAtStart: boolean = true
+
+  @input
+  @hint("The Lens speaks: welcome, each step's question, saved, menu recognised, and the verdict on a pinch (pre-rendered clips, Assets/Audio/Speech). Say \"quiet\" to mute.")
+  speechEnabled: boolean = true
+
+  @input
+  @hint("Remember the profile on the glasses (persistent storage) so setup runs once; the Profile button or \"edit profile\" changes it.")
+  rememberProfile: boolean = true
 
   @input
   @hint("Comma-separated allergen ids (e.g. \"peanut,milk\") applied at start — with showProfileAtStart off this gives a hands-free demo. A word that is not an id (e.g. \"mango\") is added as a custom allergen, like saying \"I'm allergic to mango\".")
@@ -116,6 +135,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   private openDish: {restaurantId: string; dishId: string} | null = null
   private openProduct: string | null = null
   private audio: AllergyLensAudio | null = null
+  private speech: AllergyLensSpeech | null = null
+  private spokenPages = new Set<string>()
   private buttonShowTimer: DelayedCallbackEvent | null = null
   private voice: VoiceListener | null = null
   private safeCardTimer: DelayedCallbackEvent | null = null
@@ -128,6 +149,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const audioHost = global.scene.createSceneObject("Audio")
     audioHost.setParent(this.sceneObject)
     this.audio = new AllergyLensAudio(audioHost, this.sfxVolume)
+    if (this.speechEnabled) this.speech = new AllergyLensSpeech(audioHost, 1.0)
     this.createEvent("OnStartEvent").bind(() => this.onStart())
   }
 
@@ -152,12 +174,13 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.updateMoodAvailability()
       this.recheckActive()
     })
-    this.profilePanel.onMood.add((m) => {
-      this.mood = m
+    this.profilePanel.onStep.add((step) => this.onProfileStep(step))
+    this.profilePanel.onMore.add(() => {
       this.audio?.playClick()
-      print(`AllergyLens: mood ${m}`)
-      this.recheckActive()
+      this.speech?.say("more")
+      this.profilePanel.setHeard('Say the others, e.g. "soy and sesame", or "I\'m allergic to mango".')
     })
+    this.profilePanel.onEditCustom.add((text) => this.applyCustomText(text))
     this.profilePanel.onDone.add(() => this.onProfileDone())
     this.profileButton.onProfile.add(() => this.openProfile())
     this.dishDetail.onClose.add(() => this.closeDetail())
@@ -234,12 +257,20 @@ export class AllergyLensMain extends BaseScriptComponent {
     // Profile is a separate step before the menu: panel at start (unless a default
     // profile makes the run hands-free); the small Profile button only when the panel is
     // closed and no menu is in view.
-    const panelAtStart = this.showProfileAtStart && this.profile.isEmpty
+    const restored = this.profile.isEmpty && this.rememberProfile && this.restoreProfile()
+    const panelAtStart = this.showProfileAtStart && this.profile.isEmpty && !restored
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
+    try {
+      global.userContextSystem.requestDisplayName((name: string) => this.profilePanel.setDisplayName(name))
+    } catch (e) {
+      print(`AllergyLens: no display name (${e})`)
+    }
     if (panelAtStart) {
-      this.profilePanel.setHeard(WELCOME)
-      this.voice?.start() // the panel is voice-driven while it is open
+      this.profilePanel.setStep("welcome")
+      this.profilePanel.setHeard(STEP_HINT.welcome)
+      this.listen(true) // the panel is voice-driven while it is open
+      this.speech?.say("welcome")
     }
     this.dishDetail.hideDetail()
     print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s), ${this.products.length} product marker(s))`)
@@ -298,8 +329,21 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
   }
 
-  /** Everything off: toggles, custom allergens, mood back to Everything. */
-  private resetProfile(): void {
+  /** The "in the mood for" filter: voice on the menu ("show vegetarian") and LEAF set it; no chips any more. */
+  get currentMood(): Mood {
+    return this.mood
+  }
+
+  setMood(id: Mood): boolean {
+    if (!MOODS.some((m) => m.id === id)) return false
+    this.mood = id
+    this.updateMoodAvailability()
+    this.recheckActive()
+    return this.mood === id
+  }
+
+  /** Everything off: toggles, custom allergens, mood back to Everything. Public for LEAF. */
+  resetProfile(): void {
     for (const a of ALLERGENS) {
       if (this.profile.has(a.id)) {
         this.profile.set(a.id, false)
@@ -310,7 +354,6 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.customAllergens = []
     this.showCustomItems()
     this.mood = "everything"
-    this.profilePanel.setMood("everything")
     this.audio?.playClick()
     this.updateMoodAvailability()
     this.recheckActive()
@@ -366,11 +409,9 @@ export class AllergyLensMain extends BaseScriptComponent {
       red_meat: veg || (this.profile.has("beef") && this.profile.has("pork")),
       seafood: veg || (this.profile.has("fish") && this.profile.has("shellfish")),
     }
-    for (const m of MOODS) this.profilePanel.setMoodEnabled(m.id, !off[m.id])
     if (off[this.mood]) {
       print(`AllergyLens: mood ${this.mood} contradicts the profile; back to everything`)
       this.mood = "everything"
-      this.profilePanel.setMood("everything")
     }
   }
 
@@ -381,14 +422,15 @@ export class AllergyLensMain extends BaseScriptComponent {
       return
     }
     this.mood = id
-    this.profilePanel.setMood(id)
   }
 
   private onProfileDone(): void {
     this.audio?.playClick()
     this.profilePanel.getSceneObject().enabled = false
     this.profileButton.getSceneObject().enabled = !this.anyMarkerActive()
-    if (!this.anyMarkerActive()) this.voice?.stop()
+    if (!this.anyMarkerActive()) this.listen(false)
+    if (this.rememberProfile) this.saveProfile()
+    this.speech?.say("saved")
     print(`AllergyLens: profile done [${this.profile.ids().join(", ")}]`)
     this.recheckActive()
   }
@@ -398,9 +440,78 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.closeDetail()
     this.profilePanel.getSceneObject().enabled = true
     this.profileButton.getSceneObject().enabled = false
-    this.profilePanel.setHeard(WELCOME)
-    this.voice?.start()
+    this.profilePanel.setStep("allergies")
+    this.profilePanel.setHeard(STEP_HINT.allergies)
+    this.listen(true)
+    this.speech?.say("reopened")
     print("AllergyLens: profile reopened")
+  }
+
+  private onProfileStep(step: ProfileStep): void {
+    this.audio?.playClick()
+    this.profilePanel.setHeard(STEP_HINT[step])
+    this.speech?.say(STEP_SPEECH[step])
+    print(`AllergyLens: profile step ${step}`)
+  }
+
+  /** Move the setup one screen forward / back by voice. */
+  private stepBy(delta: number): boolean {
+    const i = PROFILE_STEPS.indexOf(this.profilePanel.step) + delta
+    if (i < 0 || i >= PROFILE_STEPS.length) return false
+    this.profilePanel.setStep(PROFILE_STEPS[i])
+    this.onProfileStep(PROFILE_STEPS[i])
+    return true
+  }
+
+  /** Speech-to-text on/off, with the panel's mic dot following it. */
+  private listen(on: boolean): void {
+    if (on) this.voice?.start()
+    else this.voice?.stop()
+    this.profilePanel.setListening(on && (this.voice?.isListening ?? false))
+  }
+
+  /** The keyboard field's text ("mango, coriander") replaces every voice-added item. */
+  private applyCustomText(text: string): void {
+    for (const c of this.customAllergens) this.profile.set(c.id, false)
+    this.customAllergens = []
+    for (const part of text.split(/[,;]+/)) {
+      const word = part.trim()
+      if (word.length >= 2) this.addCustomAllergen(word)
+    }
+    this.showCustomItems()
+    this.audio?.playClick()
+    this.profilePanel.setHeard(`Edited: ${this.customAllergens.length > 0 ? this.customAllergens.map((c) => c.label).join(", ") : "nothing extra"}`)
+    this.recheckActive()
+  }
+
+  // ── Remembered profile (persistent storage on the glasses) ─────────────
+  private saveProfile(): void {
+    try {
+      const store = global.persistentStorageSystem.store
+      store.putString(STORE_IDS, ALLERGENS.filter((a) => this.profile.has(a.id)).map((a) => a.id).join(","))
+      store.putString(STORE_CUSTOM, JSON.stringify(this.customAllergens.filter((c) => this.profile.has(c.id)).map((c) => ({label: c.label, group: c.group}))))
+      print("AllergyLens: profile saved on the device")
+    } catch (e) {
+      print(`AllergyLens: could not save the profile (${e})`)
+    }
+  }
+
+  /** True when a saved profile was applied (setup is skipped; the Profile button edits it). */
+  private restoreProfile(): boolean {
+    try {
+      const store = global.persistentStorageSystem.store
+      const ids = (store.getString(STORE_IDS) || "").split(",").map((x) => x.trim()).filter((x) => x.length > 0)
+      const custom = JSON.parse(store.getString(STORE_CUSTOM) || "[]") as Array<{label: string; group: AllergenGroup}>
+      if (ids.length === 0 && custom.length === 0) return false
+      for (const id of ids) if (ALLERGENS.some((a) => a.id === id)) { this.profile.set(id, true); this.profilePanel.setToggle(id, true) }
+      for (const c of custom) this.addCustomAllergen(c.label, c.group)
+      this.updateMoodAvailability()
+      print(`AllergyLens: profile restored from the device [${this.profile.ids().join(", ")}]`)
+      return true
+    } catch (e) {
+      print(`AllergyLens: no saved profile (${e})`)
+      return false
+    }
   }
 
   private anyMarkerActive(): boolean {
@@ -421,7 +532,11 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profileButton.getSceneObject().enabled = false
     this.runCheck(restaurantId)
     this.lookupUnknownDishes(restaurantId)
-    this.voice?.start()
+    this.listen(true)
+    if (!this.spokenPages.has(restaurantId)) {
+      this.spokenPages.add(restaurantId)
+      this.speech?.say("menu_found")
+    }
   }
 
   // ── Miss path ──────────────────────────────────────────────────────────
@@ -508,7 +623,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
     if (!this.anyMarkerActive()) {
       this.buttonShowTimer?.reset(1.0)
-      this.voice?.stop()
+      this.listen(false)
     }
   }
 
@@ -539,6 +654,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.placeDetailBesideBar(overlay, dish.id)
       this.dishDetail.showDetail({dishName: `${dish.name} — safe for you`, headline: "Nothing from your profile.", body: result.source === "typical" ? "Based on a typical recipe; confirm with the restaurant." : "Enjoy."})
       this.audio?.playPop()
+      this.speech?.say("safe")
       this.safeCardTimer?.reset(3.0)
       return
     }
@@ -558,10 +674,40 @@ export class AllergyLensMain extends BaseScriptComponent {
     const text = raw.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").replace(/\s+/g, " ").trim()
     const short = raw.length > 48 ? raw.slice(0, 45) + "…" : raw
     const heard = (what: string) => this.profilePanel.setHeard(`Heard: "${short}" → ${what}`)
-    if (/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done)$/.test(text)) {
+    if (/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done|save|save it)$/.test(text)) {
       print(`AllergyLens: voice "${raw}" → Done`)
       heard("Done")
       this.onProfileDone()
+      return
+    }
+    if (/^(start|let's start|lets start|let's go|lets go|begin|go|okay|ok|yes|continue|next|next step|skip|go on|move on)$/.test(text)) {
+      heard(this.stepBy(1) ? "next" : "already on the last step; say done")
+      return
+    }
+    if (/^(back|go back|previous|previous step)$/.test(text)) {
+      heard(this.stepBy(-1) ? "back" : "this is the first step")
+      return
+    }
+    if (/^(more|show more|others|other allergies|something else)$/.test(text)) {
+      if (this.profilePanel.step !== "allergies") { this.profilePanel.setStep("allergies"); this.onProfileStep("allergies") }
+      this.profilePanel.showMore()
+      this.speech?.say("more")
+      heard('say the others, e.g. "soy", or "I\'m allergic to mango"')
+      return
+    }
+    if (/^(edit|keyboard|type|type it|fix it|correct it|that's wrong|thats wrong)$/.test(text)) {
+      this.profilePanel.openEdit()
+      heard("keyboard open; type the foods to avoid, then the check")
+      return
+    }
+    if (/^(quiet|mute|be quiet|stop talking|silence)$/.test(text)) {
+      this.speech?.setMuted(true)
+      heard("voice off")
+      return
+    }
+    if (/^(speak|unmute|talk|voice on|talk to me)$/.test(text)) {
+      this.speech?.setMuted(false)
+      heard("voice on")
       return
     }
     if (/^(please |ok |okay )?(clear|clear all|clear everything|reset|reset all|start over|start again|remove everything|remove all)( please)?$/.test(text)) {
@@ -628,16 +774,18 @@ export class AllergyLensMain extends BaseScriptComponent {
         return
       }
       this.mood = mood.id
-      this.profilePanel.setMood(mood.id)
       this.audio?.playClick()
       print(`AllergyLens: voice "${raw}" → mood ${mood.id}`)
       heard(`mood ${mood.label}`)
       this.recheckActive()
       return
     }
-    if (/^(on |in |under |the )*(allergies|allergy|religious|religious cultural|cultural|diet|dietary|preferences|mood|what am i in the mood for)$/.test(cleaned)) {
-      print(`AllergyLens: voice "${raw}" — section is in view; say a toggle, e.g. "peanuts" or "no pork"`)
-      heard("that section is in view; say a toggle, e.g. peanuts")
+    const goto = /^(on |in |under |the |go to |open )*(allergies|allergy|religious|religious cultural|cultural|diet|dietary)$/.exec(cleaned)
+    if (goto) {
+      const step: ProfileStep = /allerg/.test(goto[2]) ? "allergies" : /diet/.test(goto[2]) ? "diet" : "religious"
+      this.profilePanel.setStep(step)
+      this.onProfileStep(step)
+      heard(`${step} screen`)
       return
     }
     const item = parseAllergyPhrase(raw)
@@ -658,8 +806,9 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.onProfileDone()
       return
     }
-    print(`AllergyLens: voice "${raw}" — not understood; say a toggle name, a mood, "I'm allergic to …" or "done"`)
-    heard("not a command (try: peanuts, no pork, vegetarian, done)")
+    print(`AllergyLens: voice "${raw}" — not understood on the ${this.profilePanel.step} screen`)
+    this.speech?.say("heard_nothing")
+    heard(`not understood. ${STEP_HINT[this.profilePanel.step]}`)
   }
 
   /**
@@ -850,6 +999,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.placeDetailBesideBar(overlay, dishId)
     this.dishDetail.showDetail({dishName: dish.name, headline: text.headline, body: text.body})
     this.audio?.playPop()
+    this.speech?.say(result.verdict === "contains" ? "contains" : result.source === "model" ? "likely_fine" : "unknown")
     print(`AllergyLens: detail open for ${dishId} — ${text.headline} ${text.body.replace(/\n/g, " ")}`)
   }
 

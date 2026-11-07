@@ -1,180 +1,165 @@
-// AllergyLensProfileUI — the profile panel shown at Lens start: one big pinch toggle
-// per allergen in the knowledge base (Assets/Data/AllergyData.ts), grouped Allergies /
-// Religious / Diet / Preferences in 3-column UIKit grids, plus a Done button. Owns: the
-// toggle buttons and their on/off visuals. Expects no scene @inputs. Must not hold the
-// profile — it reports each flip to Main (the single owner of profile state).
-// Toggle SceneObjects are named "Toggle-<allergen id>" and the Done button "DoneButton"
-// so LEAF scenarios can find them by name.
+// AllergyLensProfileUI — the profile as a short guided setup, one question per screen:
+//   welcome → allergies → religious / cultural → diet → done.
+// Each screen: big question, a few icon tiles (pinch or say), a "Heard: …" line with a mic,
+// Back / Next. Allergies shows the six common ones and a More tile that reveals the rest
+// ("or just say it"); anything added by voice can be corrected on a keyboard (Edit).
+// Owns: the tiles and their on/off visuals, the step switch, the keyboard field. Expects no
+// scene @inputs beyond sizing. Must not hold the profile — it reports each flip, step change
+// and edit to Main (the single owner of profile state). Object names LEAF relies on:
+// "Toggle-<allergen id>", "StartButton", "NextButton", "BackButton", "DoneButton", "MoreButton".
 
 import {BackPlate} from "SpectaclesUIKit.lspkg/Scripts/BackPlate"
 import {Button} from "SpectaclesUIKit.lspkg/Scripts/Components/Button/Button"
-import {GridLayout} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid/GridLayout"
-import {GridItem} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Grid/GridItem"
+import {TextInputField} from "SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputField"
 import {FlexAlign, FlexJustify} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Flex/FlexTypes"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
-import {AllergenDef, GROUP_LABELS, GROUP_ORDER, MOODS, Mood, allergensInGroup} from "./AllergyLensMenuData"
+import {ALLERGENS, AllergenDef} from "./AllergyLensMenuData"
 import * as UI from "./AllergyLensSharedUI"
 
 const ICON_DONE = requireAsset("../Icons/check.png") as Texture
+// Open-source Material Symbols (Apache 2.0), fetched by tools/assets/fetch_icons.sh: one per screen + the app mark.
+const ICON_LOGO = requireAsset("../Icons/profile/logo.png") as Texture
+const SCREEN_ICONS: {[s: string]: Texture} = {
+  allergies: requireAsset("../Icons/profile/allergies.png") as Texture,
+  religious: requireAsset("../Icons/profile/religious.png") as Texture,
+  diet: requireAsset("../Icons/profile/diet.png") as Texture,
+}
+
+export type ProfileStep = "welcome" | "allergies" | "religious" | "diet"
+export const PROFILE_STEPS: ProfileStep[] = ["welcome", "allergies", "religious", "diet"]
+
+/** What each screen asks and which tiles it shows (ids from data/allergens.json). */
+const SCREENS: {[s in ProfileStep]: {question: string; sub: string; tiles: string[]; more: string[]}} = {
+  welcome: {question: "", sub: "", tiles: [], more: []},
+  allergies: {question: "Any food allergies?", sub: "Say them, pinch them, or say “more”.", tiles: ["peanut", "tree_nut", "milk", "egg", "wheat", "shellfish"], more: ["fish", "soy", "sesame"]},
+  religious: {question: "Anything you avoid for religious or cultural reasons?", sub: "Say it or pinch it. Skip with Next.", tiles: ["beef", "pork", "alcohol"], more: []},
+  diet: {question: "Any diet?", sub: "Say it or pinch it, then Done.", tiles: ["meat", "vegan", "high_sugar", "trans_fat"], more: []},
+}
+/** Shorter tile labels than the data's "No beef" style. */
+const TILE_LABELS: {[id: string]: string} = {
+  peanut: "Peanuts", tree_nut: "Tree nuts", milk: "Milk / dairy", egg: "Eggs", wheat: "Wheat / gluten", shellfish: "Shellfish",
+  fish: "Fish", soy: "Soy", sesame: "Sesame", beef: "No beef", pork: "No pork", alcohol: "No alcohol",
+  meat: "Vegetarian", vegan: "Vegan", high_sugar: "Low sugar", trans_fat: "No trans fat",
+}
 
 export interface ProfileToggleEvent {
   id: string
   on: boolean
 }
 
-const MOOD_COLS = 3
-
-const PAD = 1.2
-const GAP = 0.4
-const HEADER_H = 2.2
-const GROUP_LABEL_H = 1.2
-const TOGGLE_H = 2.8
-const DONE_W = 10
-const DONE_H = 2.8
+const PAD = 1.4
+const GAP = 0.5
 const COLS = 3
+const HEADER_H = 3.2
+const QUESTION_H = 3.0
+const SUB_H = 1.6
+const HEARD_H = 1.9
+const TILE_H = 3.6
+const CUSTOM_H = 2.6
+const FOOTER_H = 3.4
+const FOOT_BTN_W = 9.5
+const ICON = 2.4
 
 @component
 export class AllergyLensProfileUI extends BaseScriptComponent {
-  @ui.label('<span style="color: #60A5FA;">AllergyLensProfileUI – allergen toggles from the data module + Done</span>')
+  @ui.label('<span style="color: #60A5FA;">AllergyLensProfileUI – guided profile setup (welcome → allergies → religious → diet)</span>')
   @ui.separator
   @ui.label('<span style="color: #60A5FA;">Settings</span>')
   @ui.group_start("Settings")
   @input
-  @hint("Header text at the top of the panel.")
-  title: string = "Your profile"
+  @hint("Name shown on the welcome screen.")
+  appName: string = "AllergyLens"
 
   @input
-  @hint("Label on the Done button.")
-  doneLabel: string = "Done"
-
-  @input
-  @hint("Question above the mood chips.")
-  moodQuestion: string = "What are you in the mood for?"
-
-  @input
-  @hint("Panel width in cm (brief default 30). Height follows the toggle count.")
-  @widget(new SliderWidget(20, 50, 1))
-  panelWidthCm: number = 30
+  @hint("Panel width in cm.")
+  @widget(new SliderWidget(24, 50, 1))
+  panelWidthCm: number = 34
 
   @input
   @hint("Viewing distance (cm) used to scale text; the panel sits ~80 cm from the user.")
   @widget(new SliderWidget(40, 110, 5))
   textDistanceCm: number = 80
+
+  @input
+  @hint("Text size multiplier for this panel (1 = the Specs type scale). Bigger reads better from 80 cm.")
+  @widget(new SliderWidget(0.8, 2.0, 0.05))
+  textScale: number = 1.3
   @ui.group_end
 
   private buttons = new Map<string, Button>()
   private pendingStates = new Map<string, boolean>()
-  private moodButtons = new Map<Mood, Button>()
-  private moodLabels = new Map<Mood, Text>()
+  private screens = new Map<ProfileStep, SceneObject>()
+  private moreRows = new Map<ProfileStep, SceneObject>()
+  private heardTexts: Text[] = []
+  private micTexts: Text[] = []
   private customText: Text | null = null
-  private heardText: Text | null = null
-  private _mood: Mood = "everything"
-  private applyingMood = false
+  private editRow: SceneObject | null = null
+  private editField: TextInputField | null = null
+  private greeting: Text | null = null
+  private _step: ProfileStep = "welcome"
+  private _listening = false
   private _onToggle = new Event<ProfileToggleEvent>()
-  private _onMood = new Event<Mood>()
+  private _onStep = new Event<ProfileStep>()
   private _onDone = new Event<void>()
+  private _onMore = new Event<void>()
+  private _onEditCustom = new Event<string>()
 
-  /** The user picked a mood chip. */
-  get onMood(): PublicApi<Mood> {
-    return this._onMood.publicApi()
-  }
-
-  /** Currently selected mood ("everything" = no filter). */
-  get mood(): Mood {
-    return this._mood
-  }
-
-  /** A toggle flipped: {id, on}. */
+  /** A tile flipped: {id, on}. */
   get onToggle(): PublicApi<ProfileToggleEvent> {
     return this._onToggle.publicApi()
   }
-
-  /** User pinched Done. */
+  /** The user moved to another screen (Start / Next / Back). */
+  get onStep(): PublicApi<ProfileStep> {
+    return this._onStep.publicApi()
+  }
+  /** User pinched Done on the last screen. */
   get onDone(): PublicApi<void> {
     return this._onDone.publicApi()
+  }
+  /** User pinched More on the allergies screen. */
+  get onMore(): PublicApi<void> {
+    return this._onMore.publicApi()
+  }
+  /** User corrected the voice-added items on the keyboard; the full text of the field. */
+  get onEditCustom(): PublicApi<string> {
+    return this._onEditCustom.publicApi()
+  }
+  get step(): ProfileStep {
+    return this._step
   }
 
   onAwake(): void {
     const W = this.panelWidthCm
     const innerW = W - PAD * 2
-    const d = this.textDistanceCm
-    const btnW = (innerW - GAP * (COLS - 1)) / COLS
-
-    // Height from the data: header + per group (label + grid) + Done + gaps.
-    const groups = GROUP_ORDER.map((g) => ({group: g, items: allergensInGroup(g)})).filter((g) => g.items.length > 0)
-    const moodRows = Math.ceil(MOODS.length / MOOD_COLS)
-    let H = PAD * 2 + HEADER_H + DONE_H + GROUP_LABEL_H + moodRows * TOGGLE_H + GROUP_LABEL_H * 2 // + "heard" + "also" lines
-    let itemCount = 2 + 1 + moodRows + 2
-    for (const g of groups) {
-      const rows = Math.ceil(g.items.length / COLS)
-      H += GROUP_LABEL_H + rows * TOGGLE_H + (rows - 1) * GAP
-      itemCount += 2
-    }
-    H += GAP * (itemCount - 1)
+    const d = this.textDistanceCm * this.textScale
+    const tileW = (innerW - GAP * (COLS - 1)) / COLS
+    // One fixed height for every screen (the allergies screen with More open is the tallest).
+    const H = PAD * 2 + HEADER_H + QUESTION_H + SUB_H + HEARD_H + TILE_H * 3 + CUSTOM_H + FOOTER_H + GAP * 8
 
     this.sceneObject.createComponent("Component.Canvas")
     const plate = this.sceneObject.createComponent(BackPlate.getTypeName()) as BackPlate
     plate.size = new vec2(W, H)
-
     const content = UI.obj(this.sceneObject, "Content", new vec3(0, 0, UI.CONTENT_Z))
-    const col = UI.flexColumn(content, W, H, {gap: GAP, padX: PAD, padY: PAD, justify: FlexJustify.Start, align: FlexAlign.Stretch})
-    UI.addColumnText(col, this.title, "Subheadline", d, HEADER_H)
-    // What the microphone heard and what happened — visible proof that voice works.
-    this.heardText = UI.addColumnText(col, "", "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Center, new vec4(0.6, 0.85, 1, 1))
 
-    for (const g of groups) {
-      UI.addColumnText(col, GROUP_LABELS[g.group], "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
-      const rows = Math.ceil(g.items.length / COLS)
-      const gridH = rows * TOGGLE_H + (rows - 1) * GAP
-      UI.flexChild(col, {w: innerW, h: gridH}, (gridParent) => {
-        const grid = gridParent.createComponent(GridLayout.getTypeName()) as GridLayout
-        grid.onInitialized.add(() => {
-          grid.width = innerW
-          grid.height = gridH
-          grid.templateColumns = "1fr 1fr 1fr"
-          grid.templateRows = `repeat(${rows}, 1fr)`
-          grid.columnGap = GAP
-          grid.rowGap = GAP
-          const gridItems: GridItem[] = []
-          for (const a of g.items) {
-            const tile = UI.obj(gridParent, `Toggle-${a.id}`)
-            const gi = tile.createComponent(GridItem.getTypeName()) as GridItem
-            gi.overrideWidth = btnW
-            gi.overrideHeight = TOGGLE_H
-            gridItems.push(gi)
-            this.buildToggle(tile, a, btnW, TOGGLE_H)
-          }
-          grid.addItems(gridItems)
-        })
-      })
+    for (const step of PROFILE_STEPS) {
+      const screen = UI.obj(content, `Screen-${step}`)
+      this.screens.set(step, screen)
+      const col = UI.flexColumn(screen, W, H, {gap: GAP, padX: PAD, padY: PAD, justify: FlexJustify.Start, align: FlexAlign.Stretch})
+      this.buildHeader(col, innerW, d, step)
+      if (step === "welcome") this.buildWelcome(col, innerW, d)
+      else this.buildQuestionScreen(col, innerW, d, tileW, step)
+      this.buildFooter(col, innerW, d, step)
+      screen.enabled = step === this._step
     }
-
-    // Anything the user added by voice ("I'm allergic to mango") — Main fills this line.
-    this.customText = UI.addColumnText(col, "", "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
-
-    // Mood — one question, single-select chips (3 per row).
-    UI.addColumnText(col, this.moodQuestion, "Caption", d, GROUP_LABEL_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
-    for (let r = 0; r < MOODS.length; r += MOOD_COLS) {
-      const row = UI.flexRow(col, innerW, TOGGLE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
-      for (const m of MOODS.slice(r, r + MOOD_COLS)) this.addMoodChip(row, m.id, m.label, btnW, TOGGLE_H)
-    }
-
-    // Done — centered, with a check icon.
-    const doneRow = UI.flexRow(col, innerW, DONE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
-    UI.flexChild(doneRow, {w: DONE_W, h: DONE_H}, (so) => {
-      so.name = "DoneButton"
-      const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(DONE_W, DONE_H, 1)
-      btn.onTriggerUp.add(() => this._onDone.invoke())
-      const inner = UI.flexRow(so, DONE_W, DONE_H, {gap: 0.6, justify: FlexJustify.Center, align: FlexAlign.Center})
-      UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
-      UI.addImage(inner, ICON_DONE, 1.8, 1.8)
-      UI.addRowText(inner, this.doneLabel, "Callout", d,
-        this.doneLabel.length * UI.charWidthCm("Callout", d) + 1, HorizontalAlignment.Left)
-    })
   }
 
   // ── Public API ─────────────────────────────────────────────────────────
+  setStep(step: ProfileStep): void {
+    this._step = step
+    this.screens.forEach((so, s) => (so.enabled = s === step))
+    if (this.editRow) this.editRow.enabled = false
+  }
+
   setToggle(id: string, on: boolean): void {
     this.pendingStates.set(id, on)
     const btn = this.buttons.get(id)
@@ -185,77 +170,193 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     return this.buttons.get(id)?.isOn ?? false
   }
 
-  /** Select a mood chip (works before the chips exist, e.g. from defaultMood). */
-  setMood(mood: Mood): void {
-    this.selectMood(mood, false)
-  }
-
-  /**
-   * Grey out a mood chip that contradicts the profile (a vegetarian is never "in the mood
-   * for chicken"). A chip that is switched off cannot be pinched; Main falls back to
-   * "everything" when the selected one goes off.
-   */
-  setMoodEnabled(mood: Mood, enabled: boolean): void {
-    const btn = this.moodButtons.get(mood)
-    if (btn) btn.inactive = !enabled
-    const label = this.moodLabels.get(mood)
-    if (label) label.textFill.color = new vec4(1, 1, 1, enabled ? 1 : 0.3)
+  /** "Hi, Mukesh." on the welcome screen (the Snapchat display name on the glasses). */
+  setDisplayName(name: string): void {
+    if (this.greeting) this.greeting.text = name.trim().length > 0 ? `Hi, ${name.trim()}.` : "Hi."
   }
 
   /** Show the last thing the microphone heard and what the Lens did with it. */
   setHeard(text: string): void {
-    if (this.heardText) this.heardText.text = text
+    for (const t of this.heardTexts) t.text = text
   }
 
-  /** Show what was added by voice, e.g. ["Mango", "Coriander"]. */
+  /** Light the mic while speech-to-text is running. */
+  setListening(on: boolean): void {
+    this._listening = on
+    for (const t of this.micTexts) t.textFill.color = on ? new vec4(0.4, 1, 0.5, 1) : new vec4(1, 1, 1, 0.3)
+  }
+
+  /** Show what was added by voice, e.g. ["Mango", "Coriander"]; the Edit key corrects it on a keyboard. */
   setCustomLabels(labels: string[]): void {
-    if (this.customText) this.customText.text = labels.length > 0 ? `Also avoiding: ${labels.join(", ")}` : ""
+    if (this.customText) this.customText.text = labels.length > 0 ? `Also: ${labels.join(", ")}` : ""
+    if (this.editField) this.editField.text = labels.join(", ")
   }
 
-  // ── Private ────────────────────────────────────────────────────────────
-  private addMoodChip(row: SceneObject, mood: Mood, label: string, w: number, h: number): void {
-    UI.flexChild(row, {w, h}, (so) => {
-      so.name = `Mood-${mood}`
-      const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(w, h, 1)
-      btn.setIsToggleable(true)
-      btn.isOn = mood === this._mood
-      btn.onValueChange.add((v: number) => {
-        if (this.applyingMood) return
-        if (v === 1) this.selectMood(mood, true)
-        else if (mood === this._mood) {
-          // Single-select: the current chip cannot be switched off, only replaced.
-          this.applyingMood = true
-          btn.isOn = true
-          this.applyingMood = false
-        }
+  /** Reveal the extra allergy tiles (what "more" does). */
+  showMore(): void {
+    const row = this.moreRows.get("allergies")
+    if (row) row.enabled = true
+  }
+
+  // ── Screens ────────────────────────────────────────────────────────────
+  private buildHeader(col: SceneObject, innerW: number, d: number, step: ProfileStep): void {
+    const row = UI.flexRow(col, innerW, HEADER_H, {gap: 0.8, justify: FlexJustify.Start, align: FlexAlign.Center})
+    UI.addImage(row, ICON_LOGO, HEADER_H, HEADER_H)
+    UI.addRowText(row, this.appName, "Subheadline", d, innerW - HEADER_H - 9, HorizontalAlignment.Left)
+    const n = PROFILE_STEPS.indexOf(step)
+    const dots = n === 0 ? "" : `${n} of 3`
+    UI.addRowText(row, dots, "Callout", d, 7, HorizontalAlignment.Right, UI.WHITE_SOFT)
+  }
+
+  private buildWelcome(col: SceneObject, innerW: number, d: number): void {
+    UI.flexChild(col, {w: innerW, h: GAP}, () => {})
+    const logoRow = UI.flexRow(col, innerW, 7, {justify: FlexJustify.Center, align: FlexAlign.Center})
+    UI.addImage(logoRow, ICON_LOGO, 7, 7)
+    this.greeting = UI.addColumnText(col, "Hi.", "Headline1", d, QUESTION_H, HorizontalAlignment.Center)
+    UI.addColumnText(col, "Let’s set up your profile in three quick steps.", "Body", d, SUB_H, HorizontalAlignment.Center)
+    UI.addColumnText(col, "Say your answers, or pinch.", "Body", d, SUB_H, HorizontalAlignment.Center, UI.WHITE_SOFT)
+    this.addHeardLine(col, innerW, d)
+    UI.flexChild(col, {w: innerW, h: TILE_H + CUSTOM_H}, () => {})
+  }
+
+  private buildQuestionScreen(col: SceneObject, innerW: number, d: number, tileW: number, step: ProfileStep): void {
+    const screen = SCREENS[step]
+    const q = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.8, justify: FlexJustify.Start, align: FlexAlign.Center})
+    UI.addImage(q, SCREEN_ICONS[step], QUESTION_H, QUESTION_H)
+    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - 0.8, HorizontalAlignment.Left)
+    UI.addColumnText(col, screen.sub, "Body", d, SUB_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
+    this.addHeardLine(col, innerW, d)
+    // Tiles, three per row; the allergies screen gets a More tile in the last slot.
+    const ids = screen.tiles.slice()
+    const slots = step === "allergies" ? ids.concat(["__more"]) : ids
+    for (let r = 0; r < slots.length; r += COLS) {
+      const row = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      for (const id of slots.slice(r, r + COLS)) {
+        if (id === "__more") this.addMoreTile(row, tileW, d)
+        else this.addTile(row, id, tileW, d)
+      }
+    }
+    if (screen.more.length > 0) {
+      const row = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      for (const id of screen.more) this.addTile(row, id, tileW, d)
+      row.enabled = false
+      this.moreRows.set(step, row)
+    }
+    if (step === "allergies") {
+      // What voice added, with a keyboard to fix a misheard word.
+      const custom = UI.flexRow(col, innerW, CUSTOM_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      this.customText = UI.addRowText(custom, "", "Body", d, innerW - CUSTOM_H - 1 - GAP, HorizontalAlignment.Left, UI.WHITE_SOFT)
+      UI.flexChild(custom, {w: CUSTOM_H + 1, h: CUSTOM_H}, (so) => {
+        so.name = "EditCustomButton"
+        const btn = so.createComponent(Button.getTypeName()) as Button
+        btn.size = new vec3(CUSTOM_H + 1, CUSTOM_H, 1)
+        btn.onTriggerUp.add(() => this.toggleEdit())
+        UI.addButtonLabel(so, "Edit", CUSTOM_H + 1, d, "Callout")
       })
-      this.moodLabels.set(mood, UI.addButtonLabel(so, label, w - 0.6, this.textDistanceCm, "Button"))
-      this.moodButtons.set(mood, btn)
+      const edit = UI.flexRow(col, innerW, TILE_H, {gap: GAP, justify: FlexJustify.Start, align: FlexAlign.Center})
+      UI.flexChild(edit, {w: innerW - TILE_H - GAP, h: TILE_H}, (so) => {
+        so.name = "EditCustomField"
+        const field = so.createComponent(TextInputField.getTypeName()) as TextInputField
+        field.placeholderText = "Type the foods to avoid, comma-separated"
+        this.editField = field
+      })
+      UI.flexChild(edit, {w: TILE_H, h: TILE_H}, (so) => {
+        so.name = "ApplyCustomButton"
+        const btn = so.createComponent(Button.getTypeName()) as Button
+        btn.size = new vec3(TILE_H, TILE_H, 1)
+        btn.onTriggerUp.add(() => {
+          if (this.editRow) this.editRow.enabled = false
+          this._onEditCustom.invoke(this.editField ? this.editField.text : "")
+        })
+        const inner = UI.flexRow(so, TILE_H, TILE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
+        UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
+        UI.addImage(inner, ICON_DONE, ICON, ICON)
+      })
+      edit.enabled = false
+      this.editRow = edit
+    } else {
+      UI.flexChild(col, {w: innerW, h: CUSTOM_H}, () => {})
+    }
+  }
+
+  private addHeardLine(col: SceneObject, innerW: number, d: number): void {
+    const row = UI.flexRow(col, innerW, HEARD_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
+    // A dot that lights green while speech-to-text runs, then what was heard.
+    this.micTexts.push(UI.addRowText(row, "●", "Body", d, 1.2, HorizontalAlignment.Center, new vec4(1, 1, 1, this._listening ? 1 : 0.3)))
+    this.heardTexts.push(UI.addRowText(row, "", "Body", d, innerW - 1.8, HorizontalAlignment.Left, new vec4(0.6, 0.85, 1, 1)))
+  }
+
+  private buildFooter(col: SceneObject, innerW: number, d: number, step: ProfileStep): void {
+    const row = UI.flexRow(col, innerW, FOOTER_H, {gap: GAP, justify: FlexJustify.SpaceBetween, align: FlexAlign.Center})
+    const n = PROFILE_STEPS.indexOf(step)
+    if (n >= 2) this.addFooterButton(row, "BackButton", "‹ Back", null, d, () => this.go(PROFILE_STEPS[n - 1]))
+    else UI.flexChild(row, {w: FOOT_BTN_W, h: FOOTER_H}, () => {})
+    if (step === "welcome") this.addFooterButton(row, "StartButton", "Start ›", null, d, () => this.go("allergies"))
+    else if (step === "diet") this.addFooterButton(row, "DoneButton", "Done", ICON_DONE, d, () => this._onDone.invoke())
+    else this.addFooterButton(row, "NextButton", "Next ›", null, d, () => this.go(PROFILE_STEPS[n + 1]))
+  }
+
+  private go(step: ProfileStep): void {
+    this.setStep(step)
+    this._onStep.invoke(step)
+  }
+
+  private addFooterButton(row: SceneObject, name: string, label: string, icon: Texture | null, d: number, onPinch: () => void): void {
+    UI.flexChild(row, {w: FOOT_BTN_W, h: FOOTER_H}, (so) => {
+      so.name = name
+      const btn = so.createComponent(Button.getTypeName()) as Button
+      btn.size = new vec3(FOOT_BTN_W, FOOTER_H, 1)
+      btn.onTriggerUp.add(onPinch)
+      const inner = UI.flexRow(so, FOOT_BTN_W, FOOTER_H, {gap: 0.6, justify: FlexJustify.Center, align: FlexAlign.Center})
+      UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
+      UI.addRowText(inner, label, "Callout", d, label.length * UI.charWidthCm("Callout", d) + 1, HorizontalAlignment.Center)
+      if (icon) UI.addImage(inner, icon, ICON * 0.8, ICON * 0.8)
     })
   }
 
-  private selectMood(mood: Mood, fromUser: boolean): void {
-    this._mood = mood
-    this.applyingMood = true
-    this.moodButtons.forEach((b, id) => {
-      b.isOn = id === mood
+  private addTile(row: SceneObject, id: string, w: number, d: number): void {
+    const item = ALLERGENS.find((a) => a.id === id)
+    if (!item) return
+    UI.flexChild(row, {w, h: TILE_H}, (so) => {
+      so.name = `Toggle-${id}`
+      this.buildToggle(so, item, w, d)
     })
-    this.applyingMood = false
-    if (fromUser) this._onMood.invoke(mood)
   }
 
-  private buildToggle(so: SceneObject, item: AllergenDef, w: number, h: number): void {
+  private addMoreTile(row: SceneObject, w: number, d: number): void {
+    UI.flexChild(row, {w, h: TILE_H}, (so) => {
+      so.name = "MoreButton"
+      const btn = so.createComponent(Button.getTypeName()) as Button
+      btn.size = new vec3(w, TILE_H, 1)
+      btn.onTriggerUp.add(() => {
+        this.showMore()
+        this._onMore.invoke()
+      })
+      UI.addButtonLabel(so, "More…", w - 0.8, d, "Subheadline")
+    })
+  }
+
+  private buildToggle(so: SceneObject, item: AllergenDef, w: number, d: number): void {
     const btn = so.createComponent(Button.getTypeName()) as Button
-    btn.size = new vec3(w, h, 1)
+    btn.size = new vec3(w, TILE_H, 1)
     btn.setIsToggleable(true)
     btn.isOn = false
-    // onValueChange carries the settled state (1 = on). onFinished's boolean is the
-    // toggle-group "explicit" flag, not the state — don't use it for on/off.
+    // onValueChange carries the settled state (1 = on).
     btn.onValueChange.add((v: number) => this._onToggle.invoke({id: item.id, on: v === 1}))
-    UI.addButtonLabel(so, item.label, w - 0.6, this.textDistanceCm, "Button")
+    UI.addButtonLabel(so, TILE_LABELS[item.id] ?? item.label, w - 0.8, d, "Subheadline")
     this.buttons.set(item.id, btn)
     const pending = this.pendingStates.get(item.id)
     if (pending !== undefined) btn.isOn = pending
+  }
+
+  private toggleEdit(): void {
+    if (!this.editRow) return
+    this.editRow.enabled = !this.editRow.enabled
+  }
+
+  /** Show the keyboard field (voice: "edit" / "keyboard"); the allergies screen holds it. */
+  openEdit(): void {
+    if (this._step !== "allergies") this.setStep("allergies")
+    if (this.editRow) this.editRow.enabled = true
   }
 }

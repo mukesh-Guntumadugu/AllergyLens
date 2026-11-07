@@ -59,6 +59,9 @@ interface MainApi {
   simulateMarkerLost(): void
   setCameraTracking(enabled: boolean): void
   markerActive: boolean
+  currentMood: string
+  setMood(id: string): boolean
+  resetProfile(): void
 }
 
 interface OverlayApi {
@@ -178,30 +181,36 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     for (const id of ALL_PROFILE_IDS) await this.setToggle(id, onIds.indexOf(id) >= 0)
   }
 
+  /**
+   * The profile is a guided setup (welcome → allergies → religious → diet): walk forward with
+   * Start / Next until the Done screen, then Done. Each tap is a real pinch target.
+   */
   async done(): Promise<void> {
-    await this.tap("DoneButton")
+    for (let i = 0; i < 4 && this.isVisible("ProfilePanel"); i++) {
+      if (this.isVisible("StartButton")) await this.tap("StartButton")
+      else if (this.isVisible("NextButton")) await this.tap("NextButton")
+      else {
+        await this.tap("DoneButton")
+        break
+      }
+      await sleep(150)
+    }
   }
 
   getMood(): string {
-    const panel = requireByName("ProfilePanel")
-    for (const c of panel.getComponents("Component.ScriptComponent") as ScriptComponent[]) {
-      const anyC = c as unknown as {mood?: string}
-      if (typeof anyC.mood === "string") return anyC.mood
-    }
-    throw new Error("ProfilePanel has no mood API")
+    return mainScript().currentMood
   }
 
-  /** Pick a mood chip (single-select). Panel must be open. */
+  /** The "in the mood for" filter has no chips any more: it is voice on the menu, and Main's API here. */
   async setMood(mood: MoodId): Promise<void> {
     if (this.getMood() === mood) return
-    this.toggleButton(`Mood-${mood}`).isOn = true // chip's onValueChange(1) → panel selects it → Main's onMood
-    await sleep(60)
-    if (this.getMood() !== mood) throw new Error(`Mood-${mood} did not select`)
+    if (!mainScript().setMood(mood)) throw new Error(`mood ${mood} not accepted (contradicts the profile?)`)
   }
 
-  /** Open profile, set exactly `profileIds` and the mood, Done. */
+  /** Open profile, set exactly `profileIds` (nothing extra from a remembered profile), the mood, Done. */
   async prepareProfile(profileIds: string[], mood: MoodId = "everything"): Promise<void> {
     await this.ensureProfileOpen()
+    mainScript().resetProfile()
     await this.setProfile(profileIds)
     await this.setMood(mood)
     await this.done()

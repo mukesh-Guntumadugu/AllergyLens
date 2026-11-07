@@ -64,29 +64,46 @@ The shot list with timings and voice-over is in
 
 ## Voice first: there is no keyboard on the glasses
 
-Everything on the profile panel can be done by speaking, and the panel shows
-what it heard on a line under the title ("Heard: "no pork" → No pork on"),
-so you always know whether it understood you. A welcome line says so when the
-panel opens. Pinching works too; voice is the way to add what isn't there.
+The profile is a short guided setup, one question per screen, and every step can be
+spoken or pinched (rebuilt 7 Nov):
 
-| say | what happens |
-|---|---|
-| "peanuts", "dairy", "gluten", "no pork", "vegetarian", "avoid high sugar" | that toggle on (label, a word of it, or a synonym: "bacon" is No pork, "nuts" is Tree nuts) |
-| "no beef and no pork", "avoid trans fat and high sugar" | several at once; filler like "please", "on the religious side", "I'd like to" is ignored |
-| "turn off milk", "remove peanuts" | that toggle off |
-| "I'm allergic to mango", "I can't eat okra", "no coriander" | a custom allergen, checked against every dish and product; shown as "Also avoiding: Mango" |
-| "allergies, add mango" · "religious, add lamb" · "diet, add keto" | a custom item under that section |
-| "chicken", "in the mood for seafood", "everything" | the mood chip (refused, with the reason, when the profile forbids it) |
-| "clear" / "reset" | everything off |
-| "done" (even inside "that's it, done") | closes the panel |
-| with a menu in view: "mixed naan" | same as pinching that line |
+1. **Welcome** — the app mark, "Hi, <your Snapchat display name>", three steps
+   announced out loud. Say "start" or pinch Start.
+2. **Allergies** — the six common ones as big tiles (peanuts, tree nuts, milk,
+   eggs, wheat, shellfish) plus **More…** for fish, soy, sesame and anything
+   else by voice ("I'm allergic to mango"). What voice added shows as
+   "Also: mango" with an **Edit** key that opens the keyboard to fix a
+   misheard word.
+3. **Religious / cultural** — no beef, no pork, no alcohol.
+4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Then **Done**.
 
-Misheard words map to the right toggle when they match a toggle's spoken
-synonyms ("transfer" → Avoid trans fat). In Lens Studio the preview listens
-through VoiceML and the Preview panel's mic button; on the glasses through
-the SPECS ASR module. A sentence that names nothing on the panel is "not a
-command"; mapping free speech like "I keep halal" to toggles is the next
-step, through a language model on Snap's Remote Service Gateway.
+No "in the mood for" chips any more: that filter is voice on the menu
+("show vegetarian", "chicken", "everything"). The profile is **remembered on
+the glasses** (persistent storage), so setup runs once; the Profile button or
+"edit profile" reopens it on the allergies screen.
+
+**The Lens speaks.** SPECS has no text-to-speech API in Lens Studio 5.23
+(`TextToSpeechModule` is deprecated), so the fixed lines are rendered once on
+the Mac (`tools/assets/make_speech.sh`, macOS voice) and bundled as 14 small
+MP3s (332 KB): welcome, each step's question, "more", saved, reopened, "didn't
+catch that", menu recognised, and the verdict when a dish is pinched
+("this dish has something from your profile" / "likely fine, confirm" / "looks
+fine" / "ingredients not published"). Say "quiet" to mute and "speak" to
+unmute. Anything dynamic (dish names) stays on the card.
+
+**Commands on the setup screens** (anywhere in a sentence, politeness ignored):
+`start`, `next`, `back`, `more`, `edit` / `keyboard`, `done` / `save`, `quiet`,
+`speak`, `clear`; a tile name turns it on ("peanuts and milk", "no pork",
+"vegan"); "turn off milk" turns it off; "allergies, add mango" / "I'm allergic
+to mango" adds a custom item; "allergies" / "diet" jumps to that screen. The
+"Heard: …" line under the question shows the transcript and what the Lens did
+with it, and the dot before it is green while speech-to-text is listening.
+
+**Speech-to-text:** Snap's ASR module on the glasses; VoiceML with the Mac
+mic in the Lens Studio preview. Both feed the same parser.
+
+**Icons** are open-source Material Symbols (Apache 2.0), one per screen and
+the app mark, fetched by `tools/assets/fetch_icons.sh`; tiles are text only.
 
 ## How it works
 
