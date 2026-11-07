@@ -15,7 +15,8 @@ python3 -c "import venv" 2>/dev/null || sudo apt-get install -y python3-venv
 node "$REPO/tools/build-data.js"
 sed -e "s|__USER__|$USER_NAME|" -e "s|__REPO__|$REPO|" "$REPO/tools/server/allergylens-data.service" | sudo tee /etc/systemd/system/allergylens-data.service >/dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable --now allergylens-data
+sudo systemctl enable allergylens-data
+sudo systemctl restart allergylens-data      # (re)start so a running service picks up the new code
 sleep 1
 curl -fsS http://localhost:8787/health && echo
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')

@@ -1,4 +1,4 @@
-# systemd unit for the AllergyLens public API on a plain VPS (Hostinger or any Ubuntu box, no GPU, no lake).
+# systemd unit for the AllergyLens public API on a plain VPS (Hostinger, Ubuntu or AlmaLinux, no GPU; a copy of the lake's gold/).
 # Install with tools/server/install_vps.sh (it fills in the user and repo path).
 # Serves menus.json / products.json / lookup / health on port 8787; a reverse proxy (Caddy or nginx)
 # in front of it gives the https address the Lens needs.
@@ -11,8 +11,9 @@ Wants=network-online.target
 Type=simple
 User=__USER__
 WorkingDirectory=__REPO__
-ExecStartPre=/bin/bash -c 'node tools/build-data.js && git checkout -q -- Assets/Data/AllergyData.ts'
-ExecStart=__REPO__/.venv/bin/python -u tools/serve_data.py --host 127.0.0.1 --port 8787 --research --lake __REPO__/data-lake
+Environment=PATH=__NODE_DIR__:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/bin/bash -c 'node tools/build-data.js --with-lake && git checkout -q -- Assets/Data/AllergyData.ts'
+ExecStart=__REPO__/.venv/bin/python -u tools/serve_data.py --host 127.0.0.1 --port 8787 --with-lake --research --lake __REPO__/data-lake
 Restart=always
 RestartSec=3
 
