@@ -71,13 +71,20 @@ for (const d of dishKb.dishes) {
     if (typeof ing !== "string" || ing !== ing.toLowerCase()) errors.push(`dish KB "${d.name}": ingredient "${ing}" must be lowercase text`);
   }
 }
+// A catalog name/alias contained in the menu name, longest key wins — but the key must cover at least half of
+// the name's words (same rule as serve_data.find_dish), so "jack & coke · bahama mama" is not joined to an
+// entry named "jack" and "chicken tikka masala" is not answered by "chicken". With thousands of model-answered
+// names in the catalog, the old any-substring rule produced wrong joins.
 function lookupDish(menuName) {
   const n = norm(menuName);
+  const words = n.split(" ").filter(Boolean).length;
   let best = null;
   for (const d of dishKb.dishes) {
     for (const key of [d.name, ...(d.aliases || [])]) {
       const k = norm(key);
-      if (k && n.includes(k) && (!best || k.length > best.key.length)) best = { key: k, dish: d };
+      if (!k || !(" " + n + " ").includes(" " + k + " ")) continue;
+      if (k.split(" ").length * 2 < words) continue;
+      if (!best || k.length > best.key.length) best = { key: k, dish: d };
     }
   }
   return best ? best.dish : null;
