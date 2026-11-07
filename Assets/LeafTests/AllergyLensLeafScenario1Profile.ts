@@ -5,7 +5,8 @@ import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
 import {findInteractablesByName} from "Leaf.lspkg/Interactors/InteractableUtils"
-import {AllergyLensLeafInteractor} from "./AllergyLensLeafInteractor"
+import WorldCameraFinderProvider from "SpectaclesInteractionKit.lspkg/Providers/CameraProvider/WorldCameraFinderProvider"
+import {AllergyLensLeafInteractor, requireByName} from "./AllergyLensLeafInteractor"
 
 @component
 export class AllergyLensLeafScenario1Profile extends Scenario {
@@ -31,6 +32,15 @@ export class AllergyLensLeafScenario1Profile extends Scenario {
     await ui.done()
     expect(ui.isVisible("ProfilePanel"), "profile panel hidden after Done").toBe(false)
     expect(findInteractablesByName("ProfileButton", undefined, true).length, "Profile button available (no menu in view)").toBeGreaterThan(0)
+    // The whole 7 cm icon must sit inside the view (the preview shows about ±15°): angle from the look
+    // direction to the button centre plus the icon's half-size, on both axes.
+    await sleep(1000)
+    const cam = WorldCameraFinderProvider.getInstance().getTransform()
+    const local = cam.getInvertedWorldTransform().multiplyPoint(requireByName("ProfileButton").getTransform().getWorldPosition())
+    const deg = (a: number) => (Math.atan2(Math.abs(a), Math.max(0.01, -local.z)) * 180) / Math.PI
+    const halfIcon = (Math.atan2(3.5, 55) * 180) / Math.PI
+    expect(deg(local.x) + halfIcon < 15, `Profile button inside the view horizontally (${(deg(local.x) + halfIcon).toFixed(1)} deg)`).toBe(true)
+    expect(deg(local.y) + halfIcon < 15, `Profile button inside the view vertically (${(deg(local.y) + halfIcon).toFixed(1)} deg)`).toBe(true)
     // While a menu is in view nothing else is drawn: button gone, panel stays closed.
     await ui.simulateMarker("laurel-cafe")
     expect(ui.isVisible("ProfileButton"), "Profile button hidden while a menu is recognised").toBe(false)

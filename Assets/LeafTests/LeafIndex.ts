@@ -26,6 +26,6 @@ export class LeafIndex extends BaseScriptComponent {
     {id: "allergylens-8-everything-light", typename: AllergyLensLeafScenario8EverythingLight.getTypeName()},
     {id: "allergylens-9-voice-match", typename: AllergyLensLeafScenario9VoiceMatch.getTypeName()},
     {id: "allergylens-10-keyboard", typename: AllergyLensLeafScenario10Keyboard.getTypeName(), parameters: {keepOpen: "false"}},
-    {id: "allergylens-11-voice-items", typename: AllergyLensLeafScenario11VoiceItems.getTypeName()},
+    {id: "allergylens-11-voice-items", typename: AllergyLensLeafScenario11VoiceItems.getTypeName(), parameters: {keepOpen: "false"}},
   ]
 }

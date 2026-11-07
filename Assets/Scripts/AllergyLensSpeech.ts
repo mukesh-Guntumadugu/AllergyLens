@@ -120,9 +120,16 @@ export class AllergyLensSpeech {
     const said = new Set<string>()
     for (const l of [this.lastLine, this.previousLine]) if (l) for (const w of LINE_TEXT[l].split(" ")) said.add(w)
     const words = transcript.toLowerCase().replace(/[^a-z' ]+/g, " ").split(" ").filter((w) => w.length > 0)
-    const kept = words.filter((w) => !said.has(w))
+    const removed = words.filter((w) => said.has(w)).length
     // Only call it an echo when the Lens's words are a real share of the transcript.
-    return words.length - kept.length >= 3 ? kept.join(" ") : transcript
+    if (removed < 3) return transcript
+    // While the clip is still sounding, a stray word wedged BETWEEN the Lens's words is the microphone
+    // mishearing the clip ("Welcome to Allergy Lab" → "lab"), not the user; what follows the Lens's last
+    // word is the user's answer ("… say more for others. Olives." → "olives"). After the clip, keep everything.
+    let lastSaid = -1
+    words.forEach((w, i) => { if (said.has(w)) lastSaid = i })
+    const kept = words.filter((w, i) => !said.has(w) && (i > lastSaid || !this.isSpeaking))
+    return kept.join(" ")
   }
 
   isEcho(transcript: string): boolean {

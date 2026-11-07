@@ -114,8 +114,11 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private speakerIcons: Image[] = []
   private chipArea: SceneObject | null = null
   private chipObjects: SceneObject[] = []
+  private moreButton: SceneObject | null = null
+  private chipPage = 0
+  private extras: Array<{id: string; label: string}> = []
+  private renderPending = false
   private chipW = 8
-  private overflowText: Text | null = null
   private editRow: SceneObject | null = null
   private keyboardRoot: SceneObject | null = null
   private keyboardH = 0
@@ -260,29 +263,69 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
   /**
    * Everything on the profile that has no tile on the allergies screen — fish, soy, sesame and
-   * anything spoken ("olive oil") — as chips after the More… tile: five visible, "+N more" beyond
-   * that. No limit on what is stored; the keyboard field always carries the full list.
+   * anything spoken ("olive oil") — as chips, with the More… tile always AFTER the last chip. The
+   * area has six slots (two rows): up to five chips plus More…; beyond that, four chips a page, a
+   * pager chip ("+N more ›") that pinches through the pages, and More… in the last slot. Pinch a
+   * chip to remove it. No limit on what is stored; the keyboard field always carries the full list.
    */
   setExtras(items: Array<{id: string; label: string}>): void {
-    for (const so of this.chipObjects) so.destroy()
+    this.extras = items
+    this.scheduleRender()
+    if (!this.isEditing) this.showTyped(items.map((i) => i.label).join(", "))
+  }
+
+  /**
+   * Chips are rebuilt on the NEXT frame: a chip or the pager is often pinched away, and destroying a
+   * UIKit Button while it is still inside its own pinch handler throws ("Object is null").
+   */
+  private scheduleRender(): void {
+    if (this.renderPending) return
+    this.renderPending = true
+    const ev = this.createEvent("DelayedCallbackEvent")
+    ev.bind(() => {
+      this.renderPending = false
+      this.renderExtras()
+    })
+    ev.reset(0)
+  }
+
+  private renderExtras(): void {
+    for (const so of this.chipObjects) if (!isNull(so)) so.destroy()
     this.chipObjects = []
-    if (!this.chipArea) return
+    if (!this.chipArea || !this.moreButton) return
     const d = this.textDistanceCm * this.textScale
-    const slots = COLS * CHIP_ROWS - 1 // the first slot is the More… tile
-    const visible = items.slice(0, slots)
-    visible.forEach((item, i) => {
-      const slot = i + 1
-      const col = slot % COLS
-      const row = Math.floor(slot / COLS)
-      const so = UI.obj(this.chipArea!, `Extra-${item.id}`, new vec3(this.slotX(col), this.slotY(row), UI.LAYOUT_Z_LIFT))
+    const items = this.extras
+    const slots = COLS * CHIP_ROWS
+    const paged = items.length > slots - 1
+    const perPage = paged ? slots - 2 : slots - 1
+    const pages = paged ? Math.ceil(items.length / perPage) : 1
+    if (this.chipPage >= pages) this.chipPage = 0
+    const visible = items.slice(this.chipPage * perPage, this.chipPage * perPage + perPage)
+    const place = (so: SceneObject, slot: number) =>
+      so.getTransform().setLocalPosition(new vec3(this.slotX(slot % COLS), this.slotY(Math.floor(slot / COLS)), UI.LAYOUT_Z_LIFT))
+    const chip = (name: string, label: string, slot: number, onPinch: () => void) => {
+      const so = UI.obj(this.chipArea!, name)
+      place(so, slot)
       const btn = so.createComponent(Button.getTypeName()) as Button
       btn.size = new vec3(this.chipW, CHIP_H, 1)
-      btn.onTriggerUp.add(() => this._onRemoveExtra.invoke(item.id))
-      UI.addButtonLabel(so, `${item.label}  ×`, this.chipW - 0.8, d, "Callout")
+      // A chip that appears under a hand that is already pinching must not vanish at once.
+      const born = getTime()
+      btn.onTriggerUp.add(() => {
+        if (getTime() - born < 0.5) return
+        onPinch()
+      })
+      UI.addButtonLabel(so, label, this.chipW - 0.8, d, "Callout")
       this.chipObjects.push(so)
-    })
-    if (this.overflowText) this.overflowText.text = items.length > slots ? `+${items.length - slots} more (keyboard shows all)` : ""
-    if (!this.isEditing) this.showTyped(items.map((i) => i.label).join(", "))
+    }
+    visible.forEach((item, i) => chip(`Extra-${item.id}`, `${item.label}  ×`, i, () => this._onRemoveExtra.invoke(item.id)))
+    if (paged) {
+      const after = items.length - (this.chipPage + 1) * perPage
+      chip("ChipPager", after > 0 ? `+${after} more  \u203A` : "\u2039  first", slots - 2, () => {
+        this.chipPage = (this.chipPage + 1) % pages
+        this.scheduleRender()
+      })
+    }
+    place(this.moreButton, paged ? slots - 1 : visible.length)
   }
 
   /**
@@ -421,16 +464,16 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     }
     if (rows < BODY_ROWS) UI.flexChild(col, {w: innerW, h: TILE_H * (BODY_ROWS - rows) + GAP * (BODY_ROWS - rows)}, () => {})
     if (step === "allergies") {
-      // Chip area: a fixed box; the More… tile takes the first slot, spoken items the rest. Everything inside
+      // Chip area: a fixed box; spoken items fill it from the first slot and the More… tile follows the last chip. Everything inside
       // is placed by hand (hidden flex children would still take space), so nothing below ever moves.
       UI.flexChild(col, {w: innerW, h: chipsH}, (box) => {
         this.chipArea = box
         const more = UI.obj(box, "MoreButton", new vec3(this.slotX(0), this.slotY(0), UI.LAYOUT_Z_LIFT))
+        this.moreButton = more
         const btn = more.createComponent(Button.getTypeName()) as Button
         btn.size = new vec3(tileW, CHIP_H, 1)
         btn.onTriggerUp.add(() => this._onMore.invoke())
         UI.addButtonLabel(more, "More…", tileW - 0.8, d, "Callout")
-        this.overflowText = UI.addRowText(UI.obj(box, "Overflow", new vec3(0, -chipsH / 2 - 0.8, UI.LAYOUT_Z_LIFT)), "", "Caption", d, innerW, HorizontalAlignment.Left, UI.WHITE_SOFT)
       })
     } else {
       UI.flexChild(col, {w: innerW, h: chipsH}, () => {})

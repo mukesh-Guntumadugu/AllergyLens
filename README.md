@@ -75,9 +75,11 @@ spoken or pinched (rebuilt 7 Nov):
    food stays your own word: "octopus" is an Octopus chip, not the Shellfish
    tile; only a category's own name ("shellfish", "tree nuts", "dairy") flips
    a tile. A repeated answer counts once ("olive oil olive oil" → olive oil).
-   Pinch a chip to remove it. **More…** asks "which others?" out loud and
-   opens the typing box with the keyboard, so you can say "banana, apple" or
-   type the list; Done applies it.
+   Pinch a chip to remove it. **More…** always follows the last chip; it asks
+   "which others?" out loud and opens the typing box with the keyboard, so you
+   can say "banana, apple" or type the list; Done applies it. Beyond five
+   chips a pager chip ("+N more ›") pinches through the rest, four a page, so
+   sixty spoken items stay visible and removable.
 3. **Religious / cultural** — no beef, no pork, no alcohol.
 4. **Diet** — vegetarian, vegan, low sugar, no trans fat. Vegetarian and vegan
    are one choice (vegan covers vegetarian, milk and eggs inside the checker
@@ -127,7 +129,8 @@ lower-right corner of the view (`AllergyLensProfileButtonUI`, 7 cm, Material
 `start`, `next`, `back`, `more`, `edit` / `keyboard`, `done` / `save`, `quiet`,
 `speak`, `clear`; a tile name turns it on ("peanuts and milk", "no pork",
 "vegan"); "turn off milk" turns it off; "allergies, add mango" / "I'm allergic
-to mango" adds a custom item; "allergies" / "diet" jumps to that screen. The
+to mango" adds a custom item, "remove mango" takes it off; "allergies" /
+"diet" jumps to that screen. The
 "Heard: …" line under the question shows the transcript and what the Lens did
 with it, and the dot before it is green while speech-to-text is listening.
 

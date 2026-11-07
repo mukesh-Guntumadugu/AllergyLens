@@ -41,9 +41,10 @@ const SECTION_WORDS: {[word: string]: AllergenGroup} = {
   religious: "religious", religion: "religious", cultural: "religious", culture: "religious",
   diet: "diet", dietary: "diet", diets: "diet",
 }
-const NOT_A_FOOD = /^(this|that|these|those|thing|things|something|anything|it|them|one|one more|more|another|another one|option|options|stuff|here|there|some|some more|the same|same|also|too|as well)$/
+/** Never a food: pronouns, placeholders and every command word, so "Mm. Well, next." can never become a "Next" chip. */
+const NOT_A_FOOD = /^(this|that|these|those|thing|things|something|anything|it|them|one|one more|more|another|another one|option|options|stuff|here|there|some|some more|the same|same|also|too|as well|next|back|done|start|begin|continue|skip|finish|finished|save|edit|keyboard|type|quiet|mute|speak|unmute|clear|reset|cancel|stop|wait|again|repeat|previous|yes|no|nope|nah|okay|ok|hello|hi|hey|thanks|thank you|nothing|none|never mind|nevermind)$/
 /** Words that carry no food: dropped from a spoken part before it can become a custom item ("well i'm also allergic to" → nothing). */
-const FILLER_WORDS = new Set(("well so yeah yes yep okay ok um uh hmm like just really actually basically i i'm im am me my we you he she they it is are was be " +
+const FILLER_WORDS = new Set(("well so yeah yes yep okay ok um uh hmm mm mmm hm er erm ah oh eh huh like just really actually basically i i'm im am me my we you he she they it is are was be " +
   "have has had do does did can could would should will also too as well and or but then please thanks thank think guess mean " +
   "allergic allergy allergies allergen allergens intolerant intolerance sensitive sensitivity eat eating food foods to of for with " +
   "the a an some any more another one other others add avoid no not don't dont want need got get").split(" "))
@@ -743,14 +744,18 @@ export class AllergyLensMain extends BaseScriptComponent {
     return {pos: cam.getWorldPosition().add(look.uniformScale(this.panelDistanceCm)).add(up.uniformScale(yOff)), rot}
   }
 
-  /** Where the Profile button lives: lower-right of the view at 55 cm, following the head like the panel. */
+  /**
+   * Where the Profile button lives: lower-right of the view at 55 cm, following the head like the panel.
+   * 9 cm right and 8 cm down keep the whole 7 cm icon inside the view (≈13° off centre with the icon's
+   * edge; the preview shows about ±15°, the glasses a little more). Further out it is cut off.
+   */
   private buttonTarget(): {pos: vec3; rot: quat} {
     const cam = WorldCameraFinderProvider.getInstance().getTransform()
     const rot = cam.getWorldRotation()
     const look = rot.multiplyVec3(new vec3(0, 0, -1))
     const up = rot.multiplyVec3(new vec3(0, 1, 0))
     const right = rot.multiplyVec3(new vec3(1, 0, 0))
-    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(17)).add(up.uniformScale(-12)), rot}
+    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(9)).add(up.uniformScale(-8)), rot}
   }
 
   /** Lazy follow: the panel drifts back in front of the user when they turn or move, never snapping. */
@@ -1019,37 +1024,40 @@ export class AllergyLensMain extends BaseScriptComponent {
     const text = textC.replace(/ , /g, " ").replace(/\s+/g, " ").trim()
     const short = raw.length > 48 ? raw.slice(0, 45) + "…" : raw
     const heard = (what: string) => this.profilePanel.setHeard(`Heard: "${short}" → ${what}`)
-    if (/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done|save|save it)$/.test(text)) {
+    // A command may come wrapped in filler ("Mm. Well, next."): test it bare as well.
+    const bare = text.split(" ").filter((w) => w.length > 0 && !FILLER_WORDS.has(w)).join(" ")
+    const isCmd = (re: RegExp) => re.test(text) || re.test(bare)
+    if (isCmd(/^(done|finished|finish|that's it|thats it|okay done|ok done|i'm done|im done|save|save it)$/)) {
       print(`AllergyLens: voice "${raw}" → Done`)
       heard("Done")
       this.onProfileDone()
       return
     }
-    if (/^(start|let's start|lets start|let's go|lets go|begin|go|okay|ok|yes|continue|next|next step|skip|go on|move on)$/.test(text)) {
+    if (isCmd(/^(start|let's start|lets start|let's go|lets go|begin|go|okay|ok|yes|continue|next|next step|skip|go on|move on)$/)) {
       heard(this.stepBy(1) ? "next" : "already on the last step; say done")
       return
     }
-    if (/^(back|go back|previous|previous step)$/.test(text)) {
+    if (isCmd(/^(back|go back|previous|previous step)$/)) {
       heard(this.stepBy(-1) ? "back" : "this is the first step")
       return
     }
-    if (/^(more|show more|even more|others|other allergies|something else|one more|another one)$/.test(text)) {
+    if (isCmd(/^(more|show more|even more|others|other allergies|something else|one more|another one)$/)) {
       if (this.profilePanel.step !== "allergies") { this.profilePanel.setStep("allergies"); this.onProfileStep("allergies") }
       this.onMoreRequested()
       return
     }
-    if (/^(edit|keyboard|type|type it|fix it|correct it|that's wrong|thats wrong)$/.test(text)) {
+    if (isCmd(/^(edit|keyboard|type|type it|fix it|correct it|that's wrong|thats wrong)$/)) {
       this.profilePanel.openEdit()
       heard("keyboard open; type the foods to avoid, then the check")
       return
     }
-    if (/^(quiet|mute|be quiet|stop talking|silence)$/.test(text)) {
+    if (isCmd(/^(quiet|mute|be quiet|stop talking|silence)$/)) {
       this.speech?.setMuted(true)
       this.profilePanel.setSpeaking(false)
       heard("voice off")
       return
     }
-    if (/^(speak|unmute|talk|voice on|talk to me)$/.test(text)) {
+    if (isCmd(/^(speak|unmute|talk|voice on|talk to me)$/)) {
       this.speech?.setMuted(false)
       this.profilePanel.setSpeaking(true)
       heard("voice on")
@@ -1177,6 +1185,18 @@ export class AllergyLensMain extends BaseScriptComponent {
       print(`AllergyLens: voice "${raw}" → Done`)
       heard("Done")
       this.onProfileDone()
+      return
+    }
+    if (off) {
+      // "remove mango" / "take out olive oil": a spoken chip goes away; never a new chip called "remove mango".
+      const words = ` ${foodWords(cleaned.replace(/\b(turn off|switch off|remove|unselect|deselect|unpick|clear|undo|cancel|don't need|do not need|not anymore|take out|take off|delete|drop)\b/g, " "))} `
+      const gone = this.customAllergens.filter((c) => this.profile.has(c.id) && c.aliases.some((al) => words.indexOf(` ${al} `) >= 0))
+      if (gone.length > 0) {
+        for (const c of gone) this.removeExtra(c.id)
+        heard(`removed ${gone.map((c) => c.label).join(", ")}`)
+        return
+      }
+      heard('say what to remove, e.g. "remove mango"')
       return
     }
     if (this.profilePanel.step !== "welcome" && foodWords(cleaned).split(" ").filter((w) => w.length > 0).length <= 4 && foodWords(cleaned).length >= 3) {
