@@ -22,7 +22,7 @@ export class AllergyLensLeafScenario1Profile extends Scenario {
     expect(ui.isVisible("ProfilePanel"), "profile panel hidden after Done").toBe(false)
     expect(findInteractablesByName("ProfileButton", undefined, true).length, "Profile button available (no menu in view)").toBeGreaterThan(0)
     // While a menu is in view nothing else is drawn: button gone, panel stays closed.
-    await ui.simulateMarker("star-of-india")
+    await ui.simulateMarker("laurel-cafe")
     expect(ui.isVisible("ProfileButton"), "Profile button hidden while a menu is recognised").toBe(false)
     expect(ui.isVisible("ProfilePanel"), "profile panel stays closed").toBe(false)
   }

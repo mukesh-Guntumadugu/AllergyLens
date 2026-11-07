@@ -241,7 +241,7 @@ STORE    (§12) bronze (raw) → silver (DuckDB + Parquet) → gold (JSON the Le
 ```
 
 Every box is a script with one input table and one output table, idempotent,
-re-runnable on a subset (`--restaurant star-of-india`, `--state OH --county Athens`).
+re-runnable on a subset (`--restaurant laurel-cafe`, `--state OH --county Athens`).
 
 ## 5. Stage A — Restaurant discovery (what to precompute first)
 

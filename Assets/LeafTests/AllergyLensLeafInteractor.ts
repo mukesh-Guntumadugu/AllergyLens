@@ -10,7 +10,7 @@ import {ALLERGENS, RESTAURANTS} from "../Data/AllergyData"
 
 /** Every toggle id, straight from the data module. */
 export const ALL_PROFILE_IDS: string[] = ALLERGENS.map((a) => a.id)
-export const STAR = RESTAURANTS.find((r) => r.id === "star-of-india")!
+export const LAUREL = RESTAURANTS.find((r) => r.id === "laurel-cafe")!
 
 /** Depth-first search that INCLUDES disabled objects. */
 export function findByName(name: string): SceneObject | null {
@@ -301,7 +301,7 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
 
   /** Every bar on the page must satisfy `test` (used for "no full-width quads"). */
   forEachShownBar(test: (dishId: string, b: BarState) => void): void {
-    for (const d of STAR.dishes) {
+    for (const d of LAUREL.dishes) {
       if (!d.layout) continue
       const b = this.bar(d.id)
       if (b.shown) test(d.id, b)

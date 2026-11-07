@@ -21,7 +21,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Part | State |
 |---|---|
 | Profile panel (16 toggles in Allergies / Religious-cultural / Diet + 6 mood chips) as a separate step before the menu; chips that contradict the profile are greyed out; custom allergens by voice | Working, on the real camera path; voice only on the glasses |
-| Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks on the printed lines, confirmed on the handheld Laurel video 4 Nov |
+| Real printed menus recognised by the camera (image markers): Laurel Café & Co and Tatlılar (both from the user's own handheld videos) | Working — marks on the printed lines, confirmed on the handheld Laurel video 4 Nov |
 | Three verdicts per dish: safe / contains / unverified, from the data; model-only lists never go green | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
@@ -42,12 +42,11 @@ The shot list with timings and voice-over is in
 1. **Profile.** A panel floats in front of you. Pinch *Peanut* and *Milk*,
    pick the mood *Vegetarian*, pinch *Done*. The panel disappears. Nothing is
    in the world yet.
-2. **Look at the menu.** The camera recognises the printed Star of India menu.
+2. **Look at the menu.** The camera recognises the printed Laurel Café menu.
    Within a second the printed lines get marks: thin red underline + red dot
    on *Paneer Nan* and *Kheer* (milk), green dot on *Alu Gobi*, amber dot on
    dishes whose ingredients the restaurant doesn't publish. One badge chip
-   sits in the page's top margin: *Star of India · 14 of 31 safe · ★4.5 ·
-   1 allergy review*.
+   sits in the page's top margin: *Laurel Café · 12 of 28 safe*.
 3. **Pinch a red line.** A card opens beside it. *Mutter Paneer:* "Paneer is
    about 35% of this dish — leaving it out guts the dish; you'd pay the same
    for less. Ask for a swap: tofu." *Maharani Dal:* "Contains cream (about
@@ -121,7 +120,7 @@ the app mark, fetched by `tools/assets/fetch_icons.sh`; tiles are text only.
  OFFLINE (once per restaurant, on the ASUS GX10)            ON THE GLASSES (every time you look)
  ─────────────────────────────────────────────────           ──────────────────────────────────────────────
  menu photo ──► gate ──► OCR with boxes ──► Qwen3-VL ──┐     camera ──► MarkerTrackingComponent
-                labels each printed line: name, box,   │                  (Assets/Markers/MenuMarker.imgmarker)
+                labels each printed line: name, box,   │                  (Assets/Markers/MenuMarker-<id>.imgmarker)
                 section, price, markers, category      ▼                           │ page pose
  dish name ──► web retrieval with citations ──► data/menus.json ──┐                ▼
                 recipe pages' schema.org lists,  data/dishes.json  │   AllergyLensMenuOverlayUI
@@ -285,7 +284,7 @@ node tools/build-data.js --with-lake   # local build that also joins the scraped
 tmux new -d -s allergylens 'LOOP=1 tools/scrape/run_pipeline.sh'   # unattended run over tools/scrape/counties.txt
 ```
 
-Current contents: 4 restaurants (Star of India is the real one: a printed menu,
+Current contents: 3 restaurants (Laurel Café and Tatlılar are the real ones: printed menus,
 31 dish lines with positions, every line with ingredients and a category),
 the dish knowledge base, 17 allergens with aliases, 10 Open Food Facts
 products with declared allergens and fitness flags (sugar ≥ 15 g, trans fat
@@ -300,7 +299,7 @@ Three ways to run it, from most to least real:
 | mode | what you need | what it proves |
 |---|---|---|
 | **SPECS** | the glasses, the printed menu (A4/Letter) | the real thing incl. pinch, voice, see-through display band |
-| **Lens Studio Preview → Multimedia** with `data/menus/star-of-india/menu-1-pan.mp4` (or the webcam and a printout), device **SPECS 27** | Lens Studio 5.23.2 | real recognition path: marker lock, marks on the printed lines, badge |
+| **Lens Studio Preview → Multimedia** with `data/menus/laurel-cafe/menu-1-pan.mp4` (or the webcam and a printout), device **SPECS 27** | Lens Studio 5.23.2 | real recognition path: marker lock, marks on the printed lines, badge |
 | **Interactive Preview** with `debugSimulateMarker` on | Lens Studio only | profile → marks → pinch → card logic, with the menu image drawn on a simulated page 60 cm ahead |
 
 The step-by-step manual guide is [TESTING.md](TESTING.md).
@@ -328,7 +327,7 @@ node tools/check.js --dish "chicken tikka masala" --cuisine indian --profile mil
 ```
 
 Automated: 9 LEAF scenarios (`Assets/LeafTests/`) run inside the live Lens:
-profile panel and Done, peanut+milk marks and badge on the Star of India
+profile panel and Done, peanut+milk marks and badge on the Laurel Café
 page, the replacement rule, detail card on pinch, marker lost, vegetarian and
 chicken moods incl. the edge arrow, light marks in "everything" mode, and the
 voice matcher. Turn on `autoRun` on the `LeafRunner` object, refresh, and
@@ -348,7 +347,7 @@ AllergyLens.esproj          Lens Studio project
 Assets/Scripts/             AllergyLens*.ts — flow, overlay, checker, UI, voice, audio
 Assets/LeafTests/           LEAF scenarios + the test interactor
 Assets/Data/AllergyData.ts  generated by tools/build-data.js — do not edit by hand
-Assets/Markers/             MenuMarker.imgmarker + menu-1.png (the printed Star of India menu)
+Assets/Markers/             MenuMarker-<id>.imgmarker + page png per printed menu (Laurel Café, Tatlılar) and the product label
 Assets/Icons, Materials, GeneratedSFX
 data/                       allergens.json, dishes.json, menus.json, products.json, menus/<restaurant>/
 tools/build-data.js         validate + join + generate
@@ -361,7 +360,7 @@ TESTING.md                  manual test guide
 
 1. Open `AllergyLens.esproj` in Lens Studio 5.23.2.
 2. Preview panel → source dropdown → **Multimedia → Open file…** →
-   `data/menus/star-of-india/menu-1-pan.mp4`; device **SPECS 27**.
+   `data/menus/laurel-cafe/menu-1-pan.mp4`; device **SPECS 27**.
 3. Refresh. The marker locks within a second or two; refresh again if not.
 4. Hands-free profile for recording: select `AllergyLens`, set
    `defaultProfile` to `peanut,milk` and `defaultMood` to `everything` or

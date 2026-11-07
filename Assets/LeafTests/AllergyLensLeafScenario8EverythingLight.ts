@@ -3,7 +3,7 @@
 import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
-import {AllergyLensLeafInteractor, STAR} from "./AllergyLensLeafInteractor"
+import {AllergyLensLeafInteractor, LAUREL} from "./AllergyLensLeafInteractor"
 
 @component
 export class AllergyLensLeafScenario8EverythingLight extends Scenario {
@@ -11,12 +11,12 @@ export class AllergyLensLeafScenario8EverythingLight extends Scenario {
     const ui = new AllergyLensLeafInteractor()
     await sleep(500)
     await ui.prepareProfile(["milk"], "everything")
-    await ui.simulateMarker("star-of-india")
+    await ui.simulateMarker("laurel-cafe")
     ui.expectRed("paneer-nan")
     ui.expectRed("kheer")
     ui.expectGreenDot("gobi-nan")
     ui.expectGreenDot("iced-tea")
-    const unpublished = STAR.dishes.find((d) => d.layout && d.ingredientsSource === "none")
+    const unpublished = LAUREL.dishes.find((d) => d.layout && d.ingredientsSource === "none")
     expect(!!unpublished, "data has an unpublished dish").toBe(true)
     ui.expectAmber(unpublished!.id)
     let fullQuads = 0

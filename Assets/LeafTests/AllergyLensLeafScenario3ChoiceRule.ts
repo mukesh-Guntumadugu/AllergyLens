@@ -7,17 +7,17 @@ import {Profile, checkDish, checkMenu, describeChoice} from "../Scripts/AllergyL
 @component
 export class AllergyLensLeafScenario3ChoiceRule extends Scenario {
   async run(): Promise<void> {
-    const star = RESTAURANTS.find((r) => r.id === "star-of-india")!
+    const star = RESTAURANTS.find((r) => r.id === "laurel-cafe")!
 
-    // 1. Paneer Shai Kurma with {milk}: paneer is 40% → "guts the dish" + swap tofu; typical wording.
+    // 1. Cappuccino with {milk}: milk is 55% of a typical one → "guts the dish" + swap oat or almond milk.
     const milk = new Profile()
     milk.set("milk", true)
-    const kurma = star.dishes.find((d) => d.id === "paneer-sha-kurma")!
+    const kurma = star.dishes.find((d) => d.id === "cappuccino")!
     const kurmaResults = checkMenu(star.dishes, milk)
     const t1 = describeChoice(kurma, checkDish(kurma, milk), star, kurmaResults)
     const s1 = `${t1.headline} ${t1.body}`
-    expect(s1.includes("40%"), s1).toBe(true)
-    expect(s1.includes("tofu"), s1).toBe(true)
+    expect(s1.includes("55%"), s1).toBe(true)
+    expect(s1.includes("oat or almond milk"), s1).toBe(true)
     expect(s1.includes("Typically"), s1).toBe(true)
     expect(s1.includes("Confirm with the restaurant"), s1).toBe(true)
 

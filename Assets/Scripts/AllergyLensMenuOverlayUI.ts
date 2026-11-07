@@ -23,16 +23,14 @@ const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
 // The printed page itself, drawn ONLY on a simulated page (debugSimulateMarker / LEAF
 // simulateMarker) so the marks are visibly on a menu. Never drawn while the camera
 // tracker owns the pose — there the real page is under the marks.
-const PAGE_TEX = requireAsset("../Markers/menu-1.png") as Texture
 
 /**
  * Menu pages bundled with the Lens, by restaurant id: the image marker the camera tracks
  * and the page image for the simulated path. Main creates one MenuMarker object per entry
- * that is not authored in the scene (star-of-india is). Adding a restaurant = one photo
+ * that is not authored in the scene. Adding a restaurant = one photo
  * through tools/scrape/page_from_video.py + ocr, its data/menus.json entry, and a line here.
  */
 export const MENU_MARKERS: {[restaurantId: string]: {marker: MarkerAsset; texture: Texture}} = {
-  "star-of-india": {marker: requireAsset("../Markers/MenuMarker.imgmarker") as MarkerAsset, texture: PAGE_TEX},
   "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
   "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
 }
@@ -99,7 +97,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   @ui.group_start("Settings")
   @input
   @hint("Restaurant id from the data (must have a menuImage). The marker on this object is that page.")
-  restaurantId: string = "star-of-india"
+  restaurantId: string = "laurel-cafe"
 
   @input
   @hint("Padding (cm) added around each printed line's OCR box; bars are otherwise exactly the line's width and height.")
@@ -153,7 +151,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private bars: Bar[] = []
   private barsRoot: SceneObject | null = null
   private pageImage: SceneObject | null = null
-  private pageTexture: Texture = PAGE_TEX
+  private pageTexture: Texture = MENU_MARKERS["laurel-cafe"].texture
   private badgeRoot: SceneObject | null = null
   private badgeText: Text | null = null
   private badgeDotMat: Material | null = null

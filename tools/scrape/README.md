@@ -87,31 +87,31 @@ Fallback without those variables: Ollama; `--vision-model auto` tries `qwen3-vl:
 
 ```bash
 # a) mixed photo folder -> which ones are menus + dish names (optional)
-python3 tools/scrape/classify_menu_photos.py --photos ./photos/star-of-india \
-    --restaurant-id star-of-india --restaurant-name "Star of India" --out ./out/star-of-india.menu.json
+python3 tools/scrape/classify_menu_photos.py --photos ./photos/laurel-cafe \
+    --restaurant-id laurel-cafe --restaurant-name "Laurel Cafe & Co" --out ./out/laurel-cafe.menu.json
 
 # b) menu photo -> dish lines WITH positions (the Lens highlights these on the real page)
-python3 tools/scrape/ocr_menu.py data/menus/star-of-india/menu-1.png \
-    --restaurant-id star-of-india --restaurant-name "Star of India" \
-    --out data/menus/star-of-india/menu-1.ocr.json --marker-width-cm 29.7 [--llm qwen2.5vl:7b]
+python3 tools/scrape/ocr_menu.py data/menus/laurel-cafe/menu-1.png \
+    --restaurant-id laurel-cafe --restaurant-name "Laurel Cafe & Co" \
+    --out data/menus/laurel-cafe/menu-1.ocr.json --marker-width-cm 29.7 [--llm qwen2.5vl:7b]
 
 # c) dish names -> ingredients by WEB RETRIEVAL with citations (no LLM facts; see DESIGN.md §9)
 #    searches recipes, reads each page's schema.org Recipe ingredient list, votes across recipes,
 #    stores the source URLs per ingredient; dishes with < 3 agreeing recipes stay UNKNOWN (amber in the Lens).
 #    Cache-first: dishes already in the seed or the lake catalog are not researched again (seen_count is bumped).
-python3 tools/scrape/ingredients_rag.py data/menus.json --restaurant star-of-india --cuisine Indian
+python3 tools/scrape/ingredients_rag.py data/menus.json --restaurant laurel-cafe --cuisine cafe
 #    --search brave|searxng for a production search backend (default ddg needs no key); --force to re-research;
 #    --judge-model qwen2.5:72b-instruct-q8_0 adds a local model that only answers "same dish?" (never ingredients)
 
 # d) rating + reviews mentioning allergies (official Google Places API, allowed by its terms)
-GOOGLE_PLACES_API_KEY=... python3 tools/scrape/fetch_rating.py "Star of India, Athens OH" \
-    --out data/menus/star-of-india/rating.json
+GOOGLE_PLACES_API_KEY=... python3 tools/scrape/fetch_rating.py "Laurel Cafe & Co" \
+    --out data/menus/laurel-cafe/rating.json
 
 # e) paste the restaurant entry (with its rating) into data/menus.json, then
 node tools/build-data.js
 ```
 
-Already done for the test menu: `data/menus/star-of-india/menu-1.png` (a real
+Already done for the test menus: `data/menus/laurel-cafe/menu-1.png` and `data/menus/tatlilar/menu-1.png` (real
 printed menu) → 31 dish lines with positions, all with ingredients, shares,
 categories.
 
@@ -168,7 +168,7 @@ Good categories to start with for a store demo: `en:cookies`, `en:snacks`,
 | **caution** | fewer than half the dishes are safe, or any dish is unverified, or `allergyComplaints` ≥ 1 |
 | **good** | otherwise |
 
-Shown as "Star of India · 10 of 31 safe · ★4.5 · 1 review mentions allergies".
+Shown as "Laurel Café · 12 of 28 safe · ★4.5 · 1 review mentions allergies" when a rating exists.
 
 ## Regional / aggregate analysis (later)
 
@@ -184,4 +184,4 @@ Everything the scraper produces stays in `data-lake/` (gitignored): bronze asset
 and the local Lens snapshot `data-lake/gold/lens/menus.json` + `data-lake/gold/lens/menus/<restaurant>/menu-n.*`.
 `data/` is the committed, hand-curated seed only. `Assets/Data/AllergyData.ts` is committed as the seed-only build;
 for a local Lens build with the scraped restaurants run `node tools/build-data.js --with-lake` and do not commit the result.
-`.gitignore` blocks `data/menus/*/` (except the hand-checked `star-of-india`) as a backstop.
+`.gitignore` blocks `data/menus/*/` (except the hand-checked `laurel-cafe` and `tatlilar`) as a backstop.

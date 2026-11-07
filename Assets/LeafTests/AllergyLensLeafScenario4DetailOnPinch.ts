@@ -11,24 +11,24 @@ export class AllergyLensLeafScenario4DetailOnPinch extends Scenario {
     const ui = new AllergyLensLeafInteractor()
     await sleep(500)
     await ui.prepareProfile(["milk"])
-    await ui.simulateMarker("star-of-india")
-    ui.expectRed("paneer-nan")
+    await ui.simulateMarker("laurel-cafe")
+    ui.expectRed("egg-bacon-croissant")
 
-    await ui.tap("Bar-paneer-nan")
+    await ui.tap("Bar-egg-bacon-croissant")
     expect(ui.isVisible("DishDetail"), "detail card open after pinching the red bar").toBe(true)
     const joined = ui.detailTexts().join(" | ")
-    expect(joined.includes("Contains cheese stuffed nan"), `card names the milk ingredient: ${joined}`).toBe(true)
-    expect(joined.includes("Ask the chef whether it can be left out"), `unknown share wording: ${joined}`).toBe(true)
+    expect(joined.includes("cheddar cheese"), `card names the milk ingredient: ${joined}`).toBe(true)
+    expect(joined.includes("leave them out") || joined.includes("left out"), `removable wording: ${joined}`).toBe(true)
 
     // Beside the bar: within ~20 cm of it, and under the marker so it moves with the page.
-    const barPos = requireByName("Bar-paneer-nan").getTransform().getWorldPosition()
+    const barPos = requireByName("Bar-egg-bacon-croissant").getTransform().getWorldPosition()
     const card = requireByName("DishDetail")
     const dist = card.getTransform().getWorldPosition().distance(barPos)
     expect(dist, `card distance from bar (cm): ${dist.toFixed(1)}`).toBeGreaterThan(4)
     expect(dist, `card distance from bar (cm): ${dist.toFixed(1)}`).toBeLessThan(25)
-    expect(card.getParent()?.name, "card parented to the marker").toBe("MenuMarker")
+    expect(card.getParent()?.name, "card parented to the marker").toBe("MenuMarker-laurel-cafe")
 
-    await ui.tap("Bar-paneer-nan")
+    await ui.tap("Bar-egg-bacon-croissant")
     expect(ui.isVisible("DishDetail"), "detail card closed after second pinch").toBe(false)
   }
 }

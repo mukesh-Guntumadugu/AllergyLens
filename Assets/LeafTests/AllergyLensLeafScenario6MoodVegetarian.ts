@@ -4,7 +4,7 @@
 import {Scenario} from "Leaf.lspkg/Scenarios/scenario/Scenario"
 import {expect} from "Leaf.lspkg/Utils/common/Expect"
 import {sleep} from "Leaf.lspkg/Utils/common/Utils"
-import {AllergyLensLeafInteractor, STAR} from "./AllergyLensLeafInteractor"
+import {AllergyLensLeafInteractor, LAUREL} from "./AllergyLensLeafInteractor"
 
 @component
 export class AllergyLensLeafScenario6MoodVegetarian extends Scenario {
@@ -12,14 +12,14 @@ export class AllergyLensLeafScenario6MoodVegetarian extends Scenario {
     const ui = new AllergyLensLeafInteractor()
     await sleep(500)
     await ui.prepareProfile(["milk"], "vegetarian")
-    await ui.simulateMarker("star-of-india")
+    await ui.simulateMarker("laurel-cafe")
 
     ui.expectGreenStar("gobi-nan")
     ui.expectGreenStar("alu-gobi")
     ui.expectRed("paneer-nan")
     for (const id of ["chicken-nan", "iced-tea", "milk", "sweet-lassi", "mango-lassi", "kulfi", "gulab-jamun"]) ui.expectUnmarked(id)
     // Nothing outside the category is marked.
-    for (const d of STAR.dishes) {
+    for (const d of LAUREL.dishes) {
       if (!d.layout) continue
       if (d.category !== "vegetarian") ui.expectUnmarked(d.id)
     }

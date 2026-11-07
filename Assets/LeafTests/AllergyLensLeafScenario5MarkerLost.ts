@@ -11,7 +11,7 @@ export class AllergyLensLeafScenario5MarkerLost extends Scenario {
     await sleep(500)
     await ui.isolateFromCamera()
     if (ui.isVisible("ProfilePanel")) await ui.done()
-    await ui.simulateMarker("star-of-india")
+    await ui.simulateMarker("laurel-cafe")
     expect(ui.bar("paneer-nan").shown, "bars shown while tracked").toBe(true)
     await ui.simulateMarkerLost()
     await sleep(1500)

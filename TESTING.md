@@ -10,13 +10,13 @@ no camera and no menu — nothing can be recognized there.
 2. In the **Preview** panel, click the source dropdown at the top of the panel
    (it says *Interactive Preview*, *Webcam* or a file name) and choose
    **Multimedia → Open file…**, then pick one of:
-   - `data/menus/star-of-india/menu-1-pan.mp4` — a slow pan over the real menu
+   - `data/menus/laurel-cafe/menu-1-pan.mp4` — a slow pan over the real menu
      (best; recognition locks faster on video)
    - `data/menus/laurel-cafe/menu-1-pan.mp4` — the handheld Laurel Café & Co
      menu (28 lines: breakfast, coffee, lunch, drinks, sweets, salads)
    - `data/menus/tatlilar/menu-1-pan.mp4` — the handheld Turkish dessert menu
      (6 items; the marks sit on the price lines because the names are script)
-   - `data/menus/star-of-india/menu-1.png` — the still photo
+   - `data/menus/laurel-cafe/menu-1.png` — the still photo
    - **Webcam** — hold a printout of `menu-1.png` (A4/Letter, flat, well lit,
      no glare) in front of the laptop camera
 3. Make sure the device at the bottom of the Preview panel says **SPECS 27**.
@@ -28,7 +28,7 @@ no camera and no menu — nothing can be recognized there.
 What you should see on the page: a thin red underline + red dot on dishes
 that conflict with the profile, a small green dot on safe dishes, an amber dot
 on dishes with no ingredient data, and one small badge chip above the page
-("Star of India · 14 of 31 safe · ★4.5 · 1 allergy review"). Nothing else on
+("Laurel Café · 12 of 28 safe"). Nothing else on
 the menu.
 
 The glasses only draw in the middle band of what the camera sees (SPECS'
@@ -101,7 +101,7 @@ itself — their black dots and dashes are not AllergyLens marks; ours are
 red, green and amber.)
 
 Two debug switches put a **simulated** page 60 cm in front of you instead.
-Since this build the simulated page draws the Star of India menu image
+Since this build the simulated page draws the recognised menu's image
 (`Assets/Markers/menu-1.png`, 29.7 × 18.2 cm) under the marks, so you can see
 that the marks sit on the right printed lines even without a camera. The
 image is only ever drawn on a simulated page; when the camera tracker owns

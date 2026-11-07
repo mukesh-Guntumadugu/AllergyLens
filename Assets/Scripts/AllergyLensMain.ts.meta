@@ -36,6 +36,8 @@
     dishDetail: false
     markersRoot: false
     menusUrl: false
+    panelDistanceCm: false
+    panelFollowsHead: false
     previewVoice: false
     productsRoot: false
     profileButton: false
@@ -61,6 +63,8 @@
       productsRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       showProfileAtStart: true
       speechEnabled: true
+      panelFollowsHead: true
+      panelDistanceCm: !<float> 80.000000
       rememberProfile: true
       defaultProfile: ""
       defaultMood: everything
@@ -90,6 +94,8 @@
     - '// @ui {"widget":"group_start", "label":"Settings"}'
     - '// @input bool showProfileAtStart = true {"hint":"Show the profile panel when the Lens starts (ignored when defaultProfile is set)."}'
     - "// @input bool speechEnabled = true {\"hint\":\"The Lens speaks: welcome, each step's question, saved, menu recognised, and the verdict on a pinch (pre-rendered clips, Assets/Audio/Speech). Say \\\"quiet\\\" to mute.\"}"
+    - '// @input bool panelFollowsHead = true {"hint":"The profile panel stays at a fixed distance in front of the user and turns to face them (lazy follow), so it always reads the same size. Off = it stays where it was placed."}'
+    - '// @input float panelDistanceCm = 80 {"hint":"Distance (cm) the panel keeps in front of the user while it follows.", "widget":"slider", "min":50, "max":120, "step":5}'
     - '// @input bool rememberProfile = true {"hint":"Remember the profile on the glasses (persistent storage) so setup runs once; the Profile button or \"edit profile\" changes it."}'
     - "// @input string defaultProfile {\"hint\":\"Comma-separated allergen ids (e.g. \\\"peanut,milk\\\") applied at start — with showProfileAtStart off this gives a hands-free demo. A word that is not an id (e.g. \\\"mango\\\") is added as a custom allergen, like saying \\\"I'm allergic to mango\\\".\"}"
     - '// @input string defaultMood = "everything" {"hint":"Mood applied at start: everything | chicken | red_meat | seafood | vegetarian | dessert."}'

@@ -8,7 +8,7 @@ voice-over after. No slides, the menu is the slide.
 
 - Lens Studio 5.23.2, project open, Preview → **Multimedia** →
   `data/menus/laurel-cafe/menu-1-pan.mp4` (your own handheld recording; the
-  Tatlılar and Star of India videos are the alternates), device **SPECS 27**.
+  the Tatlılar video is the alternate), device **SPECS 27**.
 - `AllergyLens` object: `defaultProfile` = `peanut,milk`, `defaultMood` =
   `everything`, `showProfileAtStart` = true (segment 1 shows the panel; for
   segments 2–4 the profile is already set).
