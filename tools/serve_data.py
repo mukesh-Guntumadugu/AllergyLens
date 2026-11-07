@@ -325,9 +325,12 @@ def load_menus():
     # Prefer the joined output of `node tools/build-data.js` (ingredients filled from the dish knowledge
     # base, sources marked) so the Lens sees the same data live as compiled in; the raw seed is the fallback.
     built = os.path.join(ROOT, "data", "menus.lens.json")
-    menus = json.load(open(built if os.path.exists(built) else os.path.join(ROOT, "data", "menus.json"), encoding="utf-8"))
+    have_built = os.path.exists(built)
+    menus = json.load(open(built if have_built else os.path.join(ROOT, "data", "menus.json"), encoding="utf-8"))
     lake = os.path.join(ROOT, "data-lake", "gold", "lens", "menus.json")
-    if WITH_LAKE and os.path.exists(lake):
+    # The built file already has the lake joined in WITH ingredients and sources; merging the raw lake over it
+    # again would strip them (that happened on the VPS on 7 Nov). Only the raw seed needs the raw lake added.
+    if WITH_LAKE and not have_built and os.path.exists(lake):
         by_id = {r["id"]: r for r in menus.get("restaurants", [])}
         for r in json.load(open(lake, encoding="utf-8")).get("restaurants", []):
             by_id[r["id"]] = r  # lake entry wins over the seed
