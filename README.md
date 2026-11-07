@@ -392,6 +392,16 @@ TESTING.md                  manual test guide
 2. Preview panel → source dropdown → **Multimedia → Open file…** →
    `data/menus/laurel-cafe/menu-1-pan.mp4`; device **SPECS 27**.
 3. Refresh. The marker locks within a second or two; refresh again if not.
+
+   **Recording your own background video** (what the demo is cut from):
+   print `docs/print/laurel-cafe-menu-A4.pdf` at 100 % (no "fit to page"),
+   lay it flat or prop it up in good even light, no glare and nothing over
+   it. Film **landscape** (phone sideways; portrait squeezes the view and
+   makes the panel tiny), 1080p or 720p, 30 fps, about 30 s, H.264 .mp4:
+   the whole page in frame and still for the first 3 s at 40–60 cm, then
+   slow drifts left / right, a slight tilt, come closer so only part of the
+   page is in view, back out, still again at the end. Drop the file in
+   `data/menus/laurel-cafe/` and open it the same way.
 4. Hands-free profile for recording: select `AllergyLens`, set
    `defaultProfile` to `peanut,milk` and `defaultMood` to `everything` or
    `vegetarian`, refresh.
