@@ -1,0 +1,4 @@
+# Python packages for `tools/serve_data.py --research` (the /lookup miss path). The server itself needs none.
+requests
+beautifulsoup4
+ddgs

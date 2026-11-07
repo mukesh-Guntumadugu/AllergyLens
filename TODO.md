@@ -53,9 +53,11 @@ amber for everyone. Agreed flow:
     Lens: on a miss call the endpoint with a 4 s timeout; amber "ask the restaurant" meanwhile;
           second visitor gets the cached answer instantly
 
-- [ ] `GET /lookup?dish=<name>&cuisine=<c>` in `tools/serve_data.py` (cache first, then the retrieval step, result written to gold) — needs the GX10 on to deploy
-- [ ] Lens call on miss (`AllergyLensMain.ts`), timeout 4 s, verdict stays amber until the answer arrives, result merged into the session data
-- [ ] `node tools/check.js --dish "<name>" --url …` to test it from the command line
+- [x] `GET /lookup?dish=<name>&cuisine=<c>` in `tools/serve_data.py` (cache first, then the retrieval step, result in `data/lookup-cache.json`) — built and tested locally 2026-11-06; GitHub [#5](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/5)
+- [x] Lens call on miss (`AllergyLensMain.ts`), timeout 4 s, verdict stays amber until the answer arrives, result merged into the session data (compile clean; preview run still to do)
+- [x] `node tools/check.js --dish "<name>" --cuisine <c> --profile <ids> --url …` from the command line
+- [ ] Deploy: GX10 (`cd ~/allergylens-serve && git pull && bash tools/server/install.sh`) once it is on; Hostinger VPS (`bash tools/server/install_vps.sh --domain …`) once the SSH details and a DNS name are given
+- [ ] GitHub issues to work from: [#2 architecture](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/2), [#3 glanceable UI](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/3), [#4 voice + pinch](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/4)
 - [ ] Unknown page (no marker): one 512-px frame through the Remote Service Gateway to read the dish names first, then the lookup above. Needs a Snap gateway token. Second day.
 
 Not from images: a photo of food never turns a dish green (chicken-shaped cake). Images are for

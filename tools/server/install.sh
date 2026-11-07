@@ -8,6 +8,10 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 USER_NAME="${SUDO_USER:-$(whoami)}"
 command -v node >/dev/null || { echo "node is required (tools/build-data.js)"; exit 1; }
 command -v python3 >/dev/null || { echo "python3 is required"; exit 1; }
+# Research packages for /lookup misses live in a venv next to the repo (Ubuntu's system pip is locked).
+python3 -c "import venv" 2>/dev/null || sudo apt-get install -y python3-venv
+[ -d "$REPO/.venv" ] || python3 -m venv "$REPO/.venv"
+"$REPO/.venv/bin/pip" install -q -r "$REPO/tools/server/requirements.txt"
 node "$REPO/tools/build-data.js"
 sed -e "s|__USER__|$USER_NAME|" -e "s|__REPO__|$REPO|" "$REPO/tools/server/allergylens-data.service" | sudo tee /etc/systemd/system/allergylens-data.service >/dev/null
 sudo systemctl daemon-reload

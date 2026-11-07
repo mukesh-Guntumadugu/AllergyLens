@@ -420,7 +420,86 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     this.profileButton.getSceneObject().enabled = false
     this.runCheck(restaurantId)
+    this.lookupUnknownDishes(restaurantId)
     this.voice?.start()
+  }
+
+  // ── Miss path ──────────────────────────────────────────────────────────
+  // Dishes the data does not know (ingredientsSource "none", drawn amber) are asked from the
+  // lookup server next to menus.json: cache first (answers in ms), web retrieval on a miss
+  // ("researching": the Lens asks again a few seconds later). The marks stay amber until an
+  // answer arrives; nothing waits on the network and a timeout changes nothing on the page.
+  private static readonly LOOKUP_TIMEOUT_S = 4.0
+  private static readonly LOOKUP_RETRY_S = 8.0
+  private static readonly LOOKUP_ATTEMPTS = 3
+  private static readonly LOOKUP_MAX_PER_PAGE = 12
+  private lookupAsked = new Set<string>()
+
+  private lookupBase(): string | null {
+    const u = (this.menusUrl || "").trim()
+    if (!u) return null
+    return u.replace(/\/menus(\.json)?(\?.*)?$/, "") + "/lookup"
+  }
+
+  private lookupUnknownDishes(restaurantId: string, attempt: number = 1): void {
+    const base = this.lookupBase()
+    const restaurant = getRestaurant(restaurantId)
+    if (!base || !restaurant) return
+    const unknown = restaurant.dishes
+      .filter((d) => d.ingredientsSource === "none" && (attempt > 1 || !this.lookupAsked.has(`${restaurantId}/${d.id}`)))
+      .slice(0, AllergyLensMain.LOOKUP_MAX_PER_PAGE)
+    if (unknown.length === 0) return
+    print(`AllergyLens: asking ${base} about ${unknown.length} unknown dish(es) (attempt ${attempt})`)
+    let pending = unknown.length
+    let filled = 0
+    let researching = 0
+    for (const dish of unknown) {
+      this.lookupAsked.add(`${restaurantId}/${dish.id}`)
+      this.fetchLookup(base, dish.name, restaurant.cuisine)
+        .then(
+          (r) => {
+            if (r.status === "typical" && r.ingredients.length > 0) {
+              dish.ingredients = r.ingredients
+              dish.ingredientsSource = "typical"
+              filled++
+            } else if (r.status === "researching") {
+              researching++
+            }
+          },
+          (e) => print(`AllergyLens: lookup failed for "${dish.name}" (${e})`),
+        )
+        .then(() => {
+          if (--pending > 0) return
+          if (filled > 0) {
+            print(`AllergyLens: ${filled} dish(es) filled from the lookup server`)
+            this.recheckActive()
+          }
+          if (researching > 0 && attempt < AllergyLensMain.LOOKUP_ATTEMPTS) {
+            print(`AllergyLens: ${researching} dish(es) being researched; asking again in ${AllergyLensMain.LOOKUP_RETRY_S}s`)
+            const t = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+            t.bind(() => this.lookupUnknownDishes(restaurantId, attempt + 1))
+            t.reset(AllergyLensMain.LOOKUP_RETRY_S)
+          }
+        })
+    }
+  }
+
+  private fetchLookup(base: string, name: string, cuisine: string | null): Promise<{status: string; ingredients: string[]}> {
+    const internet = require("LensStudio:InternetModule") as InternetModule
+    const url = `${base}?dish=${encodeURIComponent(name)}` + (cuisine ? `&cuisine=${encodeURIComponent(cuisine)}` : "")
+    const timeout = new Promise<never>((_, reject) => {
+      const t = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+      t.bind(() => reject(new Error(`timeout ${AllergyLensMain.LOOKUP_TIMEOUT_S}s`)))
+      t.reset(AllergyLensMain.LOOKUP_TIMEOUT_S)
+    })
+    const call = internet.fetch(url, {method: "GET"}).then(async (res) => {
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`)
+      const j = (await res.json()) as {status?: unknown; ingredients?: unknown}
+      const status = typeof j.status === "string" ? j.status : "unknown"
+      const ingredients = Array.isArray(j.ingredients) ? j.ingredients.filter((x) => typeof x === "string").map((x) => String(x).toLowerCase()) : []
+      return {status, ingredients}
+    })
+    return Promise.race([call, timeout])
   }
 
   private onMarkerLost(restaurantId: string): void {

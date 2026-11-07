@@ -5,6 +5,8 @@
 //   node tools/check.js --profile beef,pork --restaurant laurel-cafe
 //   node tools/check.js --profile milk --url http://<gx10-ip>:8787/menus.json   # the live server instead of the bundled data
 //   node tools/check.js --list                                # profile ids, restaurants, products
+//   node tools/check.js --dish "chicken tikka masala" --cuisine indian --profile milk --url https://<server>/menus.json
+//                                                             # the miss path: ask the server's /lookup, then run the checker on the answer
 //
 // Uses the SAME compiled checker the Lens runs (Lens Studio writes it to Cache/TypeScript/Out when
 // the project compiles), so this is the Lens logic, not a copy. Open the project in Lens Studio once
@@ -33,6 +35,7 @@ if (args.includes("--list")) {
   console.log("products:", data.PRODUCTS.map((p) => `${p.barcode} ${p.name}`).join("; "));
   process.exit(0);
 }
+const dishName = opt("--dish", null);
 const profileIds = (opt("--profile", "") || "").split(",").map((s) => s.trim()).filter(Boolean);
 const onlyRestaurant = opt("--restaurant", null);
 const url = opt("--url", null);
@@ -59,7 +62,32 @@ async function restaurants() {
 const pad = (s, n) => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
 const colour = { safe: "GREEN ", contains: "RED   ", unverified: "AMBER ", none: "-     " };
 
+async function lookupDish() {
+  // Same call the Lens makes on a marker with unknown dishes (AllergyLensMain.lookupUnknownDishes).
+  const base = (url || "http://127.0.0.1:8787/menus.json").replace(/\/menus(\.json)?(\?.*)?$/, "") + "/lookup";
+  const cuisine = opt("--cuisine", null);
+  const q = `${base}?dish=${encodeURIComponent(dishName)}` + (cuisine ? `&cuisine=${encodeURIComponent(cuisine)}` : "");
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const t0 = Date.now();
+    const res = await fetch(q, { signal: AbortSignal.timeout(4000) });
+    const j = await res.json();
+    console.log(`${q}\n  -> HTTP ${res.status} in ${Date.now() - t0} ms: status=${j.status} cached=${j.cached} ingredients=[${(j.ingredients || []).join(", ")}]`);
+    if (j.sources && j.sources.length) console.log(`  sources: ${j.sources.slice(0, 3).join("  ")}`);
+    if (j.status !== "researching") {
+      const dish = { id: "x", name: dishName, icon: null, ingredients: j.status === "typical" ? j.ingredients : null,
+        ingredientsSource: j.status === "typical" ? "typical" : "none", removable: [], shares: {}, substitutes: {}, layout: null,
+        category: "unknown", price: null, section: null, markers: [] };
+      const r = checker.checkMenu([dish], profile)[0];
+      console.log(`  Lens verdict for [${profileIds.join(", ") || "empty"}]: ${colour[r.verdict].trim()}${r.verdict === "contains" ? " — " + checker.describeChoice(dish, r, { id: "x", name: "lookup", dishes: [dish] }, [r]).headline : ""}`);
+      return;
+    }
+    console.log(`  researching… asking again in 8 s (the Lens does the same, ${attempt}/3)`);
+    await new Promise((r) => setTimeout(r, 8000));
+  }
+}
+
 (async () => {
+  if (dishName) return lookupDish();
   const list = (await restaurants()).filter((r) => !onlyRestaurant || r.id === onlyRestaurant);
   console.log(`profile: [${profileIds.join(", ") || "empty"}]\n`);
   for (const r of list) {
