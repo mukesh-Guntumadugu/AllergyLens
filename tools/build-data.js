@@ -21,6 +21,7 @@ const allergens = read("data/allergens.json");
 let dishKb = read("data/dishes.json");                        // committed, hand-checked seed catalog
 const menus = read("data/menus.json");                       // committed, hand-curated seed only
 // Scraped restaurants live in the gitignored lake; join them in for a local Lens build, never for a commit.
+let lakeImagesMissing = 0;
 const withLake = process.argv.includes("--with-lake") || process.env.ALLERGY_WITH_LAKE === "1";
 const lakePath = path.join(root, "data-lake", "gold", "lens", "menus.json");
 if (withLake && fs.existsSync(lakePath)) {
@@ -163,7 +164,12 @@ const restaurants = menus.restaurants.map((r) => {
   if (r.menuImage) {
     const mi = r.menuImage;
     if (!mi.path || typeof mi.widthCm !== "number") errors.push(`${r.id}: menuImage needs path and widthCm`);
-    else if (!fs.existsSync(path.join(root, mi.path))) errors.push(`${r.id}: menuImage.path not found: ${mi.path}`);
+    else if (!fs.existsSync(path.join(root, mi.path))) {
+      // A scraped restaurant's photo lives in the lake on the GX10; a server that only carries the catalog
+      // (the VPS) drops the image reference and keeps the dishes. A seed restaurant's image is authored and must exist.
+      if (mi.path.startsWith("data-lake/")) { lakeImagesMissing++; r.menuImage = null; }
+      else errors.push(`${r.id}: menuImage.path not found: ${mi.path}`);
+    }
   }
   return {
     id: r.id,
@@ -327,3 +333,4 @@ console.log(
     `${dishKb.dishes.length} KB dishes, ${restaurants.length} restaurants, ${dishIds.size} menu dishes ` +
     `(${typicalCount} filled from the dish KB), ${products.products.length} packaged products`
 );
+if (lakeImagesMissing) console.log(`  (${lakeImagesMissing} scraped restaurants without their menu photo on this machine: image reference dropped, dishes kept)`);
