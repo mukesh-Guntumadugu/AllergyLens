@@ -1,6 +1,6 @@
 // AllergyLensProfileButtonUI — the way back to the profile once setup is done: one pinch target
 // in the lower corner of the view, head-locked with the UI group it sits in. Transparent: an
-// open-source icon (Material "account_circle") over a faint ring, no solid plate, big enough to
+// the app mark (open-source Material icon) with no solid plate behind it, big enough to
 // read and pinch from 55 cm. Owns: the icon and its collider. Expects no scene @inputs beyond
 // size. Must not decide anything — it only reports the pinch to Main.
 // SceneObject name "ProfileButton" so LEAF can find it.
@@ -9,7 +9,8 @@ import {Interactable} from "SpectaclesInteractionKit.lspkg/Components/Interactio
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
 import * as UI from "./AllergyLensSharedUI"
 
-const ICON_PROFILE = requireAsset("../Icons/profile/account.png") as Texture
+// The app mark itself (Material "restaurant_menu", the same icon as the welcome screen) — no custom logo.
+const ICON_PROFILE = requireAsset("../Icons/profile/logo.png") as Texture
 
 @component
 export class AllergyLensProfileButtonUI extends BaseScriptComponent {

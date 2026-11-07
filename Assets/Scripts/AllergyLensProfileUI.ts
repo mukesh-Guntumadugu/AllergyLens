@@ -2,9 +2,9 @@
 //   welcome → allergies → religious / cultural → diet → done.
 // Space is the constraint on glasses, so each screen is only: the question (with one icon), the
 // "Heard: …" line, the tiles, the chips for anything spoken, and Back / Next. No header. Three small
-// controls sit in the top-right corner: keyboard (opens the SPECS system keyboard at once, with the
-// typed text shown in a field BELOW the panel, never over it), mic (listening on / off) and speaker
-// (voice on / off) — each both a status and a switch. In the Lens Studio preview with SPECS 27 the
+// controls sit in a strip OUTSIDE the panel on its right side, so no text can ever run under them:
+// keyboard (opens the SPECS system keyboard at once, with the typed text shown in a field BELOW the
+// panel), mic (listening on / off) and speaker (voice on / off) — each both a status and a switch. In the Lens Studio preview with SPECS 27 the
 // system keyboard is replaced by Lens Studio's "Keyboard Simulation" sheet (hardware keys type).
 // Owns: the tiles, chips and controls and their visuals, the step switch. Expects no scene @inputs
 // beyond sizing. Must not hold the profile — it reports every flip, step change, control and edit
@@ -189,6 +189,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     }
     // The typing field lives BELOW the panel, outside the plate, so it never covers anything.
     this.buildEditRow(innerW, d, H)
+    // The three controls live in a strip to the RIGHT of the plate, top-aligned, outside every row.
+    this.buildControlStrip(W, H)
   }
 
   // ── Public API ─────────────────────────────────────────────────────────
@@ -332,9 +334,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   // ── Screens ────────────────────────────────────────────────────────────
   private buildWelcome(col: SceneObject, innerW: number, d: number, chipsH: number): void {
     // Welcome: the mark, the greeting, two lines, Heard — centred; same total height as the other screens.
-    const top = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.8, justify: FlexJustify.SpaceBetween, align: FlexAlign.Center})
-    UI.addRowText(top, this.appName, "Subheadline", d, innerW - CTRL * 3 - GAP * 3, HorizontalAlignment.Left, UI.WHITE_SOFT)
-    this.addControls(top, d)
+    UI.addColumnText(col, this.appName, "Subheadline", d, QUESTION_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
     const logoRow = UI.flexRow(col, innerW, 6, {justify: FlexJustify.Center, align: FlexAlign.Center})
     UI.addImage(logoRow, ICON_LOGO, 6, 6)
     this.greeting = UI.addColumnText(col, "Hi.", "Headline1", d, 3.0, HorizontalAlignment.Center)
@@ -348,12 +348,10 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
   private buildQuestionScreen(col: SceneObject, innerW: number, d: number, tileW: number, step: ProfileStep, chipsH: number): void {
     const screen = SCREENS[step]
-    // Question row: icon + question on the left, the three controls on the right.
-    const q = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.6, justify: FlexJustify.SpaceBetween, align: FlexAlign.Center})
-    const left = UI.flexRow(q, innerW - CTRL * 3 - GAP * 3, QUESTION_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
-    UI.addImage(left, SCREEN_ICONS[step], QUESTION_H * 0.85, QUESTION_H * 0.85)
-    UI.addRowText(left, screen.question, "Headline2", d, innerW - CTRL * 3 - GAP * 3 - QUESTION_H, HorizontalAlignment.Left)
-    this.addControls(q, d)
+    // Question row: icon + question across the full width (the controls are outside the panel).
+    const q = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
+    UI.addImage(q, SCREEN_ICONS[step], QUESTION_H * 0.85, QUESTION_H * 0.85)
+    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - 0.6, HorizontalAlignment.Left)
     this.addHeardLine(col, innerW, d)
     // Tiles, three per row; the reserved rows keep the footer in the same place on every screen.
     const ids = screen.tiles.slice()
@@ -388,22 +386,25 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     return (CHIP_H + GAP) / 2 - row * (CHIP_H + GAP)
   }
 
-  private addControls(row: SceneObject, d: number): void {
-    const group = UI.flexRow(row, CTRL * 3 + GAP * 2, CTRL, {gap: GAP, justify: FlexJustify.End, align: FlexAlign.Center})
-    this.addControl(group, "KeyboardButton", ICON_KEYBOARD, () => this.setEditing(!(this.editRow && this.editRow.enabled)), null)
-    this.addControl(group, "MicButton", this._listening ? ICON_MIC : ICON_MIC_OFF, () => this._onMicToggle.invoke(), this.micIcons)
-    this.addControl(group, "SpeakerButton", this._speaking ? ICON_SPEAKER : ICON_SPEAKER_OFF, () => this._onSpeakerToggle.invoke(), this.speakerIcons)
-  }
-
-  private addControl(row: SceneObject, name: string, icon: Texture, onPinch: () => void, registry: Image[] | null): void {
-    UI.flexChild(row, {w: CTRL, h: CTRL}, (so) => {
-      so.name = name
+  /** Keyboard / mic / speaker, stacked just outside the panel's right edge, from the top down. */
+  private buildControlStrip(W: number, H: number): void {
+    const size = CTRL * 1.25
+    const x = W / 2 + GAP + size / 2
+    const top = H / 2 - PAD - size / 2
+    const strip = UI.obj(this.sceneObject, "Controls", new vec3(x, 0, UI.CONTENT_Z))
+    const items: Array<[string, Texture, () => void, Image[] | null]> = [
+      ["KeyboardButton", ICON_KEYBOARD, () => this.setEditing(!(this.editRow && this.editRow.enabled)), null],
+      ["MicButton", this._listening ? ICON_MIC : ICON_MIC_OFF, () => this._onMicToggle.invoke(), this.micIcons],
+      ["SpeakerButton", this._speaking ? ICON_SPEAKER : ICON_SPEAKER_OFF, () => this._onSpeakerToggle.invoke(), this.speakerIcons],
+    ]
+    items.forEach(([name, icon, onPinch, registry], i) => {
+      const so = UI.obj(strip, name, new vec3(0, top - i * (size + GAP), 0))
       const btn = so.createComponent(Button.getTypeName()) as Button
-      btn.size = new vec3(CTRL, CTRL, 1)
+      btn.size = new vec3(size, size, 1)
       btn.onTriggerUp.add(onPinch)
-      const inner = UI.flexRow(so, CTRL, CTRL, {justify: FlexJustify.Center, align: FlexAlign.Center})
+      const inner = UI.flexRow(so, size, size, {justify: FlexJustify.Center, align: FlexAlign.Center})
       UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
-      const img = UI.addImage(inner, icon, CTRL_ICON, CTRL_ICON)
+      const img = UI.addImage(inner, icon, CTRL_ICON * 1.25, CTRL_ICON * 1.25)
       if (registry) registry.push(img)
     })
   }

@@ -701,8 +701,31 @@ export class AllergyLensMain extends BaseScriptComponent {
     return {pos: cam.getWorldPosition().add(look.uniformScale(this.panelDistanceCm)).add(up.uniformScale(yOff)), rot}
   }
 
+  /** Where the Profile button lives: lower-right of the view at 55 cm, following the head like the panel. */
+  private buttonTarget(): {pos: vec3; rot: quat} {
+    const cam = WorldCameraFinderProvider.getInstance().getTransform()
+    const rot = cam.getWorldRotation()
+    const look = rot.multiplyVec3(new vec3(0, 0, -1))
+    const up = rot.multiplyVec3(new vec3(0, 1, 0))
+    const right = rot.multiplyVec3(new vec3(1, 0, 0))
+    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(17)).add(up.uniformScale(-12)), rot}
+  }
+
   /** Lazy follow: the panel drifts back in front of the user when they turn or move, never snapping. */
   private followHead(dt: number): void {
+    if (this.panelFollowsHead && !this.panelTween) {
+      // The Profile button keeps its corner of the view whenever it is shown (the glide targets this spot too).
+      const bt = this.buttonTarget()
+      const b = this.profileButton.getTransform()
+      if (this.profileButton.getSceneObject().enabled) {
+        const k = 1 - Math.exp(-dt * 5)
+        b.setWorldPosition(vec3.lerp(b.getWorldPosition(), bt.pos, k))
+        b.setWorldRotation(quat.slerp(b.getWorldRotation(), bt.rot, k))
+      } else {
+        b.setWorldPosition(bt.pos)
+        b.setWorldRotation(bt.rot)
+      }
+    }
     if (!this.panelFollowsHead || this.panelTween || !this.profilePanel.getSceneObject().enabled) return
     const t = this.profilePanel.getTransform()
     const target = this.panelTarget()
