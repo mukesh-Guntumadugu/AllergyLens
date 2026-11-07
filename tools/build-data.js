@@ -40,6 +40,17 @@ if (withLake && fs.existsSync(lakeDishes)) {
   console.log(`+ ${lake.dishes.length} researched dishes from data-lake/gold/dishes.json (local build; do not commit the result)`);
 }
 
+// Model answers (tools/server/prefill.py and /lookup misses) fill only names no better source knows:
+// seed and cited entries always win. Server-local file, never committed.
+const llmCache = path.join(root, "data", "lookup-cache.json");
+if (fs.existsSync(llmCache)) {
+  const cache = JSON.parse(fs.readFileSync(llmCache, "utf8"));
+  const have = new Set(dishKb.dishes.map((d) => d.name.toLowerCase()));
+  const added = cache.dishes.filter((d) => d.status === "typical" && !have.has(d.name.toLowerCase()));
+  dishKb = { ...dishKb, dishes: [...dishKb.dishes, ...added] };
+  console.log(`+ ${added.length} model-answered dishes from data/lookup-cache.json (server-local; not committed)`);
+}
+
 const errors = [];
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 
