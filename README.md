@@ -122,6 +122,13 @@ hardware: a Lens cannot flip them, so when no audio arrives the Lens says
 "I can't hear you yet, turn on the microphone in the Preview panel". On the
 glasses there is no second switch.
 
+**Sized to the view.** The glasses show about 32° across and every head-locked
+size (34 cm panel at 80 cm, 7 cm button, card text) is designed for that.
+Lens Studio's preview on phone footage renders about 66° across, which would
+shrink the same centimetres to an unreadable stamp, so the head-locked UI
+scales by the camera's field of view (×2.3 on such footage, ×1 on the glasses
+and in the SPECS 27 room). Marks on the menu stay in page centimetres.
+
 **After Done** the panel glides to a large, see-through account icon in the
 lower-right corner of the view (`AllergyLensProfileButtonUI`, 7 cm, Material
 "account_circle"); pinch it, or say "edit profile", to come back.

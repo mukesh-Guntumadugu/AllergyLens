@@ -32,6 +32,8 @@ const STEP_HINT: {[s in ProfileStep]: string} = {
   diet: 'Say "vegetarian", "vegan", "low sugar", "no trans fat", or "done".',
 }
 const STEP_SPEECH: {[s in ProfileStep]: SpeechLine} = {welcome: "welcome", allergies: "step_allergies", religious: "step_religious", diet: "step_diet"}
+/** Horizontal field of view the glasses show (SPECS 27 simulation measures 32.3°); head-locked sizes are designed for it. */
+const REF_FOV_H_DEG = 32.3
 const STORE_IDS = "allergylens.profile.ids"
 const STORE_CUSTOM = "allergylens.profile.custom"
 
@@ -188,6 +190,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   private spokenPages = new Set<string>()
   // The panel glides to the Profile button's spot when it closes and out of it when it reopens.
   private panelHome: {pos: vec3; scale: vec3} | null = null
+  /** Head-locked UI scale: 1 on the glasses, larger in a wide-angle preview (see applyUiScale). */
+  private uiScale = 1
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
@@ -376,6 +380,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.speech?.say("welcome")
     }
     this.dishDetail.hideDetail()
+    this.applyUiScale()
     print(`AllergyLens: ready (profile panel ${panelAtStart ? "shown" : "hidden"}, profile [${this.profile.ids().join(", ")}], ${this.overlays.length} menu marker(s), ${this.products.length} product marker(s))`)
 
     if (this.menusUrl && this.menusUrl.trim().length > 0) this.loadRemoteMenus(this.menusUrl.trim())
@@ -618,6 +623,27 @@ export class AllergyLensMain extends BaseScriptComponent {
     print("AllergyLens: profile reopened")
   }
 
+  /**
+   * The glasses show about 32° across, and every head-locked size here (panel 34 cm at 80 cm, 7 cm
+   * button, card text) is designed for that. Lens Studio's preview on phone footage renders about 66°
+   * across, so the same centimetres become an unreadable stamp. Scale the head-locked UI so it keeps the
+   * share of the view it has on the glasses; marks on the menu stay in page centimetres. ×1 on device.
+   */
+  private applyUiScale(): void {
+    try {
+      const cam = WorldCameraFinderProvider.getInstance().getComponent()
+      const fovH = (2 * Math.atan(Math.tan(cam.fov / 2) * cam.aspect) * 180) / Math.PI
+      const k = Math.min(3, Math.max(1, Math.tan((fovH * Math.PI) / 360) / Math.tan((REF_FOV_H_DEG * Math.PI) / 360)))
+      this.uiScale = k
+      for (const so of [this.profilePanel.getSceneObject(), this.profileButton.getSceneObject(), this.dishDetail.getSceneObject()]) {
+        so.getTransform().setLocalScale(new vec3(k, k, k))
+      }
+      print(`AllergyLens: view ${fovH.toFixed(1)}° across${k > 1.01 ? ` — head-locked UI scaled ×${k.toFixed(2)} to stay readable` : ""}`)
+    } catch (e) {
+      print(`AllergyLens: camera field of view unavailable (${e})`)
+    }
+  }
+
   // ── Panel motion ───────────────────────────────────────────────────────
   private rememberPanelHome(): void {
     if (this.panelHome) return
@@ -740,7 +766,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const look = rot.multiplyVec3(new vec3(0, 0, -1))
     const up = rot.multiplyVec3(new vec3(0, 1, 0))
     // While the typing field and keyboard hang below the plate, the panel rides up by half of them so the whole stack is centred in view.
-    const yOff = (this.panelHome ? this.panelHome.pos.y : -2) + this.profilePanel.belowPanelCm / 2
+    const yOff = (this.panelHome ? this.panelHome.pos.y : -2) + (this.profilePanel.belowPanelCm / 2) * this.uiScale
     return {pos: cam.getWorldPosition().add(look.uniformScale(this.panelDistanceCm)).add(up.uniformScale(yOff)), rot}
   }
 
@@ -1469,7 +1495,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const t = root.getTransform()
     t.setLocalPosition(new vec3(lx, ly, 1.0))
     t.setLocalRotation(quat.quatIdentity())
-    t.setLocalScale(new vec3(1, 1, 1))
+    t.setLocalScale(new vec3(this.uiScale, this.uiScale, this.uiScale))
   }
 
   // ── Optional remote data ───────────────────────────────────────────────
