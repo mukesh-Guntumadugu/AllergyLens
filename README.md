@@ -166,7 +166,7 @@ miss, and nothing below is allowed to turn an unknown dish green.
 | 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure. `tools/serve_data.py` serves it from the GX10 (seed + data lake, ETag, CORS) | one ~10 KB GET per session | built |
 | 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
 | 3 | **Miss path** `GET /lookup?dish=<name>&cuisine=<c>` on the same server: cache first (seed catalog, lake `gold/dishes.json`, `data/lookup-cache.json`) answers in milliseconds; a miss is queued for web retrieval (`ingredients_rag.py`: recipe pages with schema.org markup, citations kept, no model invents a recipe) and answers `"researching"`; the Lens asks again at 8 s and 16 s, the second visitor hits the cache. The Lens asks for up to 12 unknown dishes when a page is recognised, 4 s timeout, amber meanwhile | one small GET per unknown dish, research once per dish ever | built 6 Nov ([#5](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/5)) |
-| 4 | **Small model on the server** (`--llm`): a miss is answered by Claude Haiku 5.5 (or gpt-4.1-nano) as a fixed JSON list of *typical* ingredients plus a diet class, cached forever per dish, capped at 300 calls/hour. The key sits in `/etc/allergylens.env` on the server, never in the Lens. The call usually answers inside the Lens's first ask (the server waits up to 3 s), otherwise "researching" and the Lens asks again | ~600 input + 150 output tokens per new dish: about $0.0002 with Haiku, so a $20 budget covers ~100,000 dishes | built 6 Nov; the deployed default since web scraping stopped |
+| 4 | **Small model on the server** (`--llm`): a miss is answered by a small model (deployed: gpt-4.1-nano through **OpenRouter**, one key with a hard spend cap set on openrouter.ai; Claude Haiku 5.5 or OpenAI direct also wired) as a fixed JSON list of *typical* ingredients plus a diet class, cached forever per dish, capped at 300 calls/hour. The key sits in `/etc/allergylens.env` on the server, never in the Lens. The call usually answers inside the Lens's first ask (the server waits up to 3 s), otherwise "researching" and the Lens asks again | ~600 input + 150 output tokens per new dish: about $0.0002 with Haiku, so a $20 budget covers ~100,000 dishes | built 6 Nov; the deployed default since web scraping stopped |
 | 5 | Menu with no marker: one down-scaled camera frame through the Remote Service Gateway to a vision model with the *same* line schema; the result is uploaded as a capture so the next visitor gets the cached answer (DESIGN.md §7.4) | one image call per *page*, never per frame | designed |
 
 Guardrails that stay the same at every tier: results from retrieval or a model
@@ -353,7 +353,7 @@ builds and serves on its own.
 
 **Which miss path runs.** `--llm` wins over `--research`; the deployed services run `--llm`, and a server
 with no key in `/etc/allergylens.env` answers every miss "unknown" (amber) and says so in its log. To turn
-the model on: put `ANTHROPIC_API_KEY=…` (or `OPENAI_API_KEY=…`) in that file as root and
+the model on: put `OPENROUTER_API_KEY=…` (or `ANTHROPIC_API_KEY=…` / `OPENAI_API_KEY=…`) in that file as root and
 `systemctl restart allergylens-api` (VPS) / `allergylens-data` (GX10). `/health` then reports the provider,
 model, call count and tokens used.
 

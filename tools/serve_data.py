@@ -14,9 +14,10 @@ Endpoints (JSON, CORS open, ETag + Cache-Control so a Lens fetches once per chan
                     markup, citations kept, no model invents a recipe) and the call answers
                     {"status": "researching"} at once; the Lens polls again a few seconds later and the
                     second visitor gets the cached answer. Without --research a miss answers "unknown".
-                    --llm: a miss is answered by a small model instead (Claude Haiku 5.5 with ANTHROPIC_API_KEY,
-                    or gpt-4.1-nano with OPENAI_API_KEY; the key is read from the environment, never from the
-                    Lens), as a fixed JSON list of typical ingredients, cached forever per dish, capped per hour.
+                    --llm: a miss is answered by a small model instead (OPENROUTER_API_KEY -> openai/gpt-4.1-nano
+                    through OpenRouter, the deployed choice: one key with a hard spend cap; or ANTHROPIC_API_KEY ->
+                    Claude Haiku 5.5; or OPENAI_API_KEY -> gpt-4.1-nano; the key is read from the environment,
+                    never from the Lens), as a fixed JSON list of typical ingredients, cached forever per dish, capped per hour.
                     The call usually answers inside the request (the Lens waits up to 4 s); a slow one answers
                     "researching" and the Lens asks again.
 
@@ -128,6 +129,8 @@ LLM_SCHEMA = {
 def _llm_provider():
     if os.environ.get("ANTHROPIC_API_KEY"):
         return "anthropic", LLM_MODEL or "claude-haiku-5-5"
+    if os.environ.get("OPENROUTER_API_KEY"):
+        return "openrouter", LLM_MODEL or "openai/gpt-4.1-nano"   # OpenRouter names: provider/model
     if os.environ.get("OPENAI_API_KEY"):
         return "openai", LLM_MODEL or "gpt-4.1-nano"
     return None, None
@@ -161,9 +164,14 @@ def _llm_guess(name, cuisine):
         _llm_stats["output_tokens"] += resp.usage.output_tokens
         text = next(b.text for b in resp.content if b.type == "text")
         return json.loads(text)
-    if provider == "openai":
+    if provider in ("openai", "openrouter"):
         from openai import OpenAI
-        client = OpenAI()
+        if provider == "openrouter":
+            # OpenRouter speaks the OpenAI protocol; the key carries its own spend cap set on openrouter.ai
+            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.environ["OPENROUTER_API_KEY"],
+                            default_headers={"HTTP-Referer": "https://github.com/mukesh-Guntumadugu/AllergyLens", "X-Title": "AllergyLens"})
+        else:
+            client = OpenAI()
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": LLM_SYSTEM}, {"role": "user", "content": user}],
@@ -173,7 +181,7 @@ def _llm_guess(name, cuisine):
             _llm_stats["input_tokens"] += resp.usage.prompt_tokens
             _llm_stats["output_tokens"] += resp.usage.completion_tokens
         return json.loads(resp.choices[0].message.content)
-    raise RuntimeError("no API key in the environment (ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+    raise RuntimeError("no API key in the environment (OPENROUTER_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY)")
 
 
 def _llm_entry(name, cuisine, guess):
@@ -195,7 +203,7 @@ def _llm_worker():
     provider, model = _llm_provider()
     _llm_stats["provider"], _llm_stats["model"] = provider, model
     if not provider:
-        sys.stderr.write("lookup: --llm given but no ANTHROPIC_API_KEY / OPENAI_API_KEY in the environment; misses answer unknown\n")
+        sys.stderr.write("lookup: --llm given but no OPENROUTER_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY in the environment; misses answer unknown\n")
     else:
         sys.stderr.write(f"lookup: model path on ({provider} {model}, cap {LLM_MAX_PER_HOUR}/hour)\n")
     while True:
