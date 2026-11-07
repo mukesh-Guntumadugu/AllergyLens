@@ -22,7 +22,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 |---|---|
 | Profile panel (16 toggles in Allergies / Religious-cultural / Diet + 6 mood chips) as a separate step before the menu; chips that contradict the profile are greyed out; custom allergens by voice | Working, on the real camera path; voice only on the glasses |
 | Real printed menus recognised by the camera (image markers): Star of India, Laurel Café & Co, Tatlılar (the last two from the user's own handheld videos) | Working — marks on the printed lines, confirmed on the handheld Laurel video 4 Nov |
-| Three verdicts per dish: safe / contains / unverified, from the data | Working |
+| Three verdicts per dish: safe / contains / unverified, from the data; model-only lists never go green | Working |
 | Replacement rule (under 10 % of the dish → "leave it out", over → swap or nearest safe dish) | Working |
 | Restaurant badge chip (safe count, stars, allergy reviews) | Working |
 | Mood filter ("Veg dishes", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
@@ -125,6 +125,7 @@ marks update instantly.
 | safe | ingredients known, nothing matched | green dot (green star in a mood category) |
 | contains | ≥ 1 ingredient matches the profile | thin red underline + red dot |
 | unverified | restaurant publishes nothing and the dish is not in the knowledge base | amber dot. **Unknown never becomes safe.** |
+| likely fine | the only ingredient list is the small model's and nothing matched (`ingredientsSource: "model"`) | amber dot; card says "Likely fine. A typical recipe has nothing from your profile. Confirm with the restaurant." A model-found allergen is still red, worded *typically contains*. Decided 7 Nov after the accuracy test |
 
 Ingredients come from the restaurant when published, otherwise from the dish
 knowledge base (`data/dishes.json`: what a pad thai or butter chicken is

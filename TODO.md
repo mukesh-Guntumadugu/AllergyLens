@@ -29,7 +29,7 @@ What exists today, end to end:
 
 - [x] Pre-fill of all 4,880 unknown served dish names through the model (running on the VPS; API restarts itself when done; ~$0.25)
 - [x] Accuracy test, two prompts: 83 % of trusted "contains" caught, ~90 % verdict agreement — `docs/model-accuracy-2026-11-07.md`
-- [ ] Decide: a dish whose ingredients come only from the model — keep green when nothing matches (today), or show amber "likely safe, confirm"?
+- [x] Decided (user, 2026-11-07): a dish whose ingredients come only from the model is never green — amber "Likely fine… confirm with the restaurant"; a model-found allergen stays red. Built as `ingredientsSource: "model"` end to end
 
 ## 1b. Data funnel (counted 2026-11-07; nothing lost)
 

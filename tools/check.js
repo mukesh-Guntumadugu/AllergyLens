@@ -75,7 +75,7 @@ async function lookupDish() {
     if (j.sources && j.sources.length) console.log(`  sources: ${j.sources.slice(0, 3).join("  ")}`);
     if (j.status !== "researching") {
       const dish = { id: "x", name: dishName, icon: null, ingredients: j.status === "typical" ? j.ingredients : null,
-        ingredientsSource: j.status === "typical" ? "typical" : "none", removable: [], shares: {}, substitutes: {}, layout: null,
+        ingredientsSource: j.status !== "typical" ? "none" : String(j.from || "").startsWith("llm") ? "model" : "typical", removable: [], shares: {}, substitutes: {}, layout: null,
         category: "unknown", price: null, section: null, markers: [] };
       const r = checker.checkMenu([dish], profile)[0];
       console.log(`  Lens verdict for [${profileIds.join(", ") || "empty"}]: ${colour[r.verdict].trim()}${r.verdict === "contains" ? " — " + checker.describeChoice(dish, r, { id: "x", name: "lookup", dishes: [dish] }, [r]).headline : ""}`);
@@ -97,7 +97,7 @@ async function lookupDish() {
     for (const d of r.dishes) {
       const res = results.find((x) => x.dishId === d.id);
       const cat = menuData.dishCategory ? menuData.dishCategory(d) : d.category;
-      const src = res.source === "restaurant" ? "menu says" : res.source === "typical" ? "typical  " : "unknown  ";
+      const src = res.source === "restaurant" ? "menu says" : res.source === "typical" ? "typical  " : res.source === "model" ? "model    " : "unknown  ";
       let why = "";
       if (res.verdict === "contains") {
         const t = checker.describeChoice(d, res, r, results);

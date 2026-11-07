@@ -137,7 +137,9 @@ const restaurants = menus.restaurants.map((r) => {
       const kb = lookupDish(d.name);
       if (kb) {
         ingredients = kb.typicalIngredients;
-        ingredientsSource = "typical";
+        // "typical" = researched from cited recipes or hand-checked; "model" = a small model's answer (prefill.py /
+        // the /lookup miss path): the Lens draws a model-only "safe" as amber "likely fine, confirm".
+        ingredientsSource = kb.source && kb.source.type === "llm" ? "model" : "typical";
         typicalCount++;
       }
     }
@@ -235,7 +237,7 @@ export interface AllergenDef {
  *  restaurant = the restaurant published it (trusted)
  *  typical    = looked up from the dish knowledge base by dish name (show as "typically contains", confirm)
  *  none       = unknown: the dish is UNVERIFIED and never safe */
-export type IngredientsSource = "restaurant" | "typical" | "none"
+export type IngredientsSource = "restaurant" | "typical" | "model" | "none"
 
 export type DishCategory = "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert" | "drink" | "unknown"
 

@@ -460,7 +460,7 @@ export class AllergyLensMain extends BaseScriptComponent {
           (r) => {
             if (r.status === "typical" && r.ingredients.length > 0) {
               dish.ingredients = r.ingredients
-              dish.ingredientsSource = "typical"
+              dish.ingredientsSource = r.fromModel ? "model" : "typical"
               filled++
             } else if (r.status === "researching") {
               researching++
@@ -484,7 +484,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
   }
 
-  private fetchLookup(base: string, name: string, cuisine: string | null): Promise<{status: string; ingredients: string[]}> {
+  private fetchLookup(base: string, name: string, cuisine: string | null): Promise<{status: string; ingredients: string[]; fromModel: boolean}> {
     const internet = require("LensStudio:InternetModule") as InternetModule
     const url = `${base}?dish=${encodeURIComponent(name)}` + (cuisine ? `&cuisine=${encodeURIComponent(cuisine)}` : "")
     const timeout = new Promise<never>((_, reject) => {
@@ -494,10 +494,11 @@ export class AllergyLensMain extends BaseScriptComponent {
     })
     const call = internet.fetch(url, {method: "GET"}).then(async (res) => {
       if (res.status !== 200) throw new Error(`HTTP ${res.status}`)
-      const j = (await res.json()) as {status?: unknown; ingredients?: unknown}
+      const j = (await res.json()) as {status?: unknown; ingredients?: unknown; from?: unknown}
       const status = typeof j.status === "string" ? j.status : "unknown"
       const ingredients = Array.isArray(j.ingredients) ? j.ingredients.filter((x) => typeof x === "string").map((x) => String(x).toLowerCase()) : []
-      return {status, ingredients}
+      const fromModel = typeof j.from === "string" && j.from.indexOf("llm") === 0
+      return {status, ingredients, fromModel}
     })
     return Promise.race([call, timeout])
   }

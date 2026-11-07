@@ -22,7 +22,7 @@ export interface AllergenDef {
  *  restaurant = the restaurant published it (trusted)
  *  typical    = looked up from the dish knowledge base by dish name (show as "typically contains", confirm)
  *  none       = unknown: the dish is UNVERIFIED and never safe */
-export type IngredientsSource = "restaurant" | "typical" | "none"
+export type IngredientsSource = "restaurant" | "typical" | "model" | "none"
 
 export type DishCategory = "chicken" | "red_meat" | "seafood" | "vegetarian" | "dessert" | "drink" | "unknown"
 

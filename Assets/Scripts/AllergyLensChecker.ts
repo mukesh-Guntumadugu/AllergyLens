@@ -113,6 +113,10 @@ export function checkDish(dish: DishDef, profile: Profile, allergens: AllergenDe
       }
     }
   }
+  // A list that only a model produced is never drawn green: the accuracy test (docs/model-accuracy-
+  // 2026-11-07.md) catches ~83 % of real "contains", so "nothing matched" from the model is "likely
+  // fine, confirm", i.e. the amber state, while a model-found allergen is still a red "typically contains".
+  if (matches.length === 0 && source === "model") return {dishId: dish.id, verdict: "unverified", source, matches}
   return {dishId: dish.id, verdict: matches.length > 0 ? "contains" : "safe", source, matches}
 }
 
@@ -197,9 +201,11 @@ export function nearestSafeDish(dish: DishDef, restaurant: RestaurantDef, allRes
 export function describeChoice(dish: DishDef, result: DishResult, restaurant: RestaurantDef,
     allResults: DishResult[] = []): {headline: string; body: string} {
   if (result.verdict === "unverified") {
-    return {headline: "Ingredients not published.", body: "Ask the restaurant before ordering."}
+    return result.source === "model"
+      ? {headline: "Likely fine.", body: "A typical recipe has nothing from your profile. Confirm with the restaurant."}
+      : {headline: "Ingredients not published.", body: "Ask the restaurant before ordering."}
   }
-  const typical = result.source === "typical"
+  const typical = result.source === "typical" || result.source === "model"
   const confirm = typical ? " Confirm with the restaurant." : ""
   if (result.matches.length === 0) {
     return typical
@@ -258,9 +264,11 @@ function substanceName(m: IngredientMatch): string {
  */
 export function describeResult(result: DishResult): {headline: string; body: string} {
   if (result.verdict === "unverified") {
-    return {headline: "Ingredients not published.", body: "Ask the restaurant before ordering."}
+    return result.source === "model"
+      ? {headline: "Likely fine.", body: "A typical recipe has nothing from your profile. Confirm with the restaurant."}
+      : {headline: "Ingredients not published.", body: "Ask the restaurant before ordering."}
   }
-  const typical = result.source === "typical"
+  const typical = result.source === "typical" || result.source === "model"
   if (result.matches.length === 0) {
     return typical
       ? {headline: "Looks fine.", body: "Based on a typical recipe; confirm with the restaurant."}

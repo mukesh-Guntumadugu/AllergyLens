@@ -166,7 +166,7 @@ export function validateMenus(json: unknown): RestaurantDef[] | null {
       const ing = Array.isArray(ingredients) ? ingredients.filter((x) => typeof x === "string").map((x) => String(x).toLowerCase()) : null
       const srcRaw = d.ingredientsSource
       const ingredientsSource: IngredientsSource =
-        srcRaw === "typical" || srcRaw === "restaurant" || srcRaw === "none" ? srcRaw : ing && ing.length > 0 ? "restaurant" : "none"
+        srcRaw === "typical" || srcRaw === "restaurant" || srcRaw === "model" || srcRaw === "none" ? srcRaw : ing && ing.length > 0 ? "restaurant" : "none"
       const removable = Array.isArray(d.removable) ? (d.removable as unknown[]).filter((x) => typeof x === "string").map((x) => String(x).toLowerCase()) : []
       dishes.push({
         id: d.id,
