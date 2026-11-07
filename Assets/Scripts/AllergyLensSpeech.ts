@@ -23,10 +23,37 @@ const CLIPS = {
 
 export type SpeechLine = keyof typeof CLIPS
 
+/** Clip lengths in seconds (ffprobe, see make_speech.sh) and the words each one says — the microphone
+ *  hears the Lens's own voice too, so Main ignores transcripts while a clip plays and drops echoes of it. */
+const DURATION_S: {[l in SpeechLine]: number} = {
+  welcome: 6.4, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
+  heard_nothing: 3.8, menu_found: 4.5, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
+}
+const LINE_TEXT: {[l in SpeechLine]: string} = {
+  welcome: "welcome to allergy lens let's set up your profile in three quick steps say your answers or pinch",
+  step_allergies: "step one any food allergies say them pinch them or say more for others",
+  more: "which other allergies just say them",
+  step_religious: "step two anything you avoid for religious or cultural reasons beef pork or alcohol",
+  step_diet: "step three any diet vegetarian vegan low sugar or no trans fat",
+  saved: "profile saved now look at a menu",
+  reopened: "your profile change anything or say done",
+  heard_nothing: "sorry i didn't catch that say it again or pinch",
+  menu_found: "menu recognised red lines are not for you pinch a dish for details",
+  contains: "this dish has something from your profile",
+  likely_fine: "likely fine confirm with the restaurant",
+  safe: "looks fine for you",
+  unknown: "ingredients not published ask the restaurant",
+  muted: "voice off say speak to turn it back on",
+}
+/** Speech-to-text finalises ~1 s after the sound stops; transcripts inside this tail are still the Lens's own voice. */
+const ECHO_TAIL_S = 1.6
+
 export class AllergyLensSpeech {
   private players = new Map<SpeechLine, AudioComponent>()
   private current: AudioComponent | null = null
   private _muted = false
+  private speakingUntil = 0
+  private lastLine: SpeechLine | null = null
 
   constructor(private host: SceneObject, private volume: number = 1.0) {}
 
@@ -62,11 +89,33 @@ export class AllergyLensSpeech {
     }
     this.current = p
     p.play(1)
+    this.lastLine = line
+    this.speakingUntil = getTime() + DURATION_S[line]
     print(`AllergyLens: says "${line}"`)
+  }
+
+  /** True while a clip plays and for a short tail after it: the mic is hearing the Lens, not the user. */
+  get isSpeaking(): boolean {
+    if (this.current && this.current.isPlaying()) return true
+    return getTime() < this.speakingUntil + ECHO_TAIL_S
+  }
+
+  /**
+   * Is this transcript the Lens's own last line coming back through the microphone? More than half
+   * of its words appear in that line (a real answer like "vegan" or "no pork" shares at most one word).
+   */
+  isEcho(transcript: string): boolean {
+    if (!this.lastLine) return false
+    const said = new Set(LINE_TEXT[this.lastLine].split(" "))
+    const words = transcript.toLowerCase().replace(/[^a-z' ]+/g, " ").split(" ").filter((w) => w.length > 0)
+    if (words.length === 0) return false
+    const hits = words.filter((w) => said.has(w)).length
+    return words.length >= 3 && hits / words.length > 0.5
   }
 
   stop(): void {
     if (this.current && this.current.isPlaying()) this.current.stop(false)
     this.current = null
+    this.speakingUntil = Math.min(this.speakingUntil, getTime())
   }
 }

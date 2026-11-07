@@ -22,7 +22,15 @@ for y in range(im.height):
     for x in range(im.width):
         r, g, b = px[x, y]
         op[x, y] = (255, 255, 255, 255 - (r + g + b) // 3)
-out.save(sys.argv[2])
+# Material glyphs sit in a wide transparent frame: crop to the glyph and pad 8 % so it fills its slot in the Lens.
+bbox = out.getchannel("A").getbbox()
+if bbox:
+    out = out.crop(bbox)
+side = max(out.size)
+pad = int(side * 0.08)
+framed = Image.new("RGBA", (side + 2 * pad, side + 2 * pad), (255, 255, 255, 0))
+framed.paste(out, (pad + (side - out.width) // 2, pad + (side - out.height) // 2))
+framed.resize((256, 256), Image.LANCZOS).save(sys.argv[2])
 PY
   echo "$name <- $sym"
 done

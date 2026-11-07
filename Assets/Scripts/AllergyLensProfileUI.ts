@@ -177,7 +177,15 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
 
   /** Show the last thing the microphone heard and what the Lens did with it. */
   setHeard(text: string): void {
-    for (const t of this.heardTexts) t.text = text
+    // One line, inside the panel: a long transcript is cut, the arrow part is kept.
+    const max = 62
+    let shown = text
+    if (shown.length > max) {
+      const arrow = shown.indexOf(" \u2192 ")
+      if (arrow > 0 && shown.length - arrow < max - 20) shown = shown.slice(0, max - (shown.length - arrow) - 1) + "\u2026" + shown.slice(arrow)
+      else shown = shown.slice(0, max - 1) + "\u2026"
+    }
+    for (const t of this.heardTexts) t.text = shown
   }
 
   /** Light the mic while speech-to-text is running. */
