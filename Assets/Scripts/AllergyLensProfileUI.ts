@@ -2,8 +2,10 @@
 //   welcome → allergies → religious / cultural → diet → done.
 // Space is the constraint on glasses, so each screen is only: the question (with one icon), the
 // "Heard: …" line, the tiles, the chips for anything spoken, and Back / Next. No header. Three small
-// controls sit in the top-right corner: keyboard (typing field BELOW the panel, never over it),
-// mic (listening on / off) and speaker (voice on / off) — each both a status and a switch.
+// controls sit in the top-right corner: keyboard (opens the SPECS system keyboard at once, with the
+// typed text shown in a field BELOW the panel, never over it), mic (listening on / off) and speaker
+// (voice on / off) — each both a status and a switch. In the Lens Studio preview with SPECS 27 the
+// system keyboard is replaced by Lens Studio's "Keyboard Simulation" sheet (hardware keys type).
 // Owns: the tiles, chips and controls and their visuals, the step switch. Expects no scene @inputs
 // beyond sizing. Must not hold the profile — it reports every flip, step change, control and edit
 // to Main (the single owner of profile state). Object names LEAF relies on: "Toggle-<allergen id>",
@@ -11,7 +13,6 @@
 
 import {BackPlate} from "SpectaclesUIKit.lspkg/Scripts/BackPlate"
 import {Button} from "SpectaclesUIKit.lspkg/Scripts/Components/Button/Button"
-import {TextInputField} from "SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputField"
 import {FlexAlign, FlexJustify} from "SpectaclesUIKit.lspkg/Scripts/Components/Layout2D/Flex/FlexTypes"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
 import {ALLERGENS, AllergenDef} from "./AllergyLensMenuData"
@@ -108,7 +109,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   private chipW = 8
   private overflowText: Text | null = null
   private editRow: SceneObject | null = null
-  private editField: TextInputField | null = null
+  private editText: Text | null = null
+  private typed = ""
+  private keyboardOpen = false
   private greeting: Text | null = null
   private panelH = 20
   private _step: ProfileStep = "welcome"
@@ -265,17 +268,65 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
       this.chipObjects.push(so)
     })
     if (this.overflowText) this.overflowText.text = items.length > slots ? `+${items.length - slots} more (keyboard shows all)` : ""
-    if (this.editField) this.editField.text = items.map((i) => i.label).join(", ")
+    if (!this.keyboardOpen) this.showTyped(items.map((i) => i.label).join(", "))
   }
 
-  /** Keyboard field below the panel on / off (corner control, or voice "edit" / "keyboard"). */
+  /**
+   * Typing on / off: the SPECS system keyboard comes up at once (one pinch on the icon), the text is
+   * shown in the field below the panel, Return applies it. Off dismisses the keyboard and hides the field.
+   */
   setEditing(on: boolean): void {
     if (this.editRow) this.editRow.enabled = on
+    if (on) this.requestKeyboard()
+    else if (this.keyboardOpen) {
+      try {
+        global.textInputSystem.dismissKeyboard()
+      } catch (e) {
+        print(`AllergyLens: keyboard dismiss failed (${e})`)
+      }
+      this.keyboardOpen = false
+    }
   }
 
   openEdit(): void {
     if (this._step !== "allergies") this.setStep("allergies")
     this.setEditing(true)
+  }
+
+  private requestKeyboard(): void {
+    try {
+      require("LensStudio:TextInputModule")
+      const options = new TextInputSystem.KeyboardOptions()
+      options.enablePreview = true
+      options.keyboardType = TextInputSystem.KeyboardType.Text
+      options.returnKeyType = TextInputSystem.ReturnKeyType.Done
+      options.initialText = this.typed
+      options.onTextChanged = (text: string) => this.showTyped(text)
+      options.onReturnKeyPressed = () => {
+        this.keyboardOpen = false
+        global.textInputSystem.dismissKeyboard()
+        if (this.editRow) this.editRow.enabled = false
+        this._onEditCustom.invoke(this.typed)
+      }
+      options.onKeyboardStateChanged = (isOpen: boolean) => {
+        this.keyboardOpen = isOpen
+        print(`AllergyLens: keyboard ${isOpen ? "open" : "closed"}`)
+      }
+      options.onError = (error: number, description: string) => print(`AllergyLens: keyboard error ${error}: ${description}`)
+      global.textInputSystem.requestKeyboard(options)
+      this.keyboardOpen = true
+    } catch (e) {
+      print(`AllergyLens: keyboard unavailable (${e})`)
+    }
+  }
+
+  private showTyped(text: string): void {
+    this.typed = text
+    if (this.editText) {
+      const empty = text.trim().length === 0
+      this.editText.text = empty ? "Type the foods to avoid, comma-separated" : text
+      this.editText.textFill.color = empty ? UI.WHITE_SOFT : UI.WHITE
+    }
   }
 
   // ── Screens ────────────────────────────────────────────────────────────
@@ -415,20 +466,23 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     if (pending !== undefined) btn.isOn = pending
   }
 
-  /** Typing field + Apply, hanging below the panel; hidden until the keyboard control or "edit". */
+  /** Text field + Apply, hanging below the panel; hidden until the keyboard control or "edit". */
   private buildEditRow(innerW: number, d: number, H: number): void {
     const edit = UI.obj(this.sceneObject, "EditRow", new vec3(0, -H / 2 - TILE_H / 2 - GAP, UI.CONTENT_Z))
     const fieldW = innerW - TILE_H - GAP
+    // The field is a wide button: pinching it brings the keyboard back if it was dismissed.
     const fieldSO = UI.obj(edit, "EditCustomField", new vec3(-(TILE_H + GAP) / 2, 0, 0))
-    const field = fieldSO.createComponent(TextInputField.getTypeName()) as TextInputField
-    field.placeholderText = "Type the foods to avoid, comma-separated"
-    this.editField = field
+    const fieldBtn = fieldSO.createComponent(Button.getTypeName()) as Button
+    fieldBtn.size = new vec3(fieldW, TILE_H, 1)
+    fieldBtn.onTriggerUp.add(() => this.requestKeyboard())
+    this.editText = UI.addButtonLabel(fieldSO, "Type the foods to avoid, comma-separated", fieldW - 1.2, d, "Body", UI.WHITE_SOFT)
+    this.editText.horizontalAlignment = HorizontalAlignment.Left
     const applySO = UI.obj(edit, "ApplyCustomButton", new vec3(fieldW / 2 + GAP / 2, 0, 0))
     const apply = applySO.createComponent(Button.getTypeName()) as Button
     apply.size = new vec3(TILE_H, TILE_H, 1)
     apply.onTriggerUp.add(() => {
       this.setEditing(false)
-      this._onEditCustom.invoke(this.editField ? this.editField.text : "")
+      this._onEditCustom.invoke(this.typed)
     })
     const inner = UI.flexRow(applySO, TILE_H, TILE_H, {justify: FlexJustify.Center, align: FlexAlign.Center})
     UI.liftInZ(inner, UI.BUTTON_LABEL_Z)
