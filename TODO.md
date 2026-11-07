@@ -31,6 +31,17 @@ What exists today, end to end:
 - [x] Accuracy test, two prompts: 83 % of trusted "contains" caught, ~90 % verdict agreement — `docs/model-accuracy-2026-11-07.md`
 - [x] Decided (user, 2026-11-07): a dish whose ingredients come only from the model is never green — amber "Likely fine… confirm with the restaurant"; a model-found allergen stays red. Built as `ingredientsSource: "model"` end to end
 
+## 1c. UI rebuild, 2026-11-07 (done)
+
+- [x] Guided profile setup (welcome → allergies → religious → diet), big text, one Material icon per screen, text tiles
+- [x] Spoken prompts and verdicts (pre-rendered MP3s); the Lens ignores its own voice; "quiet" / "speak"
+- [x] Any number of spoken allergies as chips; pinch to remove; Edit opens the keyboard
+- [x] Per-toggle polarity ("a vegan, not vegetarian"); Vegan/Vegetarian one choice
+- [x] Panel follows the head at 80 cm; glides to the Profile button on Done
+- [x] Heard line says when no microphone is live (preview: switch the mic on in the Preview panel)
+- [x] Star of India removed from the project; LEAF 9/9 on Laurel Café
+- [ ] Still from issue #4: voice queries on the menu ("what's in the brownie", "next safe dish"), pinch the chip to cycle the mood
+
 ## 1b. Data funnel (counted 2026-11-07; nothing lost)
 
 | stage | count |
