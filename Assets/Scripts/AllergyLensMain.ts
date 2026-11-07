@@ -21,6 +21,7 @@ import {ALLERGENS, AllergenDef, AllergenGroup, GROUP_LABELS, MOODS, Mood, Restau
 import {checkMenu, checkProduct, describeChoice, describeProduct, DishResult, Profile, productChipText, ProductResult, rateRestaurant} from "./AllergyLensChecker"
 import {VoiceListener, matchDishByVoice, parseAllergyPhrase} from "./AllergyLensVoice"
 import {AllergyLensSpeech, SpeechLine} from "./AllergyLensSpeech"
+import WorldCameraFinderProvider from "SpectaclesInteractionKit.lspkg/Providers/CameraProvider/WorldCameraFinderProvider"
 import {PROFILE_STEPS, ProfileStep, TILE_IDS} from "./AllergyLensProfileUI"
 
 /** What the Heard line shows on each screen before anything was said, and what the Lens says aloud. */
@@ -82,6 +83,15 @@ export class AllergyLensMain extends BaseScriptComponent {
   speechEnabled: boolean = true
 
   @input
+  @hint("The profile panel stays at a fixed distance in front of the user and turns to face them (lazy follow), so it always reads the same size. Off = it stays where it was placed.")
+  panelFollowsHead: boolean = true
+
+  @input
+  @hint("Distance (cm) the panel keeps in front of the user while it follows.")
+  @widget(new SliderWidget(50, 120, 5))
+  panelDistanceCm: number = 80
+
+  @input
   @hint("Remember the profile on the glasses (persistent storage) so setup runs once; the Profile button or \"edit profile\" changes it.")
   rememberProfile: boolean = true
 
@@ -140,6 +150,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   // The panel glides to the Profile button's spot when it closes and out of it when it reopens.
   private panelHome: {pos: vec3; scale: vec3} | null = null
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
+  private lastTickTime = 0
+  private micHintTimer: DelayedCallbackEvent | null = null
   private buttonShowTimer: DelayedCallbackEvent | null = null
   private voice: VoiceListener | null = null
   private safeCardTimer: DelayedCallbackEvent | null = null
@@ -247,10 +259,19 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (this.voiceEnabled) {
       const inEditor = global.deviceInfoSystem.isEditor()
       if (inEditor && !this.previewVoice) print("AllergyLens: voice is off in the Lens Studio preview (tick previewVoice to talk to the panel through the preview mic); pinch works")
-      else this.voice = new VoiceListener((text) => this.onVoice(text), inEditor) // preview → VoiceML, glasses → ASR
+      else this.voice = new VoiceListener((text) => this.onVoice(text), inEditor, (live) => this.onMicLive(live)) // preview → VoiceML, glasses → ASR
     }
     this.safeCardTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.safeCardTimer.bind(() => this.closeDetail())
+    // If speech-to-text has not come alive a moment after we asked for it, say so on the panel.
+    this.micHintTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+    this.micHintTimer.bind(() => {
+      if (!this.profilePanel.getSceneObject().enabled || !this.voice || this.voice.micLive) return
+      this.profilePanel.setListening(false)
+      this.profilePanel.setHeard(global.deviceInfoSystem.isEditor()
+        ? "No mic yet: turn on the microphone in the Preview panel."
+        : "No microphone yet. Pinching works.")
+    })
     this.buttonShowTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.buttonShowTimer.bind(() => {
       if (!this.anyMarkerActive()) this.profileButton.getSceneObject().enabled = true
@@ -267,7 +288,13 @@ export class AllergyLensMain extends BaseScriptComponent {
     } catch (e) {
       print(`AllergyLens: no display name (${e})`)
     }
+    this.rememberPanelHome()
     if (panelAtStart) {
+      if (this.panelFollowsHead) {
+        const target = this.panelTarget()
+        this.profilePanel.getTransform().setWorldPosition(target.pos)
+        this.profilePanel.getTransform().setWorldRotation(target.rot)
+      }
       this.profilePanel.setStep("welcome")
       this.profilePanel.setHeard(STEP_HINT.welcome)
       this.listen(true) // the panel is voice-driven while it is open
@@ -511,7 +538,8 @@ export class AllergyLensMain extends BaseScriptComponent {
     const t = this.profilePanel.getTransform()
     t.setLocalPosition(this.panelHome!.pos)
     t.setLocalScale(this.panelHome!.scale)
-    const home = t.getWorldPosition()
+    const home = this.panelFollowsHead ? this.panelTarget().pos : t.getWorldPosition()
+    if (this.panelFollowsHead) t.setWorldRotation(this.panelTarget().rot)
     const from = this.profileButton.getTransform().getWorldPosition()
     panelSO.enabled = true
     if (this.panelTween) return
@@ -520,13 +548,17 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.panelTween = {
       t0: getTime(), dur: 0.35, from, to: home, fromS: 0.12, toS: 1,
       onDone: () => {
-        t.setLocalPosition(this.panelHome!.pos)
         t.setLocalScale(this.panelHome!.scale)
+        if (!this.panelFollowsHead) t.setLocalPosition(this.panelHome!.pos)
       },
     }
   }
 
   private tickPanelTween(): void {
+    const now = getTime()
+    const dt = this.lastTickTime > 0 ? Math.min(0.1, now - this.lastTickTime) : 0
+    this.lastTickTime = now
+    this.followHead(dt)
     const tw = this.panelTween
     if (!tw || !this.panelHome) return
     const k = Math.min(1, (getTime() - tw.t0) / tw.dur)
@@ -560,8 +592,49 @@ export class AllergyLensMain extends BaseScriptComponent {
   private listen(on: boolean): void {
     if (on) this.voice?.start()
     else this.voice?.stop()
-    this.profilePanel.setListening(on && (this.voice?.isListening ?? false))
+    this.profilePanel.setListening(on && (this.voice?.micLive ?? false))
+    if (on && this.voice && !this.voice.micLive) this.micHintTimer?.reset(2.5)
   }
+
+  /** The microphone came alive (or went away) while we were listening. */
+  private onMicLive(live: boolean): void {
+    const panelOpen = this.profilePanel.getSceneObject().enabled
+    this.profilePanel.setListening(live && (this.voice?.isListening ?? false))
+    if (live && panelOpen) {
+      this.micHintTimer?.cancel()
+      this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
+      print("AllergyLens: microphone live")
+    } else if (!live && panelOpen) {
+      this.micHintTimer?.reset(0.5)
+    }
+  }
+
+  /** Where the panel belongs: panelDistanceCm straight ahead, a little below eye line, facing the user. */
+  private panelTarget(): {pos: vec3; rot: quat} {
+    const cam = WorldCameraFinderProvider.getInstance().getTransform()
+    const rot = cam.getWorldRotation()
+    const look = rot.multiplyVec3(new vec3(0, 0, -1))
+    const up = rot.multiplyVec3(new vec3(0, 1, 0))
+    const yOff = this.panelHome ? this.panelHome.pos.y : -2
+    return {pos: cam.getWorldPosition().add(look.uniformScale(this.panelDistanceCm)).add(up.uniformScale(yOff)), rot}
+  }
+
+  /** Lazy follow: the panel drifts back in front of the user when they turn or move, never snapping. */
+  private followHead(dt: number): void {
+    if (!this.panelFollowsHead || this.panelTween || !this.profilePanel.getSceneObject().enabled) return
+    const t = this.profilePanel.getTransform()
+    const target = this.panelTarget()
+    const pos = t.getWorldPosition()
+    const dist = pos.distance(target.pos)
+    // Dead zone of 6 cm, then ease in: far away → quick, close → gentle.
+    if (dist > 6 || this.panelSettling) {
+      this.panelSettling = dist > 1.0
+      const k = 1 - Math.exp(-dt * (dist > 30 ? 6 : 3))
+      t.setWorldPosition(vec3.lerp(pos, target.pos, k))
+      t.setWorldRotation(quat.slerp(t.getWorldRotation(), target.rot, k))
+    }
+  }
+  private panelSettling = false
 
   /** The keyboard field's text ("mango, coriander") replaces every voice-added item. */
   private applyCustomText(text: string): void {

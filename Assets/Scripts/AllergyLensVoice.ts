@@ -91,10 +91,24 @@ export class VoiceListener {
   private active = false
   private failed = false
 
-  constructor(private onFinalTranscript: (text: string) => void, private useVoiceML: boolean = false) {}
+  private _micLive = false
+
+  constructor(private onFinalTranscript: (text: string) => void, private useVoiceML: boolean = false,
+      private onMicLive: ((live: boolean) => void) | null = null) {}
 
   get isListening(): boolean {
     return this.active
+  }
+
+  /** True once speech-to-text is really receiving audio (ASR started on the glasses; the preview mic enabled). */
+  get micLive(): boolean {
+    return this._micLive
+  }
+
+  private setMicLive(live: boolean): void {
+    if (this._micLive === live) return
+    this._micLive = live
+    if (this.onMicLive) this.onMicLive(live)
   }
 
   start(): void {
@@ -114,10 +128,12 @@ export class VoiceListener {
       options.onTranscriptionErrorEvent.add((code: AsrModule.AsrStatusCode) => {
         this.failed = true
         this.active = false
+        this.setMicLive(false)
         print(`AllergyLens: voice unavailable (ASR error ${code}); pinch still works`)
       })
       this.asr.startTranscribing(options)
       this.active = true
+      this.setMicLive(true)
       print("AllergyLens: voice listening (say a dish name)")
     } catch (e) {
       this.failed = true
@@ -149,7 +165,13 @@ export class VoiceListener {
         this.vml = require("LensStudio:VoiceMLModule") as VoiceMLModule
         this.vml.onListeningEnabled.add(() => {
           this.vmlEnabled = true
+          this.setMicLive(true)
           if (this.active) this.vmlListen()
+        })
+        this.vml.onListeningDisabled.add(() => {
+          this.vmlEnabled = false
+          this.vmlListening = false
+          this.setMicLive(false)
         })
         this.vml.onListeningUpdate.add((e: VoiceML.ListeningUpdateEventArgs) => {
           if (e.isFinalTranscription && e.transcription && e.transcription.trim().length > 0) this.onFinalTranscript(e.transcription)
@@ -163,6 +185,7 @@ export class VoiceListener {
       // Listening is allowed once the module reports the mic is enabled; try now as well in
       // case that already happened before we subscribed.
       this.vmlListen()
+      if (this.vmlEnabled) this.setMicLive(true)
     } catch (e) {
       this.failed = true
       this.active = false
