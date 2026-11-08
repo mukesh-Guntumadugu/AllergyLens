@@ -410,17 +410,16 @@ TESTING.md                  manual test guide
    page is in view, back out, still again at the end. Drop the file in
    `data/menus/laurel-cafe/` and open it the same way.
 
-   **Distance matters.** The preview's tracker locks within a second when
-   the page takes about two thirds of the frame height; it never locks when
-   the page fills the frame edge to edge (the 2026-11-08 phone clip did
-   exactly that). A clip shot too close is rescued by zooming it out with a
-   blurred surround, which is how `menu-2-laurel.mp4` was made:
-
-   ```bash
-   ffmpeg -i close.mp4 -filter_complex "[0:v]split[a][b];[a]scale=576:1024,boxblur=24:2[bg];[b]scale=404:718[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" -c:v libx264 -crf 18 -pix_fmt yuv420p -an data/menus/laurel-cafe/menu-2-laurel.mp4
-   ```
-
-   (576×1024 is the clip's own size; keep the inner scale at about 70 %.)
+   **Use the recording as it is.** The whole phone video, full frame, with
+   its sound, is the preview source: `data/menus/menus-2026-11-07.mp4`
+   (Chinese Menu, Kitchen Section, Laurel Café, 53 s) and
+   `data/products/groceries-2026-11-07.mp4` (56 s). Never crop, pad or
+   shrink it. A marker made from the printed page in that footage locks
+   within a second even when the page fills the frame; the design file as a
+   marker did not, which is what first made it look as if distance was the
+   problem. Open the project with **Lens Studio 5.23.2**, not 5.24.1, which
+   migrates the project files on open and reports a wrong camera field of
+   view in the SPECS 27 room.
 
    **Adding a menu from a recording** (how `chinese-menu` and
    `kitchen-section` were added on 2026-11-08 from the same phone clip):
