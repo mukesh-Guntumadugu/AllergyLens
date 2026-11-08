@@ -28,12 +28,12 @@ export type SpeechLine = keyof typeof CLIPS
 /** Clip lengths in seconds (ffprobe, see make_speech.sh) and the words each one says — the microphone
  *  hears the Lens's own voice too, so Main ignores transcripts while a clip plays and drops echoes of it. */
 const DURATION_S: {[l in SpeechLine]: number} = {
-  welcome: 6.4, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
+  welcome: 1.7, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
   heard_nothing: 3.8, menu_found: 4.8, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
   mic_hint: 5.0, mic_back: 1.2,
 }
 const LINE_TEXT: {[l in SpeechLine]: string} = {
-  welcome: "welcome to allergy lens let's set up your profile in three quick steps say your answers or pinch",
+  welcome: "welcome to allergy specs",
   step_allergies: "step one any food allergies say them pinch them or say more for others",
   more: "which other allergies just say them",
   step_religious: "step two anything you avoid for religious or cultural reasons beef pork or alcohol",
@@ -50,6 +50,8 @@ const LINE_TEXT: {[l in SpeechLine]: string} = {
   mic_hint: "i can't hear you yet in lens studio turn on the microphone in the preview panel",
   mic_back: "i can hear you now",
 }
+/** Lines that are never spoken any more: microphone chatter ("I can hear you now") and the mute notice were noise. */
+const NEVER_SPOKEN: SpeechLine[] = ["mic_back", "mic_hint", "muted"]
 /** Speech-to-text finalises ~1 s after the sound stops; transcripts inside this tail are still the Lens's own voice. */
 const ECHO_TAIL_S = 1.6
 
@@ -67,19 +69,16 @@ export class AllergyLensSpeech {
     return this._muted
   }
 
-  /** "quiet" / "mute" → true; "speak" → false. The muted line itself is still spoken once so the user knows. */
-  setMuted(muted: boolean): void {
-    if (muted && !this._muted) {
-      this._muted = false
-      this.say("muted")
-    }
+  /** "quiet" / "mute" → true; "speak" → false. Silent: no "voice off" announcement (the user asked for one spoken line only). */
+  setMuted(muted: boolean, stopCurrent: boolean = true): void {
     this._muted = muted
-    if (muted) this.stop()
+    if (muted && stopCurrent) this.stop()
   }
 
   /** Play one line; whatever was still playing stops first (one voice, never two). */
   say(line: SpeechLine): void {
     if (this._muted) return
+    if (NEVER_SPOKEN.indexOf(line) >= 0) return
     this.stop()
     let p = this.players.get(line)
     if (!p) {

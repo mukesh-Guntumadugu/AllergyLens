@@ -32,6 +32,13 @@ const STEP_HINT: {[s in ProfileStep]: string} = {
   religious: 'Say "no beef", "no pork", "no alcohol", or "next".',
   diet: 'Say "vegetarian", "vegan", "low sugar", "no trans fat", or "done".',
 }
+/** Hints while voice is off (the default): mic and speaker start muted; the corner buttons turn them on. */
+const PINCH_HINT: {[s in ProfileStep]: string} = {
+  welcome: "Pinch Start. Voice is off: the mic and speaker buttons on the right turn it on.",
+  allergies: "Pinch yours, or More… to type.",
+  religious: "Pinch what you avoid, or Next.",
+  diet: "Pinch your diet, or Done.",
+}
 const STEP_SPEECH: {[s in ProfileStep]: SpeechLine} = {welcome: "welcome", allergies: "step_allergies", religious: "step_religious", diet: "step_diet"}
 /** Horizontal field of view the glasses show (SPECS 27 simulation measures 32.3°); head-locked sizes are designed for it. */
 const REF_FOV_H_DEG = 32.3
@@ -201,6 +208,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
+  private voiceWanted = false        // the user turned the mic on (corner button); until then the Lens never listens
   private micLiveSince = -1          // when the mic last came live (s); -1 = never
   private lastLiveDuration = 0       // how long the previous live stretch lasted (s)
   private quickDrops = 0             // live stretches under 2 s in a row: the stream is being refused, not dropped
@@ -259,10 +267,11 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profilePanel.onRemoveExtra.add((id) => this.removeExtra(id))
     // Corner controls: mic = listening on/off, speaker = voice on/off.
     this.profilePanel.onMicToggle.add(() => {
-      // Off while listening; otherwise (off, or dropped) a fresh start.
+      // Off while listening; otherwise (off, or dropped) a fresh start. This button is the only thing that turns voice on.
       const on = !(this.wantListening && (this.voice?.isListening ?? false))
+      this.voiceWanted = on
       this.listen(on)
-      this.profilePanel.setHeard(on ? STEP_HINT[this.profilePanel.step] : "Microphone off. Pinch the mic to listen again.")
+      this.profilePanel.setHeard(this.hintFor(this.profilePanel.step))
       this.audio?.playClick()
     })
     this.profilePanel.onSpeakerToggle.add(() => {
@@ -392,9 +401,12 @@ export class AllergyLensMain extends BaseScriptComponent {
         this.profilePanel.getTransform().setWorldRotation(target.rot)
       }
       this.profilePanel.setStep("welcome")
-      this.profilePanel.setHeard(STEP_HINT.welcome)
-      this.listen(true) // the panel is voice-driven while it is open
+      this.listen(false) // mic off until the user pinches it on
+      this.profilePanel.setHeard(this.hintFor("welcome"))
+      // The one spoken line. After it the speaker is muted; the corner button unmutes the guidance lines.
       this.speech?.say("welcome")
+      this.speech?.setMuted(true, false)
+      this.profilePanel.setSpeaking(false)
     }
     this.dishDetail.hideDetail()
     this.applyUiScale()
@@ -760,7 +772,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   private onProfileStep(step: ProfileStep): void {
     this.audio?.playClick()
-    this.profilePanel.setHeard(STEP_HINT[step])
+    this.profilePanel.setHeard(this.hintFor(step))
     this.speech?.say(STEP_SPEECH[step])
     print(`AllergyLens: profile step ${step}`)
   }
@@ -776,6 +788,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   /** Speech-to-text on/off, with the panel's mic dot following it. */
   private listen(on: boolean): void {
+    if (on && !this.voiceWanted) on = false // voice stays off until the user turns the mic on
     this.wantListening = on
     this.micRetries = 0
     this.micRetryTimer?.cancel()
@@ -788,6 +801,12 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
   }
 
+  /** Hint line under the title: voice phrasing while the mic is on, pinch phrasing otherwise. */
+  private hintFor(step: ProfileStep): string {
+    if (this.wantListening) return STEP_HINT[step]
+    return PINCH_HINT[step]
+  }
+
   /** The microphone came alive, or the stream dropped while we wanted it. */
   private onMicLive(live: boolean): void {
     const panelOpen = this.profilePanel.getSceneObject().enabled
@@ -797,7 +816,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.micRetryTimer?.cancel()
       this.micHintTimer?.cancel()
       this.micLiveSince = getTime()
-      if (panelOpen) this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
+      if (panelOpen) this.profilePanel.setHeard(this.hintFor(this.profilePanel.step))
       // "I can hear you now" only after a real outage (the mic had worked for a while), at most once a minute:
       // a stream that is refused every few seconds must not make the Lens repeat itself.
       if (this.micWasLost && this.lastLiveDuration >= 3 && getTime() - this.lastMicBackSaid > 60) {
@@ -1364,7 +1383,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
     print(`AllergyLens: voice "${raw}" — not understood on the ${this.profilePanel.step} screen`)
     this.speech?.say("heard_nothing")
-    heard(`not understood. ${STEP_HINT[this.profilePanel.step]}`)
+    heard(`not understood. ${this.hintFor(this.profilePanel.step)}`)
   }
 
   /**
