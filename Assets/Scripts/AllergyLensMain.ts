@@ -1573,25 +1573,39 @@ export class AllergyLensMain extends BaseScriptComponent {
       const dish = restaurant.dishes.find((d) => d.id === r.dishId)
       const inCategory = !everything && !!dish && dishCategory(dish) === this.mood
       let style: MarkStyle = "none"
+      // The user's three colours: RED = the restaurant's own ingredient list has it; GREY = may have it (the
+      // match comes from a typical recipe or a model, not the restaurant) or nothing is known; GREEN = clear.
+      // Point to reveal: the overlay draws a verdict only while the user points at the line.
+      const guessed = r.source === "typical" || r.source === "model"
+      const red = r.verdict === "contains" && !guessed
+      const grey = r.verdict === "unverified" || (r.verdict === "contains" && guessed)
       if (everything) {
-        // Point to reveal: every dish carries its verdict (red contains / grey unsure / green clear) but the
-        // overlay draws it only while the user points at the line. Nothing is drawn on its own.
-        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "dot-safe" : "none"
+        style = red ? "underline-contains" : grey ? "dot-unverified" : r.verdict === "safe" ? "dot-safe" : "none"
       } else if (inCategory) {
-        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "star-safe" : "none"
+        style = red ? "underline-contains" : grey ? "dot-unverified" : r.verdict === "safe" ? "star-safe" : "none"
         if (r.verdict === "safe") safeInCategory++
       }
       // The reason a line is red or grey, shown under it while pointed at. Green needs none.
+      // Red names what it has, with the ingredient behind it: "contains milk (cheddar cheese), peanuts".
+      // Grey names what it may have, from the typical recipe: "may contain peanuts, shrimp — check with the restaurant";
+      // with no recipe at all: "no ingredient list — ask the restaurant".
       let note = ""
-      if (r.verdict === "contains") {
-        const labels: string[] = []
+      if (red || grey) {
+        const byAllergen = new Map<string, string[]>()
         for (const m of r.matches) {
-          const l = m.allergenLabel.toLowerCase()
-          if (labels.indexOf(l) < 0) labels.push(l)
+          const label = m.allergenLabel.toLowerCase()
+          const list = byAllergen.get(label) ?? []
+          const ing = m.ingredient.toLowerCase()
+          if (ing !== label && list.indexOf(ing) < 0) list.push(ing)
+          byAllergen.set(label, list)
         }
-        note = `contains ${labels.join(", ")}`
-      } else if (r.verdict === "unverified") {
-        note = r.source === "typical" ? "not sure: typical recipe, confirm with the restaurant" : "not sure: ingredients not published"
+        const parts: string[] = []
+        byAllergen.forEach((ings, label) => parts.push(ings.length > 0 ? `${label} (${ings.slice(0, 2).join(", ")})` : label))
+        if (red) note = `contains ${parts.join(", ")}`
+        else if (parts.length > 0) note = `may contain ${parts.join(", ")} — check with the restaurant`
+        else if (r.source === "model") note = "nothing found, not confirmed — ask the restaurant"
+        else note = "no ingredient list — ask the restaurant"
+        if (note.length > 72) note = note.slice(0, 71) + "…"
       }
       marks.push({dishId: r.dishId, style, inCategory, note})
     }

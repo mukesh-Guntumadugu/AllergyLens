@@ -433,9 +433,12 @@ TESTING.md                  manual test guide
    recognised every dish is checked at once, but nothing is drawn. Point at
    a dish (your finger on the glasses; the mouse pointer in Lens Studio,
    which cannot track a real finger in the camera image) and that line
-   shows its verdict: red "contains peanuts, tree nuts" with the reason in a
-   small chip under it, grey "not sure: ingredients not published" with its
-   reason, green a bare thin line, no explanation needed. The verdict stays
+   shows its verdict in a small chip under the line. Red means the
+   restaurant's own ingredient list has it: "contains milk (cheddar cheese),
+   peanuts". Grey means it may have it, the match comes from a typical
+   recipe or a model, or nothing is known: "may contain peanuts (peanut
+   sauce) — check with the restaurant", or "no ingredient list — ask the
+   restaurant". Green is a bare thin line, no explanation needed. The verdict stays
    for a moment after the finger leaves. Pinch the line for the full card.
    Mood mode still stars the matching safe dishes. Never more than ten lines
    at once and none while the page moves. The spoken line is "Menu
