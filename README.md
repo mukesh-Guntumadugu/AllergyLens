@@ -410,6 +410,15 @@ TESTING.md                  manual test guide
    page is in view, back out, still again at the end. Drop the file in
    `data/menus/laurel-cafe/` and open it the same way.
 
+   **Profile first, then the page.** While the profile panel is open the
+   Lens does not react to menus or products in view: no marks, no voice
+   line, the panel stays until Done. The moment Done is pinched, whatever
+   page is in view is picked up as if it had just been found, so the demo
+   flows from "set up your profile" straight into the marks on the live
+   video without a cut. In Lens Studio the "live video" is whatever the
+   Preview panel's source is set to; the Lens cannot switch the room to a
+   video, so set the source to the recording before you start.
+
    **The Profile icon moves.** Pinch it and drag: it follows the hand and
    keeps the new spot in the view (clamped to the glasses' field of view);
    a plain pinch without moving opens the profile.

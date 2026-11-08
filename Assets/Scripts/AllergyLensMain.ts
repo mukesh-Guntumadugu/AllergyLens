@@ -612,6 +612,9 @@ export class AllergyLensMain extends BaseScriptComponent {
     if (this.rememberProfile && !global.deviceInfoSystem.isEditor()) this.saveProfile()
     this.speech?.say("saved")
     print(`AllergyLens: profile done [${this.profile.ids().join(", ")}]`)
+    // Hand-over: whatever page or product is already in view is picked up now, as if it had just been found.
+    for (const o of this.overlays) if (o.isActive) this.onMarkerFound(o.restaurantId)
+    for (const p of this.products) if (p.isActive) this.onProductFound(p.barcode)
     this.recheckActive()
   }
 
@@ -913,15 +916,17 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   // ── Marker lifecycle ───────────────────────────────────────────────────
   private onMarkerFound(restaurantId: string): void {
+    // While the profile is being set up, the page waits: no marks, no voice line, the panel stays. The moment
+    // Done is pinched the pages in view are picked up (see onProfileDone), which is the hand-over from
+    // "set up your profile" to "look at the menu".
+    if (this.profilePanel.getSceneObject().enabled) {
+      print(`AllergyLens: menu in view (${restaurantId}) — waiting for the profile to finish`)
+      return
+    }
     this.audio?.playScan()
     print(`AllergyLens: menu recognised — ${restaurantId}`)
-    // Nothing but bars, badge and (on pinch) the detail card over the page: an open
-    // profile panel closes (its toggles are the profile) and the Profile button hides.
+    // Nothing but bars, badge and (on pinch) the detail card over the page: the Profile button hides.
     this.buttonShowTimer?.cancel()
-    if (this.profilePanel.getSceneObject().enabled) {
-      this.profilePanel.getSceneObject().enabled = false
-      print(`AllergyLens: profile panel closed by recognition [${this.profile.ids().join(", ")}]`)
-    }
     this.profileButton.getSceneObject().enabled = false
     this.runCheck(restaurantId)
     this.lookupUnknownDishes(restaurantId)
@@ -1375,13 +1380,13 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   // ── Products ───────────────────────────────────────────────────────────
   private onProductFound(barcode: string): void {
+    if (this.profilePanel.getSceneObject().enabled) {
+      print(`AllergyLens: product in view (${barcode}) — waiting for the profile to finish`)
+      return
+    }
     this.audio?.playScan()
     print(`AllergyLens: product recognised — ${barcode}`)
     this.buttonShowTimer?.cancel()
-    if (this.profilePanel.getSceneObject().enabled) {
-      this.profilePanel.getSceneObject().enabled = false
-      print(`AllergyLens: profile panel closed by recognition [${this.profile.ids().join(", ")}]`)
-    }
     this.profileButton.getSceneObject().enabled = false
     this.runProductCheck(barcode)
   }
