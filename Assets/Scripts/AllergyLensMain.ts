@@ -201,6 +201,11 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
+  private micLiveSince = -1          // when the mic last came live (s); -1 = never
+  private lastLiveDuration = 0       // how long the previous live stretch lasted (s)
+  private quickDrops = 0             // live stretches under 2 s in a row: the stream is being refused, not dropped
+  private lastMicBackSaid = -1       // "I can hear you now" is said at most once a minute, and only after a real outage
+  private voiceGaveUp = false        // editor only: Lens Studio refuses VoiceML without a My Lenses login; stop asking
   private micRetryTimer: DelayedCallbackEvent | null = null
   private micRetries = 0
   private micHintSpoken = false
@@ -352,7 +357,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     // Snap's speech stream ends on its own after a few minutes: come back with a growing pause.
     this.micRetryTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.micRetryTimer.bind(() => {
-      if (!this.wantListening || !this.voice || this.voice.isListening) return
+      if (!this.wantListening || !this.voice || this.voice.isListening || this.voiceGaveUp) return
       this.micRetries++
       print(`AllergyLens: voice reconnect attempt ${this.micRetries}`)
       this.voice.start()
@@ -791,12 +796,31 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.micRetries = 0
       this.micRetryTimer?.cancel()
       this.micHintTimer?.cancel()
+      this.micLiveSince = getTime()
       if (panelOpen) this.profilePanel.setHeard(STEP_HINT[this.profilePanel.step])
-      if (this.micWasLost) this.speech?.say("mic_back")
+      // "I can hear you now" only after a real outage (the mic had worked for a while), at most once a minute:
+      // a stream that is refused every few seconds must not make the Lens repeat itself.
+      if (this.micWasLost && this.lastLiveDuration >= 3 && getTime() - this.lastMicBackSaid > 60) {
+        this.lastMicBackSaid = getTime()
+        this.speech?.say("mic_back")
+      }
       this.micWasLost = false
       print("AllergyLens: microphone live")
     } else if (this.wantListening) {
       this.micWasLost = true
+      this.lastLiveDuration = this.micLiveSince >= 0 ? getTime() - this.micLiveSince : 0
+      this.quickDrops = this.lastLiveDuration < 2 ? this.quickDrops + 1 : 0
+      if (this.quickDrops >= 2 && global.deviceInfoSystem.isEditor()) {
+        // Lens Studio refuses the speech stream (no My Lenses login): stop retrying so the login dialog
+        // stops popping up; the panel says what to do and pinching keeps working.
+        this.voiceGaveUp = true
+        this.micRetryTimer?.cancel()
+        this.micHintTimer?.cancel()
+        this.profilePanel.setListening(false)
+        if (panelOpen) this.profilePanel.setHeard("Voice is off here: sign in to Lens Studio (My Lenses) and refresh. Pinching works.")
+        print("AllergyLens: voice refused twice in a row — not retrying in the editor (sign in to My Lenses)")
+        return
+      }
       if (panelOpen) this.micHintTimer?.reset(0.5)
       this.micRetryTimer?.reset(1.5)
     }
