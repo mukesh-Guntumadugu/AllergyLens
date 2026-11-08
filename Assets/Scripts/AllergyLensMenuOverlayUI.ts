@@ -33,6 +33,8 @@ const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
 export const MENU_MARKERS: {[restaurantId: string]: {marker: MarkerAsset; texture: Texture}} = {
   "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
   "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
+  "chinese-menu": {marker: requireAsset("../Markers/MenuMarker-chinese-menu.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/chinese-menu-menu-1.png") as Texture},
+  "kitchen-section": {marker: requireAsset("../Markers/MenuMarker-kitchen-section.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/kitchen-section-menu-1.png") as Texture},
 }
 const SQUARE_GLYPH_COVERAGE = 0.75 // the glyph fills 18/24 of its canvas
 const imageMaterial = requireAsset("../Materials/ImageMaterial.mat") as Material

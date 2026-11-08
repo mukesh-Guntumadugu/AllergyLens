@@ -1,0 +1,187 @@
+{
+  "id": "kitchen-section",
+  "name": "Our Kitchen Section",
+  "source": {
+    "type": "photo",
+    "url": null,
+    "collected": "2026-11-08"
+  },
+  "rating": null,
+  "menuImage": {
+    "path": "data/menus/kitchen-section/menu-1.png",
+    "widthPx": 1400,
+    "heightPx": 2038,
+    "widthCm": 21.0
+  },
+  "dishes": [
+    {
+      "id": "signaturesnack",
+      "name": "Signaturesnack",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.16,
+        "y": 0.2056,
+        "w": 0.13,
+        "h": 0.0157
+      },
+      "ocr": "SIGNATURESNACK"
+    },
+    {
+      "id": "ught-bites",
+      "name": "Ught Bites",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.16,
+        "y": 0.3116,
+        "w": 0.0871,
+        "h": 0.0142
+      },
+      "ocr": "UGHT BITES"
+    },
+    {
+      "id": "breakvasto",
+      "name": "Breakvasto",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1614,
+        "y": 0.4146,
+        "w": 0.1,
+        "h": 0.0147
+      },
+      "ocr": "BREAKVASTO"
+    },
+    {
+      "id": "rice-bowl",
+      "name": "Rice Bowl",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.5129,
+        "y": 0.4215,
+        "w": 0.0771,
+        "h": 0.0128
+      },
+      "ocr": "RICE BOWL"
+    },
+    {
+      "id": "pasta",
+      "name": "Pasta",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.5179,
+        "y": 0.5329,
+        "w": 0.06,
+        "h": 0.0103
+      },
+      "ocr": "PASTA"
+    },
+    {
+      "id": "ntoo",
+      "name": "Ntoo",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.7314,
+        "y": 0.6256,
+        "w": 0.0629,
+        "h": 0.0093
+      },
+      "ocr": "NTOO"
+    },
+    {
+      "id": "friedriceo",
+      "name": "Friedriceo",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.16,
+        "y": 0.6423,
+        "w": 0.0943,
+        "h": 0.0108
+      },
+      "ocr": "FRIEDRICEO"
+    },
+    {
+      "id": "specialreouest",
+      "name": "Specialreouest",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.5229,
+        "y": 0.6438,
+        "w": 0.1286,
+        "h": 0.0137
+      },
+      "ocr": "SPECIALREOUEST"
+    },
+    {
+      "id": "dimsum",
+      "name": "Dimsum",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.16,
+        "y": 0.7645,
+        "w": 0.0621,
+        "h": 0.0103
+      },
+      "ocr": "DIMSUM"
+    },
+    {
+      "id": "availableon",
+      "name": "Availableon",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1593,
+        "y": 0.8763,
+        "w": 0.1057,
+        "h": 0.0118
+      },
+      "ocr": "AVAILABLEON"
+    },
+    {
+      "id": "allday",
+      "name": "Allday",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.7843,
+        "y": 0.8778,
+        "w": 0.0693,
+        "h": 0.0137
+      },
+      "ocr": "ALLDAY"
+    },
+    {
+      "id": "ipm",
+      "name": "Ipm",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.7764,
+        "y": 0.8911,
+        "w": 0.0771,
+        "h": 0.0113
+      },
+      "ocr": "-IPM"
+    },
+    {
+      "id": "jljohar72",
+      "name": "Jljohar72",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.7414,
+        "y": 0.9019,
+        "w": 0.1129,
+        "h": 0.0132
+      },
+      "ocr": "JLJOHAR72"
+    }
+  ]
+}

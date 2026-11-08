@@ -3,6 +3,48 @@
   "attribution": "Data from Open Food Facts, https://openfoodfacts.org (ODbL)",
   "products": [
     {
+      "barcode": "7eleven-gummi-worms",
+      "name": "Gummi Worms",
+      "brand": "7-Eleven",
+      "ingredients": [
+        "corn syrup",
+        "sugar",
+        "water",
+        "gelatin",
+        "citric acid",
+        "sorbitol",
+        "palm oil",
+        "artificial flavors",
+        "carnauba wax",
+        "beeswax",
+        "colors (fd&c red 40, yellow 5, yellow 6, blue 1)"
+      ],
+      "allergens": [],
+      "traces": [
+        "milk",
+        "wheat",
+        "soy"
+      ],
+      "nutrition": {
+        "sugar_g": 40.0,
+        "trans_fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 17,
+        "kcal": 333
+      },
+      "fitness": {
+        "highSugar": true,
+        "transFat": false,
+        "highSodium": false
+      },
+      "image": null,
+      "source": {
+        "type": "photo",
+        "url": null,
+        "collected": "2026-11-08"
+      }
+    },
+    {
       "barcode": "0051500255162",
       "name": "Creamy Peanut Butter",
       "brand": "Jif",

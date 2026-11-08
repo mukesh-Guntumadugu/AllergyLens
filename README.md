@@ -421,6 +421,25 @@ TESTING.md                  manual test guide
    ```
 
    (576×1024 is the clip's own size; keep the inner scale at about 70 %.)
+
+   **Adding a menu from a recording** (how `chinese-menu` and
+   `kitchen-section` were added on 2026-11-08 from the same phone clip):
+
+   ```bash
+   .venv/bin/python tools/scrape/page_from_video.py clip.mp4 --out data/menus/<id>/menu-1.png --width 1400
+   .venv/bin/python tools/scrape/ocr_menu.py data/menus/<id>/menu-1.png --restaurant-id <id> --restaurant-name "<Name>" --out data/menus/<id>/menu-1.ocr.json --marker-width-cm 21.59
+   ```
+
+   The flattened page is the tracking marker and the OCR input. Resize it
+   to the paper's real proportions before using it (Letter: 1400×1812,
+   marker height 27.94 cm) or the marks drift down the page, because the
+   tracker assumes square pixels. Merge the entry into `data/menus.json`
+   (fix the OCR names, add ingredients), copy the page to
+   `Assets/Markers/<id>-menu-1.png` with a `MenuMarker-<id>.imgmarker`,
+   list it in `MENU_MARKERS` in AllergyLensMenuOverlayUI.ts, run
+   `node tools/build-data.js`. Products work the same way from a label
+   photo: `data/products/<id>/label-1.png` + `PRODUCT_MARKERS` + an entry in
+   `data/products.json` (any readable id works as the barcode).
    The Lens Studio build matters too: open the project with
    **Lens Studio 5.23.2**, not the newer 5.24.1, which migrates the project
    files on open and reports a wrong camera field of view in the SPECS 27

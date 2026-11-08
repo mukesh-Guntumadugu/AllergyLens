@@ -76,8 +76,11 @@ export function getRestaurants(): RestaurantDef[] {
 
 /** A packaged product from the bundled Open Food Facts set, by barcode (digits only). */
 export function getProduct(barcode: string): ProductDef | undefined {
+  // Exact id first (labels read from a photo get a readable id, not an EAN); then digits only.
+  const exact = PRODUCTS.find((p) => p.barcode === barcode)
+  if (exact) return exact
   const key = barcode.replace(/[^0-9]/g, "")
-  return PRODUCTS.find((p) => p.barcode === key)
+  return key.length > 0 ? PRODUCTS.find((p) => p.barcode === key) : undefined
 }
 
 export function getRestaurant(id: string): RestaurantDef | undefined {

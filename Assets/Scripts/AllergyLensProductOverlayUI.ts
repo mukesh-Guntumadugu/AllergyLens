@@ -34,6 +34,11 @@ export const PRODUCT_MARKERS: {[barcode: string]: {marker: MarkerAsset; texture:
     texture: requireAsset("../Markers/product-0051500255162.png") as Texture,
     heightCm: 10,
   },
+  "7eleven-gummi-worms": {
+    marker: requireAsset("../Markers/ProductMarker-7eleven-gummi-worms.imgmarker") as MarkerAsset,
+    texture: requireAsset("../Markers/product-7eleven-gummi-worms.png") as Texture,
+    heightCm: 15, // the Nutrition Facts panel on the back of the bag
+  },
 }
 
 @component

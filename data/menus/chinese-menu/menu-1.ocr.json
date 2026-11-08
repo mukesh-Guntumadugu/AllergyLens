@@ -1,0 +1,216 @@
+{
+  "id": "chinese-menu",
+  "name": "Chinese Menu",
+  "source": {
+    "type": "photo",
+    "url": null,
+    "collected": "2026-11-08"
+  },
+  "rating": null,
+  "menuImage": {
+    "path": "data/menus/chinese-menu/menu-1.png",
+    "widthPx": 1400,
+    "heightPx": 2179,
+    "widthCm": 21.0
+  },
+  "dishes": [
+    {
+      "id": "springrolls",
+      "name": "Springrolls",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1457,
+        "y": 0.2139,
+        "w": 0.1279,
+        "h": 0.0188
+      },
+      "ocr": "SPRINGROLLS"
+    },
+    {
+      "id": "prawn",
+      "name": "Prawn",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.6586,
+        "y": 0.2006,
+        "w": 0.0693,
+        "h": 0.0184
+      },
+      "ocr": "PRAWN"
+    },
+    {
+      "id": "crackers",
+      "name": "Crackers",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.66,
+        "y": 0.2171,
+        "w": 0.0929,
+        "h": 0.0174
+      },
+      "ocr": "CRACKERS"
+    },
+    {
+      "id": "steamed-dumplingss5",
+      "name": "Steamed Dumplingss5",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1471,
+        "y": 0.262,
+        "w": 0.2036,
+        "h": 0.0174
+      },
+      "ocr": "STEAMED DUMPLINGSS5"
+    },
+    {
+      "id": "maincourses",
+      "name": "Maincourses",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.15,
+        "y": 0.3291,
+        "w": 0.205,
+        "h": 0.0243
+      },
+      "ocr": "MAINCOURSES"
+    },
+    {
+      "id": "kungpachicken-5-5",
+      "name": "Kungpachicken 5.5",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1486,
+        "y": 0.3726,
+        "w": 0.1964,
+        "h": 0.0188
+      },
+      "ocr": "KUNGPACHICKEN 5.5"
+    },
+    {
+      "id": "sweet-sourporks-s",
+      "name": "Sweet&Sourporks.S",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1493,
+        "y": 0.4162,
+        "w": 0.2057,
+        "h": 0.0184
+      },
+      "ocr": "SWEET&SOURPORKS.S"
+    },
+    {
+      "id": "sweet-sourporks-5",
+      "name": "Sweet&Sourporks:5",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.15,
+        "y": 0.4667,
+        "w": 0.2221,
+        "h": 0.0184
+      },
+      "ocr": "SWEET&SOURPORKS:5"
+    },
+    {
+      "id": "beepotofu",
+      "name": "Beepotofu",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.15,
+        "y": 0.5126,
+        "w": 0.115,
+        "h": 0.0193
+      },
+      "ocr": "BEEPOTOFU"
+    },
+    {
+      "id": "hot-sour",
+      "name": "Hot&Sour",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1514,
+        "y": 0.6388,
+        "w": 0.1193,
+        "h": 0.0179
+      },
+      "ocr": "HOT&SOUR"
+    },
+    {
+      "id": "wontonnoodls-soup",
+      "name": "Wontonnoodls Soup",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1521,
+        "y": 0.6705,
+        "w": 0.215,
+        "h": 0.0165
+      },
+      "ocr": "WONTONNOODLS SOUP"
+    },
+    {
+      "id": "vegetablestir-fry-s-5",
+      "name": "Vegetablestir-Fry S:5",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1529,
+        "y": 0.7201,
+        "w": 0.2629,
+        "h": 0.0188
+      },
+      "ocr": "VEGETABLESTIR-FRY S:5"
+    },
+    {
+      "id": "rampen",
+      "name": "Rampen",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1514,
+        "y": 0.7733,
+        "w": 0.0921,
+        "h": 0.0193
+      },
+      "ocr": "RAMPEN"
+    },
+    {
+      "id": "chow-mein",
+      "name": "Chow Mein",
+      "ingredients": null,
+      "removable": [],
+      "layout": {
+        "x": 0.1529,
+        "y": 0.8238,
+        "w": 0.1286,
+        "h": 0.0193
+      },
+      "ocr": "CHOW MEIN"
+    },
+    {
+      "id": "sesame",
+      "name": "Sesame",
+      "ingredients": [
+        "pork",
+        "neg"
+      ],
+      "removable": [],
+      "layout": {
+        "x": 0.1529,
+        "y": 0.8779,
+        "w": 0.1786,
+        "h": 0.022
+      },
+      "ocr": "SESAME(Pork/Neg)"
+    }
+  ]
+}

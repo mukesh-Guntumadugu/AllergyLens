@@ -991,6 +991,912 @@
           "notes": "Per scoop. Options: chocolate, dark, white chocolate, banana, lemon, strawberry, pistachio, raspberry, sour cherry. Vegan version on request."
         }
       ]
+    },
+    {
+      "id": "chinese-menu",
+      "name": "Chinese Menu",
+      "cuisine": "chinese",
+      "source": {
+        "type": "photo",
+        "url": null,
+        "collected": "2026-11-08"
+      },
+      "rating": null,
+      "menuImage": {
+        "path": "data/menus/chinese-menu/menu-1.png",
+        "widthPx": 1400,
+        "heightPx": 1812,
+        "widthCm": 21.59
+      },
+      "dishes": [
+        {
+          "id": "spring-rolls",
+          "name": "Spring Rolls",
+          "icon": null,
+          "ingredients": [
+            "spring roll wrapper (wheat flour)",
+            "cabbage",
+            "carrot",
+            "chicken",
+            "soy sauce",
+            "vegetable oil"
+          ],
+          "removable": [
+            "chicken"
+          ],
+          "layout": {
+            "x": 0.1457,
+            "y": 0.2139,
+            "w": 0.1279,
+            "h": 0.0188
+          },
+          "price": 5.5,
+          "section": "Appetizers"
+        },
+        {
+          "id": "prawn-crackers",
+          "name": "Prawn Crackers",
+          "icon": null,
+          "ingredients": [
+            "tapioca starch",
+            "prawn",
+            "vegetable oil",
+            "salt"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.6586,
+            "y": 0.2006,
+            "w": 0.0929,
+            "h": 0.0339
+          },
+          "price": 5.5,
+          "section": "Appetizers"
+        },
+        {
+          "id": "steamed-dumplings",
+          "name": "Steamed Dumplings",
+          "icon": null,
+          "ingredients": [
+            "wheat flour wrapper",
+            "pork",
+            "shrimp",
+            "ginger",
+            "soy sauce",
+            "sesame oil"
+          ],
+          "removable": [
+            "shrimp"
+          ],
+          "layout": {
+            "x": 0.1471,
+            "y": 0.262,
+            "w": 0.17,
+            "h": 0.0174
+          },
+          "price": 5.5,
+          "section": "Appetizers"
+        },
+        {
+          "id": "kung-pao-chicken",
+          "name": "Kung Pao Chicken",
+          "icon": null,
+          "ingredients": [
+            "chicken",
+            "peanuts",
+            "dried chilies",
+            "soy sauce",
+            "sichuan peppercorn",
+            "garlic",
+            "vegetable oil"
+          ],
+          "removable": [
+            "peanuts",
+            "dried chilies"
+          ],
+          "layout": {
+            "x": 0.1486,
+            "y": 0.3726,
+            "w": 0.165,
+            "h": 0.0188
+          },
+          "price": 5.5,
+          "section": "Main Courses"
+        },
+        {
+          "id": "sweet-sour-pork",
+          "name": "Sweet & Sour Pork",
+          "icon": null,
+          "ingredients": [
+            "pork",
+            "pineapple",
+            "bell pepper",
+            "sugar",
+            "rice vinegar",
+            "ketchup",
+            "wheat flour batter",
+            "egg",
+            "soy sauce"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.1493,
+            "y": 0.4162,
+            "w": 0.17,
+            "h": 0.0184
+          },
+          "price": 5.5,
+          "section": "Main Courses"
+        },
+        {
+          "id": "sweet-sour-pork-rice",
+          "name": "Sweet & Sour Pork with Rice",
+          "icon": null,
+          "ingredients": [
+            "pork",
+            "pineapple",
+            "bell pepper",
+            "sugar",
+            "rice vinegar",
+            "ketchup",
+            "wheat flour batter",
+            "egg",
+            "soy sauce",
+            "brown rice"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.15,
+            "y": 0.4667,
+            "w": 0.17,
+            "h": 0.0184
+          },
+          "price": 5.5,
+          "section": "Main Courses"
+        },
+        {
+          "id": "mapo-tofu",
+          "name": "Mapo Tofu",
+          "icon": null,
+          "ingredients": [
+            "tofu (soy)",
+            "chili bean paste (soy, wheat)",
+            "minced pork",
+            "sichuan peppercorn",
+            "garlic",
+            "scallion"
+          ],
+          "removable": [
+            "minced pork"
+          ],
+          "layout": {
+            "x": 0.15,
+            "y": 0.5126,
+            "w": 0.115,
+            "h": 0.0193
+          },
+          "price": 5.5,
+          "section": "Main Courses"
+        },
+        {
+          "id": "hot-sour-soup",
+          "name": "Hot & Sour Soup",
+          "icon": null,
+          "ingredients": [
+            "chicken stock",
+            "tofu (soy)",
+            "egg",
+            "bamboo shoots",
+            "wood ear mushroom",
+            "rice vinegar",
+            "soy sauce",
+            "white pepper",
+            "cornstarch"
+          ],
+          "removable": [
+            "egg"
+          ],
+          "layout": {
+            "x": 0.1514,
+            "y": 0.6388,
+            "w": 0.1193,
+            "h": 0.0179
+          },
+          "price": 5.5,
+          "section": "Soups & Noodles"
+        },
+        {
+          "id": "wonton-noodle-soup",
+          "name": "Wonton Noodle Soup",
+          "icon": null,
+          "ingredients": [
+            "wheat noodles",
+            "wonton wrappers (wheat, egg)",
+            "pork",
+            "shrimp",
+            "chicken broth",
+            "soy sauce",
+            "sesame oil"
+          ],
+          "removable": [
+            "shrimp"
+          ],
+          "layout": {
+            "x": 0.1521,
+            "y": 0.6705,
+            "w": 0.215,
+            "h": 0.0165
+          },
+          "price": null,
+          "section": "Soups & Noodles"
+        },
+        {
+          "id": "vegetable-stir-fry",
+          "name": "Vegetable Stir-Fry",
+          "icon": null,
+          "ingredients": [
+            "broccoli",
+            "carrot",
+            "snow peas",
+            "garlic",
+            "soy sauce",
+            "vegetable oil",
+            "sesame oil"
+          ],
+          "removable": [
+            "sesame oil"
+          ],
+          "layout": {
+            "x": 0.1529,
+            "y": 0.7201,
+            "w": 0.225,
+            "h": 0.0188
+          },
+          "price": 5.5,
+          "section": "Soups & Noodles"
+        },
+        {
+          "id": "ramen",
+          "name": "Ramen",
+          "icon": null,
+          "ingredients": [
+            "wheat noodles",
+            "pork broth",
+            "pork",
+            "egg",
+            "soy sauce",
+            "scallion"
+          ],
+          "removable": [
+            "egg"
+          ],
+          "layout": {
+            "x": 0.1514,
+            "y": 0.7733,
+            "w": 0.0921,
+            "h": 0.0193
+          },
+          "price": null,
+          "section": "Soups & Noodles"
+        },
+        {
+          "id": "chow-mein",
+          "name": "Chow Mein",
+          "icon": null,
+          "ingredients": [
+            "wheat egg noodles",
+            "cabbage",
+            "carrot",
+            "bean sprouts",
+            "soy sauce",
+            "oyster sauce",
+            "sesame oil",
+            "pork"
+          ],
+          "removable": [
+            "pork"
+          ],
+          "layout": {
+            "x": 0.1529,
+            "y": 0.8238,
+            "w": 0.1286,
+            "h": 0.0193
+          },
+          "price": 5.5,
+          "section": "Soups & Noodles"
+        },
+        {
+          "id": "sesame-balls",
+          "name": "Sesame Balls",
+          "icon": null,
+          "ingredients": [
+            "glutinous rice flour",
+            "sesame seeds",
+            "red bean paste",
+            "sugar",
+            "vegetable oil"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.1529,
+            "y": 0.8779,
+            "w": 0.0921,
+            "h": 0.022
+          },
+          "price": null,
+          "section": "Soups & Noodles"
+        }
+      ]
+    },
+    {
+      "id": "kitchen-section",
+      "name": "Our Kitchen Section",
+      "cuisine": "indonesian",
+      "source": {
+        "type": "photo",
+        "url": null,
+        "collected": "2026-11-08"
+      },
+      "rating": null,
+      "menuImage": {
+        "path": "data/menus/kitchen-section/menu-1.png",
+        "widthPx": 1400,
+        "heightPx": 1812,
+        "widthCm": 21.59
+      },
+      "dishes": [
+        {
+          "id": "baby-shrimps",
+          "name": "Baby Shrimps",
+          "icon": null,
+          "ingredients": [
+            "shrimp",
+            "wheat flour batter",
+            "egg",
+            "vegetable oil",
+            "salt"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.162,
+            "y": 0.288,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 25,
+          "section": "Signature Snack"
+        },
+        {
+          "id": "korean-chicken",
+          "name": "Korean Chicken",
+          "icon": null,
+          "ingredients": [
+            "chicken",
+            "wheat flour",
+            "gochujang (soy, wheat)",
+            "sugar",
+            "garlic",
+            "sesame seeds",
+            "vegetable oil"
+          ],
+          "removable": [
+            "sesame seeds"
+          ],
+          "layout": {
+            "x": 0.339,
+            "y": 0.288,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 35,
+          "section": "Signature Snack"
+        },
+        {
+          "id": "fried-dumpling",
+          "name": "Fried Dumpling",
+          "icon": null,
+          "ingredients": [
+            "wheat flour wrapper",
+            "chicken",
+            "cabbage",
+            "soy sauce",
+            "vegetable oil"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.517,
+            "y": 0.288,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 25,
+          "section": "Signature Snack"
+        },
+        {
+          "id": "pancake-chocolate",
+          "name": "Pancake Chocolate",
+          "icon": null,
+          "ingredients": [
+            "wheat flour",
+            "egg",
+            "milk",
+            "butter",
+            "chocolate",
+            "sugar"
+          ],
+          "removable": [
+            "chocolate"
+          ],
+          "layout": {
+            "x": 0.695,
+            "y": 0.288,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 30,
+          "section": "Signature Snack"
+        },
+        {
+          "id": "pisang-goreng",
+          "name": "Pisang Goreng",
+          "icon": null,
+          "ingredients": [
+            "banana",
+            "wheat flour batter",
+            "sugar",
+            "vegetable oil"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.162,
+            "y": 0.387,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 20,
+          "section": "Light Bites"
+        },
+        {
+          "id": "french-fries",
+          "name": "French Fries",
+          "icon": null,
+          "ingredients": [
+            "potato",
+            "vegetable oil",
+            "salt"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.339,
+            "y": 0.387,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 25,
+          "section": "Light Bites"
+        },
+        {
+          "id": "tela-tela",
+          "name": "Tela-Tela",
+          "icon": null,
+          "ingredients": [
+            "cassava",
+            "vegetable oil",
+            "salt",
+            "seasoning"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.517,
+            "y": 0.387,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 20,
+          "section": "Light Bites"
+        },
+        {
+          "id": "sosis",
+          "name": "Sosis",
+          "icon": null,
+          "ingredients": [
+            "beef sausage",
+            "vegetable oil",
+            "chili sauce"
+          ],
+          "removable": [
+            "chili sauce"
+          ],
+          "layout": {
+            "x": 0.695,
+            "y": 0.387,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 25,
+          "section": "Light Bites"
+        },
+        {
+          "id": "bubur-original",
+          "name": "Bubur Original",
+          "icon": null,
+          "ingredients": [
+            "rice porridge",
+            "chicken stock",
+            "fried shallots",
+            "soy sauce",
+            "celery",
+            "crackers (wheat)"
+          ],
+          "removable": [
+            "crackers (wheat)"
+          ],
+          "layout": {
+            "x": 0.162,
+            "y": 0.497,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 20,
+          "section": "Breakfast"
+        },
+        {
+          "id": "bubur-ayam-udang",
+          "name": "Bubur Ayam / Udang",
+          "icon": null,
+          "ingredients": [
+            "rice porridge",
+            "chicken",
+            "shrimp",
+            "soy sauce",
+            "fried shallots",
+            "celery"
+          ],
+          "removable": [
+            "shrimp"
+          ],
+          "layout": {
+            "x": 0.339,
+            "y": 0.497,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 25,
+          "section": "Breakfast"
+        },
+        {
+          "id": "soy-garlic-chicken",
+          "name": "Soy Garlic Chicken",
+          "icon": null,
+          "ingredients": [
+            "chicken",
+            "soy sauce",
+            "garlic",
+            "rice",
+            "sesame seeds",
+            "wheat flour"
+          ],
+          "removable": [
+            "sesame seeds"
+          ],
+          "layout": {
+            "x": 0.517,
+            "y": 0.497,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 35,
+          "section": "Rice Bowl"
+        },
+        {
+          "id": "blackpepper-chicken",
+          "name": "Blackpepper Chicken",
+          "icon": null,
+          "ingredients": [
+            "chicken",
+            "black pepper sauce (soy, oyster sauce)",
+            "rice",
+            "onion",
+            "bell pepper"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.695,
+            "y": 0.497,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 35,
+          "section": "Rice Bowl"
+        },
+        {
+          "id": "salted-egg-chicken",
+          "name": "Salted Egg Chicken",
+          "icon": null,
+          "ingredients": [
+            "chicken",
+            "salted egg yolk",
+            "butter",
+            "curry leaves",
+            "chili",
+            "rice"
+          ],
+          "removable": [
+            "chili"
+          ],
+          "layout": {
+            "x": 0.162,
+            "y": 0.604,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 38,
+          "section": "Rice Bowl"
+        },
+        {
+          "id": "wagyu-bowl",
+          "name": "Wagyu Bowl",
+          "icon": null,
+          "ingredients": [
+            "wagyu beef",
+            "rice",
+            "soy sauce",
+            "egg",
+            "onion",
+            "sesame seeds"
+          ],
+          "removable": [
+            "egg",
+            "sesame seeds"
+          ],
+          "layout": {
+            "x": 0.339,
+            "y": 0.604,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 45,
+          "section": "Rice Bowl"
+        },
+        {
+          "id": "aglio-e-wagyu",
+          "name": "Aglio e Wagyu",
+          "icon": null,
+          "ingredients": [
+            "pasta (wheat)",
+            "wagyu beef",
+            "garlic",
+            "olive oil",
+            "chili flakes",
+            "parmesan"
+          ],
+          "removable": [
+            "parmesan",
+            "chili flakes"
+          ],
+          "layout": {
+            "x": 0.517,
+            "y": 0.604,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 38,
+          "section": "Pasta"
+        },
+        {
+          "id": "creamy-mushroom",
+          "name": "Creamy Mushroom",
+          "icon": null,
+          "ingredients": [
+            "pasta (wheat)",
+            "cream",
+            "mushroom",
+            "parmesan",
+            "beef or chicken",
+            "garlic"
+          ],
+          "removable": [
+            "parmesan"
+          ],
+          "layout": {
+            "x": 0.695,
+            "y": 0.604,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 38,
+          "section": "Pasta"
+        },
+        {
+          "id": "nasi-goreng-jawa",
+          "name": "Nasi Goreng Jawa",
+          "icon": null,
+          "ingredients": [
+            "rice",
+            "sweet soy sauce (soy, wheat)",
+            "egg",
+            "chicken",
+            "shallots",
+            "shrimp paste",
+            "crackers (wheat)"
+          ],
+          "removable": [
+            "egg",
+            "crackers (wheat)"
+          ],
+          "layout": {
+            "x": 0.162,
+            "y": 0.728,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 28,
+          "section": "Fried Rice"
+        },
+        {
+          "id": "nasi-goreng-spicy",
+          "name": "Nasi Goreng Spicy",
+          "icon": null,
+          "ingredients": [
+            "rice",
+            "chili",
+            "egg",
+            "chicken",
+            "soy sauce",
+            "shrimp paste",
+            "shallots"
+          ],
+          "removable": [
+            "egg",
+            "chili"
+          ],
+          "layout": {
+            "x": 0.339,
+            "y": 0.728,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 28,
+          "section": "Fried Rice"
+        },
+        {
+          "id": "salmon-steak",
+          "name": "Salmon Steak",
+          "icon": null,
+          "ingredients": [
+            "salmon",
+            "butter",
+            "lemon",
+            "potato",
+            "vegetables",
+            "black pepper"
+          ],
+          "removable": [
+            "butter"
+          ],
+          "layout": {
+            "x": 0.517,
+            "y": 0.728,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 180,
+          "section": "Special Request"
+        },
+        {
+          "id": "beef-steak",
+          "name": "Beef Steak",
+          "icon": null,
+          "ingredients": [
+            "beef",
+            "butter",
+            "black pepper sauce (soy, oyster sauce)",
+            "potato",
+            "vegetables"
+          ],
+          "removable": [
+            "butter"
+          ],
+          "layout": {
+            "x": 0.695,
+            "y": 0.728,
+            "w": 0.1,
+            "h": 0.024
+          },
+          "price": 180,
+          "section": "Special Request"
+        },
+        {
+          "id": "siomay",
+          "name": "Siomay",
+          "icon": null,
+          "ingredients": [
+            "mackerel",
+            "shrimp",
+            "tapioca starch",
+            "wheat wrapper",
+            "peanut sauce",
+            "sweet soy sauce (soy, wheat)"
+          ],
+          "removable": [
+            "peanut sauce"
+          ],
+          "layout": {
+            "x": 0.184,
+            "y": 0.856,
+            "w": 0.08,
+            "h": 0.024
+          },
+          "price": 10,
+          "section": "Dim Sum"
+        },
+        {
+          "id": "mantao",
+          "name": "Mantao",
+          "icon": null,
+          "ingredients": [
+            "wheat flour",
+            "sugar",
+            "milk",
+            "yeast",
+            "vegetable oil"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.372,
+            "y": 0.856,
+            "w": 0.08,
+            "h": 0.024
+          },
+          "price": 10,
+          "section": "Dim Sum"
+        },
+        {
+          "id": "lumpia",
+          "name": "Lumpia",
+          "icon": null,
+          "ingredients": [
+            "wheat wrapper",
+            "chicken",
+            "carrot",
+            "bamboo shoots",
+            "egg",
+            "vegetable oil"
+          ],
+          "removable": [
+            "egg"
+          ],
+          "layout": {
+            "x": 0.557,
+            "y": 0.856,
+            "w": 0.08,
+            "h": 0.024
+          },
+          "price": 15,
+          "section": "Dim Sum"
+        },
+        {
+          "id": "hakao",
+          "name": "Hakao",
+          "icon": null,
+          "ingredients": [
+            "shrimp",
+            "wheat starch wrapper",
+            "tapioca starch",
+            "bamboo shoots",
+            "sesame oil"
+          ],
+          "removable": [],
+          "layout": {
+            "x": 0.74,
+            "y": 0.856,
+            "w": 0.08,
+            "h": 0.024
+          },
+          "price": 15,
+          "section": "Dim Sum"
+        }
+      ]
     }
   ]
 }
