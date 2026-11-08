@@ -209,6 +209,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   private lastTickTime = 0
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
   private voiceWanted = false        // the user turned the mic on (corner button); until then the Lens never listens
+  private focusTimer: DelayedCallbackEvent | null = null // re-enables every tracker a moment after a page is lost
+  private focusedOn: string | null = null                // restaurant id or barcode whose trackers alone are running
   private micLiveSince = -1          // when the mic last came live (s); -1 = never
   private lastLiveDuration = 0       // how long the previous live stretch lasted (s)
   private quickDrops = 0             // live stretches under 2 s in a row: the stream is being refused, not dropped
@@ -375,6 +377,8 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.profilePanel.setListening(this.voice.micLive)
       if (!this.voice.micLive && this.micRetries < 8) this.micRetryTimer?.reset(Math.min(30, 1.5 * Math.pow(2, this.micRetries - 1)))
     })
+    this.focusTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
+    this.focusTimer.bind(() => this.unfocusTracking())
     this.buttonShowTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
     this.buttonShowTimer.bind(() => {
       if (!this.anyMarkerActive()) this.profileButton.getSceneObject().enabled = true
@@ -1019,6 +1023,29 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
   }
 
+  /**
+   * Twelve trackers on one camera feed (each page has a mirrored twin, Laurel two more) cost frame rate and
+   * invite false matches. Once a page or label is found, only its own trackers keep running; the rest pause
+   * until it has been lost for a moment. LEAF tests drive markers themselves and are left alone.
+   */
+  private focusTracking(id: string): void {
+    if (this.testMode || this.focusedOn === id) return
+    this.focusedOn = id
+    this.focusTimer?.cancel()
+    for (const o of this.overlays) o.setCameraTracking(o.restaurantId === id)
+    for (const p of this.products) p.setCameraTracking(p.barcode === id)
+    print(`AllergyLens: tracking only ${id} while it is in view`)
+  }
+
+  private unfocusTracking(): void {
+    if (this.testMode || this.focusedOn === null) return
+    if (this.anyMarkerActive()) return
+    this.focusedOn = null
+    for (const o of this.overlays) o.setCameraTracking(true)
+    for (const p of this.products) p.setCameraTracking(true)
+    print("AllergyLens: tracking every page again")
+  }
+
   /** The overlay drawing a page: the one tracking it if any (two markers can describe one page), else the first. */
   private overlayFor(restaurantId: string): AllergyLensMenuOverlayUI | undefined {
     const mine = this.overlays.filter((o) => o.restaurantId === restaurantId)
@@ -1043,6 +1070,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       print(`AllergyLens: ${restaurantId} is already tracked by its other marker — this one stays quiet`)
       return
     }
+    this.focusTracking(restaurantId)
     // While the profile is being set up, the page waits: no marks, no voice line, the panel stays. The moment
     // Done is pinched the pages in view are picked up (see onProfileDone), which is the hand-over from
     // "set up your profile" to "look at the menu".
@@ -1151,6 +1179,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.runCheck(restaurantId)
       return
     }
+    this.focusTimer?.reset(1.2)
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
     if (!this.anyMarkerActive()) {
       this.buttonShowTimer?.reset(1.0)
@@ -1514,6 +1543,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   // ── Products ───────────────────────────────────────────────────────────
   private onProductFound(barcode: string, source?: AllergyLensProductOverlayUI): void {
     if (source && this.products.some((p) => p !== source && p.barcode === barcode && p.isActive)) return // the other marker has it
+    this.focusTracking(barcode)
     if (this.profilePanel.getSceneObject().enabled) {
       print(`AllergyLens: product in view (${barcode}) — waiting for the profile to finish`)
       return
@@ -1527,6 +1557,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   private onProductLost(barcode: string): void {
     print(`AllergyLens: product lost — ${barcode}`)
+    this.focusTimer?.reset(1.2)
     if (this.openProduct === barcode) this.closeDetail()
     if (!this.anyMarkerActive()) this.buttonShowTimer?.reset(1.0)
   }

@@ -106,11 +106,11 @@ const FULL_ALPHA = 0.35
 const UNDERLINE_ALPHA = 0.6 // light enough that the printed line above it stays readable
 const CONTAINS_ALPHA = 0.75
 const MAX_MARKS = 10 // never more lines than this at once; the ten nearest to where the user looks
-const REVEAL_LINGER_SEC = 0.8 // a pointed-at verdict stays this long after the finger leaves the line
+const REVEAL_LINGER_SEC = 1.2 // a pointed-at verdict stays this long after the finger leaves the line
 const UNSURE_GREY = new vec3(0.62, 0.64, 0.66) // "not sure" is drawn grey, not amber (the user's words: red, grey, green)
-const STEADY_SEC = 0.3 // the page must hold still this long before lines are drawn
-const MOVE_CM_PER_S = 10
-const TURN_DEG_PER_S = 25
+const STEADY_SEC = 0.15 // the page must hold still this long before lines are drawn
+const MOVE_CM_PER_S = 30 // a hand-held page drifts; only real movement hides the lines
+const TURN_DEG_PER_S = 60
 const DOT_ALPHA = 0.8
 const DOT_SIZE = 0.5
 const STAR_SIZE = 0.9
@@ -164,7 +164,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   @input
   @hint("Seconds to keep the marks after the marker is lost before they fade out (fade takes ~0.4 s).")
   @widget(new SliderWidget(0, 5, 0.1))
-  lostHideDelaySec: number = 0.6
+  lostHideDelaySec: number = 1.5
 
   @input
   @hint("Badge chip centre relative to the page's top edge, in cm: negative = inside the page's top margin (default), positive = floating above the edge.")
@@ -490,7 +490,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     this.steadyFor = moving ? 0 : this.steadyFor + dt
     const target = this.steadyFor >= STEADY_SEC ? 1 : 0
     const before = this.motionGate
-    this.motionGate = target > this.motionGate ? Math.min(1, this.motionGate + dt / 0.35) : Math.max(0, this.motionGate - dt / 0.12)
+    this.motionGate = target > this.motionGate ? Math.min(1, this.motionGate + dt / 0.15) : Math.max(0, this.motionGate - dt / 0.12)
     if (this.motionGate !== before) this.applyFade()
     if (target === 1) {
       this.pickTimer -= dt
