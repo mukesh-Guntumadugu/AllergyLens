@@ -95,6 +95,7 @@ interface Bar {
   note: string // the reason shown under a red or grey line while pointed at
   noteRoot: SceneObject | null // built on first use
   noteText: Text | null
+  notePlate: BackPlate | null
   /** page-local centre + size in cm */
   x: number
   y: number
@@ -108,6 +109,25 @@ const CONTAINS_ALPHA = 0.75
 const MAX_MARKS = 10 // never more lines than this at once; the ten nearest to where the user looks
 const REVEAL_LINGER_SEC = 1.2 // a pointed-at verdict stays this long after the finger leaves the line
 const UNSURE_GREY = new vec3(0.62, 0.64, 0.66) // "not sure" is drawn grey, not amber (the user's words: red, grey, green)
+
+/** Word-wrap a sentence into at most `maxLines` lines of about `width` characters; the last line gets an ellipsis if cut. */
+function wrapWords(text: string, width: number, maxLines: number): string[] {
+  const words = text.split(/\s+/).filter((w) => w.length > 0)
+  const lines: string[] = []
+  let line = ""
+  for (const w of words) {
+    if (line.length === 0) line = w
+    else if (line.length + 1 + w.length <= width) line += " " + w
+    else {
+      lines.push(line)
+      line = w
+      if (lines.length === maxLines) break
+    }
+  }
+  if (lines.length < maxLines && line.length > 0) lines.push(line)
+  else if (lines.length === maxLines && line.length > 0) lines[maxLines - 1] = lines[maxLines - 1].slice(0, width - 1) + "…"
+  return lines.length > 0 ? lines : [text]
+}
 const STEADY_SEC = 0.15 // the page must hold still this long before lines are drawn
 const MOVE_CM_PER_S = 30 // a hand-held page drifts; only real movement hides the lines
 const TURN_DEG_PER_S = 60
@@ -585,8 +605,12 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
       if (bar.noteRoot) bar.noteRoot.enabled = false
       return
     }
-    const W = Math.min(this.widthCm * 0.6, Math.max(4.5, bar.note.length * 0.3 + 1.4))
-    const H = 1.2
+    // A short paragraph: wrapped to ~30 characters a line, up to four lines, the plate grows with it.
+    const lines = wrapWords(bar.note, 30, 4)
+    const longest = lines.reduce((m, l) => Math.max(m, l.length), 0)
+    const W = Math.min(this.widthCm * 0.6, Math.max(5, longest * 0.3 + 1.4))
+    const H = 0.6 + 0.85 * lines.length
+    const text = lines.join("\n")
     if (!bar.noteRoot) {
       const root = UI.obj(bar.root, "Note", new vec3(0, 0, 0.35))
       root.createComponent("Component.Canvas")
@@ -594,11 +618,14 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
       plate.size = new vec2(W, H)
       const content = UI.obj(root, "Content", new vec3(0, 0, UI.CONTENT_Z))
       const row = UI.flexRow(content, W, H, {gap: 0.4, padX: 0.5, justify: FlexJustify.Start, align: FlexAlign.Center})
-      bar.noteText = UI.addRowText(row, bar.note, "Caption", 45, W - 1.0, HorizontalAlignment.Left, UI.WHITE_SOFT)
+      bar.noteText = UI.addRowText(row, text, "Caption", 45, W - 1.0, HorizontalAlignment.Left, UI.WHITE_SOFT)
+      bar.notePlate = plate
       bar.noteRoot = root
-    } else if (bar.noteText) {
-      bar.noteText.text = bar.note
+    } else {
+      if (bar.noteText) bar.noteText.text = text
+      if (bar.notePlate) bar.notePlate.size = new vec2(W, H)
     }
+    if (bar.noteText) bar.noteText.layoutRect = Rect.create(-(W - 1.0) / 2, (W - 1.0) / 2, -H / 2, H / 2)
     const startX = (this.mirrored ? 1 : -1) * (lineW / 2 - W / 2) // left-aligned with the (possibly mirrored) name
     bar.noteRoot.getTransform().setLocalPosition(new vec3(startX, -lineH / 2 - gap - thick - 0.25 - H / 2, 0.35))
     bar.noteRoot.enabled = true
@@ -717,7 +744,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const star = this.quad(root, "Star", endX + 0.1, 0, STAR_SIZE, STAR_SIZE, STAR_TEX, 1)
     root.enabled = false
     const bar: Bar = {
-      dish, root, style: "none", inCategory: false, picked: true, revealed: false, hideAt: 0, note: "", noteRoot: null, noteText: null,
+      dish, root, style: "none", inCategory: false, picked: true, revealed: false, hideAt: 0, note: "", noteRoot: null, noteText: null, notePlate: null,
       full: full.so, fullMat: full.mat,
       underline: underline.so, underlineMat: underline.mat,
       dot: dot.so, dotMat: dot.mat,

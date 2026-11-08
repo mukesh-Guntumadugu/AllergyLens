@@ -39,6 +39,12 @@ const PINCH_HINT: {[s in ProfileStep]: string} = {
   religious: "Pinch what you avoid, or Next.",
   diet: "Pinch your diet, or Done.",
 }
+/** How a profile item is named inside the reason chip: the toggle says "Vegetarian", the dish "contains meat". */
+const CHIP_NOUN: {[id: string]: string} = {
+  peanut: "peanuts", tree_nut: "tree nuts", milk: "milk", egg: "eggs", wheat: "wheat", soy: "soy", fish: "fish",
+  shellfish: "shellfish", sesame: "sesame", beef: "beef", pork: "pork", alcohol: "alcohol", meat: "meat",
+  vegan: "animal products", trans_fat: "trans fat", high_sugar: "a lot of sugar",
+}
 const STEP_SPEECH: {[s in ProfileStep]: SpeechLine} = {welcome: "welcome", allergies: "step_allergies", religious: "step_religious", diet: "step_diet"}
 /** Horizontal field of view the glasses show (SPECS 27 simulation measures 32.3°); head-locked sizes are designed for it. */
 const REF_FOV_H_DEG = 32.3
@@ -1632,7 +1638,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       if (red || grey) {
         const byAllergen = new Map<string, string[]>()
         for (const m of r.matches) {
-          const label = m.allergenLabel.toLowerCase()
+          const label = CHIP_NOUN[m.allergenId] ?? m.allergenLabel.toLowerCase()
           const list = byAllergen.get(label) ?? []
           const ing = m.ingredient.toLowerCase()
           if (ing !== label && list.indexOf(ing) < 0) list.push(ing)
@@ -1640,11 +1646,11 @@ export class AllergyLensMain extends BaseScriptComponent {
         }
         const parts: string[] = []
         byAllergen.forEach((ings, label) => parts.push(ings.length > 0 ? `${label} (${ings.slice(0, 2).join(", ")})` : label))
-        if (red) note = `contains ${parts.join(", ")}`
-        else if (parts.length > 0) note = `may contain ${parts.join(", ")} — check with the restaurant`
-        else if (r.source === "model") note = "nothing found, not confirmed — ask the restaurant"
-        else note = "no ingredient list — ask the restaurant"
-        if (note.length > 72) note = note.slice(0, 71) + "…"
+        if (red) note = `Contains ${parts.join(", ")}.`
+        else if (parts.length > 0) note = `May contain ${parts.join(", ")}. Check with the restaurant.`
+        else if (r.source === "model") note = "Nothing found, but not confirmed. Ask the restaurant."
+        else note = "No ingredient list. Ask the restaurant."
+        if (note.length > 140) note = note.slice(0, 139) + "…"
       }
       marks.push({dishId: r.dishId, style, inCategory, note})
     }
