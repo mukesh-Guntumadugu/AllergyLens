@@ -34,7 +34,8 @@ export const MENU_MARKERS: {[restaurantId: string]: {marker: MarkerAsset; textur
   "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
   "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
   "chinese-menu": {marker: requireAsset("../Markers/MenuMarker-chinese-menu.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/chinese-menu-menu-1.png") as Texture},
-  "kitchen-section": {marker: requireAsset("../Markers/MenuMarker-kitchen-section.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/kitchen-section-menu-1.png") as Texture},
+  // "kitchen-section" has data and a marker asset, but the only frame of it is too blurry (sharpness 823 vs 2150 for the
+  // Chinese page): as a marker it false-matches the Chinese Menu and paints its grid there. Re-enable with a sharp photo.
 }
 const SQUARE_GLYPH_COVERAGE = 0.75 // the glyph fills 18/24 of its canvas
 const imageMaterial = requireAsset("../Materials/ImageMaterial.mat") as Material
@@ -82,7 +83,8 @@ interface Bar {
 }
 
 const FULL_ALPHA = 0.35
-const UNDERLINE_ALPHA = 0.85
+const UNDERLINE_ALPHA = 0.6 // light enough that the printed line above it stays readable
+const CONTAINS_ALPHA = 0.75
 const DOT_ALPHA = 0.8
 const DOT_SIZE = 0.5
 const STAR_SIZE = 0.9
@@ -423,6 +425,17 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     return style === "star-safe" || style === "dot-safe" ? this.safeColor : style === "underline-contains" ? this.flagColor : this.unverifiedColor
   }
 
+  /** Underline colour: the safe green and the amber are lifted towards white so they read as a light pen line. */
+  private underlineTint(style: MarkStyle): vec3 {
+    const t = this.tintFor(style)
+    const lift = style === "underline-contains" ? 0 : style === "dot-unverified" ? 0.2 : 0.35
+    return new vec3(t.x + (1 - t.x) * lift, t.y + (1 - t.y) * lift, t.z + (1 - t.z) * lift)
+  }
+
+  private underlineAlpha(style: MarkStyle): number {
+    return style === "underline-contains" ? CONTAINS_ALPHA : UNDERLINE_ALPHA
+  }
+
   private applyStyle(bar: Bar): void {
     const s = bar.style
     const marked = s !== "none"
@@ -431,16 +444,20 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     bar.underline.enabled = s === "underline-contains" || s === "dot-safe" || s === "dot-unverified"
     bar.dot.enabled = false
     bar.star.enabled = s === "star-safe"
-    // Thick red line for "contains", a thin one for safe / unverified (colour tells the rest).
+    // A pen-thin line under the printed name, never on it: the point is that the text stays readable.
+    // Red ("contains") is a little heavier; colour tells the rest. A clear gap below the glyph box
+    // keeps the line off the text even when the tracker is a millimetre or two high.
     const L = bar.dish.layout!
     const lineW = L.w * this.widthCm
     const lineH = L.h * this.heightCm
-    const thick = s === "underline-contains" ? Math.max(0.32, 0.6 * lineH) : Math.max(0.2, 0.35 * lineH)
-    bar.underline.getTransform().setLocalPosition(new vec3(0, -lineH / 2 - thick / 2 - 0.04, 0.05))
-    bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.6) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
+    const thick = s === "underline-contains" ? Math.min(0.4, Math.max(0.18, 0.3 * lineH)) : Math.min(0.28, Math.max(0.12, 0.18 * lineH))
+    const gap = Math.max(0.08, 0.2 * lineH)
+    bar.underline.getTransform().setLocalPosition(new vec3(0, -lineH / 2 - gap - thick / 2, 0.05))
+    bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.3) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
     const t = this.tintFor(s)
+    const u = this.underlineTint(s)
     bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.fade)
-    bar.underlineMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, UNDERLINE_ALPHA * this.fade)
+    bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.fade)
     bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.fade)
     bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.fade)
   }
@@ -448,8 +465,9 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private applyFade(): void {
     for (const bar of this.bars) {
       const t = this.tintFor(bar.style)
+      const u = this.underlineTint(bar.style)
       bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.fade)
-      bar.underlineMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, UNDERLINE_ALPHA * this.fade)
+      bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(bar.style) * this.fade)
       bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.fade)
       bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.fade)
     }
