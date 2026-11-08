@@ -23,7 +23,7 @@ line step_diet      "Step three. Any diet? Vegetarian, vegan, low sugar, or no t
 line saved          "Profile saved. Now look at a menu."
 line reopened       "Your profile. Change anything, or say done."
 line heard_nothing  "Sorry, I didn't catch that. Say it again, or pinch."
-line menu_found     "Menu recognised. Green lines are safe for you. Pinch a dish for details."
+line menu_found     "Menu recognised. Point at a dish to check it. Pinch for details."
 line contains       "This dish has something from your profile."
 line likely_fine    "Likely fine. Confirm with the restaurant."
 line safe           "Looks fine for you."

@@ -429,24 +429,17 @@ TESTING.md                  manual test guide
    keeps the new spot in the view (clamped to the glasses' field of view);
    a plain pinch without moving opens the profile.
 
-   **What gets a mark (rule of 2026-11-08).** Only dishes that are safe for
-   the profile get a line: a pen-thin light green underline under the printed
-   name. Dishes that contain something, or that are unverified, draw nothing
-   but stay pinchable, so a pinch still opens the card that says why. Never
-   more than ten lines at once: the ten nearest the centre of the view,
-   re-chosen every half second. No lines while the page moves or turns; they
-   fade back about a third of a second after it holds still, because the
-   tracker's pose lags on a moving page and lines drawn then land beside the
-   text. The chip keeps the count ("8 of 28 safe").
-
-   **Live camera (the real demo).** The Preview panel's webcam mode uses the
-   Mac's camera as the live feed: pick it in the panel's top bar and set the
-   camera view to **Back** (the Front view is mirrored like a selfie and the
-   tracker cannot match a mirrored page). Hold the printed menu or the
-   product about 40 cm from the camera, filling about two thirds of the
-   frame, steady. The Mac microphone is the Lens's voice input, so the whole
-   flow runs live: profile by voice, Done, the page recognised, marks, pinch
-   with the mouse. Your own voice is the audio.
+   **Point to check (rule of 2026-11-08, evening).** When a page is
+   recognised every dish is checked at once, but nothing is drawn. Point at
+   a dish (your finger on the glasses; the mouse pointer in Lens Studio,
+   which cannot track a real finger in the camera image) and that line
+   shows its verdict: red "contains peanuts, tree nuts" with the reason in a
+   small chip under it, grey "not sure: ingredients not published" with its
+   reason, green a bare thin line, no explanation needed. The verdict stays
+   for a moment after the finger leaves. Pinch the line for the full card.
+   Mood mode still stars the matching safe dishes. Never more than ten lines
+   at once and none while the page moves. The spoken line is "Menu
+   recognised. Point at a dish to check it. Pinch for details."
 
    **Use the recording as it is.** The whole phone video, full frame, with
    its sound, is the preview source: `data/menus/menus-2026-11-07.mp4`

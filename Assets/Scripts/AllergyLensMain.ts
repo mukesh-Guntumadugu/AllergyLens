@@ -1574,13 +1574,26 @@ export class AllergyLensMain extends BaseScriptComponent {
       const inCategory = !everything && !!dish && dishCategory(dish) === this.mood
       let style: MarkStyle = "none"
       if (everything) {
-        // The user's rule: mark only what is safe. Risky and unverified dishes draw nothing but stay pinchable.
-        style = r.verdict === "safe" ? "dot-safe" : r.verdict === "contains" || r.verdict === "unverified" ? "quiet" : "none"
+        // Point to reveal: every dish carries its verdict (red contains / grey unsure / green clear) but the
+        // overlay draws it only while the user points at the line. Nothing is drawn on its own.
+        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "dot-safe" : "none"
       } else if (inCategory) {
-        style = r.verdict === "safe" ? "star-safe" : r.verdict === "contains" || r.verdict === "unverified" ? "quiet" : "none"
+        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "star-safe" : "none"
         if (r.verdict === "safe") safeInCategory++
       }
-      marks.push({dishId: r.dishId, style, inCategory})
+      // The reason a line is red or grey, shown under it while pointed at. Green needs none.
+      let note = ""
+      if (r.verdict === "contains") {
+        const labels: string[] = []
+        for (const m of r.matches) {
+          const l = m.allergenLabel.toLowerCase()
+          if (labels.indexOf(l) < 0) labels.push(l)
+        }
+        note = `contains ${labels.join(", ")}`
+      } else if (r.verdict === "unverified") {
+        note = r.source === "typical" ? "not sure: typical recipe, confirm with the restaurant" : "not sure: ingredients not published"
+      }
+      marks.push({dishId: r.dishId, style, inCategory, note})
     }
     overlay.setMarks(marks, everything ? null : moodLabel(this.mood))
 

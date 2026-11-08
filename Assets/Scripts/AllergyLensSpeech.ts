@@ -29,7 +29,7 @@ export type SpeechLine = keyof typeof CLIPS
  *  hears the Lens's own voice too, so Main ignores transcripts while a clip plays and drops echoes of it. */
 const DURATION_S: {[l in SpeechLine]: number} = {
   welcome: 1.7, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
-  heard_nothing: 3.8, menu_found: 4.8, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
+  heard_nothing: 3.8, menu_found: 4.3, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
   mic_hint: 5.0, mic_back: 1.2,
 }
 const LINE_TEXT: {[l in SpeechLine]: string} = {
@@ -41,7 +41,7 @@ const LINE_TEXT: {[l in SpeechLine]: string} = {
   saved: "profile saved now look at a menu",
   reopened: "your profile change anything or say done",
   heard_nothing: "sorry i didn't catch that say it again or pinch",
-  menu_found: "menu recognised green lines are safe for you pinch a dish for details",
+  menu_found: "menu recognised point at a dish to check it pinch for details",
   contains: "this dish has something from your profile",
   likely_fine: "likely fine confirm with the restaurant",
   safe: "looks fine for you",

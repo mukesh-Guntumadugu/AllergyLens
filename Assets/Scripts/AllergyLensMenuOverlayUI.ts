@@ -64,6 +64,8 @@ export interface DishMark {
   style: MarkStyle
   /** In the user's chosen mood category (drives the arrow chip). */
   inCategory: boolean
+  /** Why it is red or grey ("contains peanuts, tree nuts" / "not sure: ingredients not published"); empty for green. */
+  note?: string
 }
 
 interface Bar {
@@ -80,6 +82,11 @@ interface Bar {
   style: MarkStyle
   inCategory: boolean
   picked: boolean // among the MAX_MARKS nearest the view centre (drawn); unpicked lines stay pinchable
+  revealed: boolean // the user is pointing at it (hover): its verdict is drawn; otherwise nothing is
+  hideAt: number // when a revealed line goes quiet again after the finger left (s)
+  note: string // the reason shown under a red or grey line while pointed at
+  noteRoot: SceneObject | null // built on first use
+  noteText: Text | null
   /** page-local centre + size in cm */
   x: number
   y: number
@@ -91,6 +98,8 @@ const FULL_ALPHA = 0.35
 const UNDERLINE_ALPHA = 0.6 // light enough that the printed line above it stays readable
 const CONTAINS_ALPHA = 0.75
 const MAX_MARKS = 10 // never more lines than this at once; the ten nearest to where the user looks
+const REVEAL_LINGER_SEC = 0.8 // a pointed-at verdict stays this long after the finger leaves the line
+const UNSURE_GREY = new vec3(0.62, 0.64, 0.66) // "not sure" is drawn grey, not amber (the user's words: red, grey, green)
 const STEADY_SEC = 0.3 // the page must hold still this long before lines are drawn
 const MOVE_CM_PER_S = 10
 const TURN_DEG_PER_S = 25
@@ -301,6 +310,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     for (const bar of this.bars) {
       const m = map.get(bar.dish.id)
       bar.style = m ? m.style : "none"
+      bar.note = m?.note ?? ""
       bar.inCategory = !!m && m.inCategory
       this.applyStyle(bar)
     }
@@ -439,6 +449,13 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
         this.updateArrow(false)
       }
       this.trackMotion(dt)
+      const now = getTime()
+      for (const b of this.bars) {
+        if (b.revealed && now >= b.hideAt) {
+          b.revealed = false
+          this.applyStyle(b)
+        }
+      }
     }
   }
 
@@ -475,7 +492,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
 
   /** Draw at most MAX_MARKS lines: the drawn-style bars nearest the view centre. The rest stay pinchable. */
   private pickNearest(): void {
-    const drawn = this.bars.filter((b) => b.style !== "none" && b.style !== "quiet")
+    const drawn = this.bars.filter((b) => this.drawnStyle(b) !== "none" && this.drawnStyle(b) !== "quiet")
     const scored = drawn.map((b) => {
       const lp = b.root.getTransform().getLocalPosition()
       const sp = this.screenPointOfLocal(lp.x, lp.y)
@@ -504,8 +521,9 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
 
   /** Underline colour: the safe green and the amber are lifted towards white so they read as a light pen line. */
   private underlineTint(style: MarkStyle): vec3 {
+    if (style === "dot-unverified") return UNSURE_GREY
     const t = this.tintFor(style)
-    const lift = style === "underline-contains" ? 0 : style === "dot-unverified" ? 0.2 : 0.35
+    const lift = style === "underline-contains" ? 0 : 0.35
     return new vec3(t.x + (1 - t.x) * lift, t.y + (1 - t.y) * lift, t.z + (1 - t.z) * lift)
   }
 
@@ -513,8 +531,15 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     return style === "underline-contains" ? CONTAINS_ALPHA : UNDERLINE_ALPHA
   }
 
+  /** What is drawn for a bar right now: its verdict only while pointed at (mood stars are always drawn). */
+  private drawnStyle(bar: Bar): MarkStyle {
+    if (bar.style === "none" || bar.style === "quiet") return bar.style
+    if (bar.style === "star-safe" || bar.revealed) return bar.style
+    return "quiet"
+  }
+
   private applyStyle(bar: Bar): void {
-    const s = bar.style
+    const s = this.drawnStyle(bar)
     const marked = s !== "none"
     bar.root.enabled = marked && this._active
     bar.full.enabled = s === "star-safe" && bar.picked
@@ -531,12 +556,40 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const gap = Math.max(0.08, 0.2 * lineH)
     bar.underline.getTransform().setLocalPosition(new vec3(0, -lineH / 2 - gap - thick / 2, 0.05))
     bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.3) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
+    this.showNote(bar, (s === "underline-contains" || s === "dot-unverified") && bar.revealed && bar.note.length > 0, lineW, lineH, thick, gap)
     const t = this.tintFor(s)
     const u = this.underlineTint(s)
     bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.alpha())
     bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.alpha())
     bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.alpha())
     bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.alpha())
+  }
+
+  /**
+   * The reason under a pointed-at red or grey line: a small chip just below the underline, left-aligned with the
+   * name ("contains peanuts, tree nuts" / "not sure: ingredients not published"). Green needs no explanation.
+   */
+  private showNote(bar: Bar, show: boolean, lineW: number, lineH: number, thick: number, gap: number): void {
+    if (!show) {
+      if (bar.noteRoot) bar.noteRoot.enabled = false
+      return
+    }
+    const W = Math.min(this.widthCm * 0.6, Math.max(4.5, bar.note.length * 0.3 + 1.4))
+    const H = 1.2
+    if (!bar.noteRoot) {
+      const root = UI.obj(bar.root, "Note", new vec3(0, 0, 0.35))
+      root.createComponent("Component.Canvas")
+      const plate = root.createComponent(BackPlate.getTypeName()) as BackPlate
+      plate.size = new vec2(W, H)
+      const content = UI.obj(root, "Content", new vec3(0, 0, UI.CONTENT_Z))
+      const row = UI.flexRow(content, W, H, {gap: 0.4, padX: 0.5, justify: FlexJustify.Start, align: FlexAlign.Center})
+      bar.noteText = UI.addRowText(row, bar.note, "Caption", 45, W - 1.0, HorizontalAlignment.Left, UI.WHITE_SOFT)
+      bar.noteRoot = root
+    } else if (bar.noteText) {
+      bar.noteText.text = bar.note
+    }
+    bar.noteRoot.getTransform().setLocalPosition(new vec3(-lineW / 2 + W / 2, -lineH / 2 - gap - thick - 0.25 - H / 2, 0.35))
+    bar.noteRoot.enabled = true
   }
 
   private applyFade(): void {
@@ -651,14 +704,25 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const dot = this.quad(root, "Dot", endX, 0, DOT_SIZE, DOT_SIZE, BAR_TEX)
     const star = this.quad(root, "Star", endX + 0.1, 0, STAR_SIZE, STAR_SIZE, STAR_TEX, 1)
     root.enabled = false
-    return {
-      dish, root, style: "none", inCategory: false, picked: true,
+    const bar: Bar = {
+      dish, root, style: "none", inCategory: false, picked: true, revealed: false, hideAt: 0, note: "", noteRoot: null, noteText: null,
       full: full.so, fullMat: full.mat,
       underline: underline.so, underlineMat: underline.mat,
       dot: dot.so, dotMat: dot.mat,
       star: star.so, starMat: star.mat,
       x, y, w, h,
     }
+    // Point to reveal: the verdict of a dish is drawn while the finger (the mouse, in Lens Studio) is on its
+    // line, and for a moment after it leaves. Nothing else on the page is drawn.
+    interactable.onHoverEnter.add(() => {
+      bar.revealed = true
+      bar.hideAt = Number.POSITIVE_INFINITY
+      this.applyStyle(bar)
+    })
+    interactable.onHoverExit.add(() => {
+      bar.hideAt = getTime() + REVEAL_LINGER_SEC
+    })
+    return bar
   }
 
   /** A tinted Image quad (square glyph stretched to w x h cm) at a page-local offset. */
