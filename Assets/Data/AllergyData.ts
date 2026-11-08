@@ -1180,7 +1180,7 @@ export const RESTAURANTS: RestaurantDef[] = [
     "cuisine": "cafe",
     "rating": null,
     "menuImage": {
-      "path": "data/menus/laurel-cafe/menu-1.png",
+      "path": "data/menus/laurel-cafe/menu-2-print.png",
       "widthPx": 1400,
       "heightPx": 1812,
       "widthCm": 21.59
@@ -1217,9 +1217,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "feta": null
         },
         "layout": {
-          "x": 0.415,
-          "y": 0.216,
-          "w": 0.134,
+          "x": 0.4088,
+          "y": 0.2169,
+          "w": 0.1319,
           "h": 0.013
         },
         "price": 72,
@@ -1258,9 +1258,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "cheddar cheese": null
         },
         "layout": {
-          "x": 0.42,
-          "y": 0.281,
-          "w": 0.164,
+          "x": 0.4137,
+          "y": 0.2818,
+          "w": 0.1614,
           "h": 0.015
         },
         "price": 65,
@@ -1300,9 +1300,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "whipped cream": "coconut cream"
         },
         "layout": {
-          "x": 0.421,
-          "y": 0.333,
-          "w": 0.1,
+          "x": 0.4147,
+          "y": 0.3337,
+          "w": 0.0984,
           "h": 0.014
         },
         "price": 75,
@@ -1344,9 +1344,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "eggs": null
         },
         "layout": {
-          "x": 0.421,
-          "y": 0.385,
-          "w": 0.107,
+          "x": 0.4147,
+          "y": 0.3857,
+          "w": 0.1053,
           "h": 0.014
         },
         "price": 95,
@@ -1380,9 +1380,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "honey": null
         },
         "layout": {
-          "x": 0.422,
-          "y": 0.449,
-          "w": 0.104,
+          "x": 0.4157,
+          "y": 0.4496,
+          "w": 0.1024,
           "h": 0.013
         },
         "price": 55,
@@ -1422,9 +1422,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "bacon": null
         },
         "layout": {
-          "x": 0.701,
-          "y": 0.416,
-          "w": 0.169,
+          "x": 0.6904,
+          "y": 0.4166,
+          "w": 0.1664,
           "h": 0.014
         },
         "price": 85,
@@ -1468,9 +1468,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "burger sauce": "ketchup"
         },
         "layout": {
-          "x": 0.704,
-          "y": 0.46,
-          "w": 0.131,
+          "x": 0.6933,
+          "y": 0.4606,
+          "w": 0.129,
           "h": 0.014
         },
         "price": 95,
@@ -1507,9 +1507,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "mayo": "olive oil"
         },
         "layout": {
-          "x": 0.705,
-          "y": 0.501,
-          "w": 0.139,
+          "x": 0.6943,
+          "y": 0.5016,
+          "w": 0.1368,
           "h": 0.016
         },
         "price": 75,
@@ -1549,9 +1549,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "seeds": null
         },
         "layout": {
-          "x": 0.707,
-          "y": 0.541,
-          "w": 0.086,
+          "x": 0.6963,
+          "y": 0.5415,
+          "w": 0.0847,
           "h": 0.018
         },
         "price": 85,
@@ -1589,9 +1589,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "chicken mayo": "avo & feta"
         },
         "layout": {
-          "x": 0.71,
-          "y": 0.587,
-          "w": 0.113,
+          "x": 0.6992,
+          "y": 0.5875,
+          "w": 0.1112,
           "h": 0.011
         },
         "price": 55,
@@ -1630,9 +1630,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "caesar dressing": "olive oil and lemon"
         },
         "layout": {
-          "x": 0.712,
-          "y": 0.674,
-          "w": 0.141,
+          "x": 0.7012,
+          "y": 0.6744,
+          "w": 0.1388,
           "h": 0.014
         },
         "price": 85,
@@ -1666,9 +1666,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "feta": null
         },
         "layout": {
-          "x": 0.713,
-          "y": 0.692,
-          "w": 0.083,
+          "x": 0.7022,
+          "y": 0.6923,
+          "w": 0.0817,
           "h": 0.013
         },
         "price": 75,
@@ -1689,9 +1689,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "shares": {},
         "substitutes": {},
         "layout": {
-          "x": 0.713,
-          "y": 0.708,
-          "w": 0.07,
+          "x": 0.7022,
+          "y": 0.7083,
+          "w": 0.0689,
           "h": 0.013
         },
         "price": 30,
@@ -1727,9 +1727,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "flour": null
         },
         "layout": {
-          "x": 0.43,
-          "y": 0.687,
-          "w": 0.078,
+          "x": 0.4236,
+          "y": 0.6873,
+          "w": 0.0768,
           "h": 0.013
         },
         "price": 28,
@@ -1757,9 +1757,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "shares": {},
         "substitutes": {},
         "layout": {
-          "x": 0.43,
-          "y": 0.717,
-          "w": 0.051,
+          "x": 0.4236,
+          "y": 0.7173,
+          "w": 0.0502,
           "h": 0.012
         },
         "price": 28,
@@ -1793,9 +1793,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "biscuit base": "gluten-free biscuit base"
         },
         "layout": {
-          "x": 0.432,
-          "y": 0.748,
-          "w": 0.113,
+          "x": 0.4256,
+          "y": 0.7483,
+          "w": 0.1112,
           "h": 0.013
         },
         "price": 48,
@@ -1829,9 +1829,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "flour": "gluten-free flour"
         },
         "layout": {
-          "x": 0.429,
-          "y": 0.767,
-          "w": 0.128,
+          "x": 0.4226,
+          "y": 0.7672,
+          "w": 0.126,
           "h": 0.014
         },
         "price": 45,
@@ -1854,9 +1854,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         },
         "substitutes": {},
         "layout": {
-          "x": 0.159,
-          "y": 0.344,
-          "w": 0.06,
+          "x": 0.1568,
+          "y": 0.3447,
+          "w": 0.0591,
           "h": 0.015
         },
         "price": 25,
@@ -1880,9 +1880,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         },
         "substitutes": {},
         "layout": {
-          "x": 0.16,
-          "y": 0.363,
-          "w": 0.071,
+          "x": 0.1578,
+          "y": 0.3637,
+          "w": 0.0699,
           "h": 0.013
         },
         "price": 30,
@@ -1913,9 +1913,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "milk foam": "oat or almond milk"
         },
         "layout": {
-          "x": 0.159,
-          "y": 0.379,
-          "w": 0.078,
+          "x": 0.1568,
+          "y": 0.3797,
+          "w": 0.0768,
           "h": 0.015
         },
         "price": 35,
@@ -1941,9 +1941,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "milk": "oat or almond milk"
         },
         "layout": {
-          "x": 0.156,
-          "y": 0.396,
-          "w": 0.071,
+          "x": 0.1539,
+          "y": 0.3967,
+          "w": 0.0699,
           "h": 0.015
         },
         "price": 35,
@@ -1969,9 +1969,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "milk": "oat or almond milk"
         },
         "layout": {
-          "x": 0.158,
-          "y": 0.415,
-          "w": 0.07,
+          "x": 0.1558,
+          "y": 0.4156,
+          "w": 0.0689,
           "h": 0.014
         },
         "price": 36,
@@ -2002,9 +2002,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "milk": "oat or almond milk"
         },
         "layout": {
-          "x": 0.159,
-          "y": 0.433,
-          "w": 0.048,
+          "x": 0.1568,
+          "y": 0.4336,
+          "w": 0.0472,
           "h": 0.013
         },
         "price": 40,
@@ -2035,9 +2035,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "vanilla syrup": null
         },
         "layout": {
-          "x": 0.154,
-          "y": 0.589,
-          "w": 0.108,
+          "x": 0.1519,
+          "y": 0.5894,
+          "w": 0.1063,
           "h": 0.013
         },
         "price": 45,
@@ -2068,9 +2068,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "caramel syrup": null
         },
         "layout": {
-          "x": 0.154,
-          "y": 0.606,
-          "w": 0.12,
+          "x": 0.1519,
+          "y": 0.6064,
+          "w": 0.1181,
           "h": 0.014
         },
         "price": 48,
@@ -2093,9 +2093,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "shares": {},
         "substitutes": {},
         "layout": {
-          "x": 0.153,
-          "y": 0.625,
-          "w": 0.084,
+          "x": 0.1509,
+          "y": 0.6254,
+          "w": 0.0827,
           "h": 0.013
         },
         "price": 45,
@@ -2125,9 +2125,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "strawberry syrup": "fresh strawberries"
         },
         "layout": {
-          "x": 0.151,
-          "y": 0.643,
-          "w": 0.126,
+          "x": 0.149,
+          "y": 0.6434,
+          "w": 0.124,
           "h": 0.014
         },
         "price": 40,
@@ -2157,9 +2157,9 @@ export const RESTAURANTS: RestaurantDef[] = [
           "sugar": null
         },
         "layout": {
-          "x": 0.149,
-          "y": 0.661,
-          "w": 0.107,
+          "x": 0.147,
+          "y": 0.6614,
+          "w": 0.1053,
           "h": 0.014
         },
         "price": 35,

@@ -430,7 +430,11 @@ TESTING.md                  manual test guide
    .venv/bin/python tools/scrape/ocr_menu.py data/menus/<id>/menu-1.png --restaurant-id <id> --restaurant-name "<Name>" --out data/menus/<id>/menu-1.ocr.json --marker-width-cm 21.59
    ```
 
-   The flattened page is the tracking marker and the OCR input. Resize it
+   The flattened page is the tracking marker and the OCR input. A marker
+   made from the real print tracks the print far better than the design
+   file does: the Laurel Café marker is now `menu-2-print.png`, flattened
+   from the user's clip, with the dish positions from the design OCR mapped
+   onto it by the printed area's bounding box (1.6 % narrower). Resize it
    to the paper's real proportions before using it (Letter: 1400×1812,
    marker height 27.94 cm) or the marks drift down the page, because the
    tracker assumes square pixels. Merge the entry into `data/menus.json`
