@@ -92,6 +92,8 @@ interface Bar {
   picked: boolean // among the MAX_MARKS nearest the view centre (drawn); unpicked lines stay pinchable
   revealed: boolean // the user is pointing at it (hover): its verdict is drawn; otherwise nothing is
   hideAt: number // when a revealed line goes quiet again after the finger left (s)
+  hoverSince: number // when the pointer arrived on the line (s); -1 when it is not on it
+  revealT: number // 0..1 fade of the revealed verdict (lines and chip fade in and out, never pop)
   note: string // the reason shown under a red or grey line while pointed at
   noteRoot: SceneObject | null // built on first use
   noteText: Text | null
@@ -107,7 +109,10 @@ const FULL_ALPHA = 0.35
 const UNDERLINE_ALPHA = 0.6 // light enough that the printed line above it stays readable
 const CONTAINS_ALPHA = 0.75
 const MAX_MARKS = 10 // never more lines than this at once; the ten nearest to where the user looks
-const REVEAL_LINGER_SEC = 1.2 // a pointed-at verdict stays this long after the finger leaves the line
+const REVEAL_LINGER_SEC = 1.2 // a pointed-at verdict stays this long after the finger leaves the line (unless another lights)
+const DWELL_SEC = 0.55 // the pointer must rest on a dish this long before its verdict appears: sweeping past lights nothing
+const REVEAL_FADE_IN_SEC = 0.2
+const REVEAL_FADE_OUT_SEC = 0.15
 const UNSURE_GREY = new vec3(0.62, 0.64, 0.66) // "not sure" is drawn grey, not amber (the user's words: red, grey, green)
 
 /** Word-wrap a sentence into at most `maxLines` lines of about `width` characters; the last line gets an ellipsis if cut. */
@@ -482,8 +487,17 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
       this.trackMotion(dt)
       const now = getTime()
       for (const b of this.bars) {
-        if (b.revealed && now >= b.hideAt) {
-          b.revealed = false
+        // dwell: the pointer has rested long enough → this dish lights, the previous one goes out
+        if (!b.revealed && b.hoverSince >= 0 && now - b.hoverSince >= DWELL_SEC && b.style !== "none" && b.style !== "quiet") {
+          this.unrevealOthers(b)
+          b.revealed = true
+          b.hideAt = Number.POSITIVE_INFINITY
+        }
+        if (b.revealed && now >= b.hideAt) b.revealed = false
+        // fades
+        const target = b.revealed ? 1 : 0
+        if (b.revealT !== target) {
+          b.revealT = target > b.revealT ? Math.min(1, b.revealT + dt / REVEAL_FADE_IN_SEC) : Math.max(0, b.revealT - dt / REVEAL_FADE_OUT_SEC)
           this.applyStyle(b)
         }
       }
@@ -565,8 +579,23 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   /** What is drawn for a bar right now: its verdict only while pointed at (mood stars are always drawn). */
   private drawnStyle(bar: Bar): MarkStyle {
     if (bar.style === "none" || bar.style === "quiet") return bar.style
-    if (bar.style === "star-safe" || bar.revealed) return bar.style
+    if (bar.style === "star-safe" || bar.revealed || bar.revealT > 0) return bar.style
     return "quiet"
+  }
+
+  /** Fade factor of a bar's revealed verdict (mood stars are always fully drawn). */
+  private revealAlpha(bar: Bar): number {
+    return bar.style === "star-safe" ? 1 : bar.revealT
+  }
+
+  /** The one dish lit right now (if any) goes out at once so a new one can light. */
+  private unrevealOthers(keep: Bar): void {
+    for (const b of this.bars) {
+      if (b !== keep && b.revealed) {
+        b.revealed = false
+        b.hideAt = 0
+      }
+    }
   }
 
   private applyStyle(bar: Bar): void {
@@ -587,11 +616,12 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const gap = Math.max(0.08, 0.2 * lineH)
     bar.underline.getTransform().setLocalPosition(new vec3(0, -lineH / 2 - gap - thick / 2, 0.05))
     bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.3) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
-    this.showNote(bar, (s === "underline-contains" || s === "dot-unverified") && bar.revealed && bar.note.length > 0, lineW, lineH, thick, gap)
+    this.showNote(bar, (s === "underline-contains" || s === "dot-unverified") && bar.revealed && bar.revealT > 0.5 && bar.note.length > 0, lineW, lineH, thick, gap)
     const t = this.tintFor(s)
     const u = this.underlineTint(s)
+    const ra = this.revealAlpha(bar)
     bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.alpha())
-    bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.alpha())
+    bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.alpha() * ra)
     bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.alpha())
     bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.alpha())
   }
@@ -636,7 +666,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
       const t = this.tintFor(bar.style)
       const u = this.underlineTint(bar.style)
       bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.alpha())
-      bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(bar.style) * this.alpha())
+      bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(bar.style) * this.alpha() * this.revealAlpha(bar))
       bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.alpha())
       bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.alpha())
     }
@@ -744,22 +774,23 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const star = this.quad(root, "Star", endX + 0.1, 0, STAR_SIZE, STAR_SIZE, STAR_TEX, 1)
     root.enabled = false
     const bar: Bar = {
-      dish, root, style: "none", inCategory: false, picked: true, revealed: false, hideAt: 0, note: "", noteRoot: null, noteText: null, notePlate: null,
+      dish, root, style: "none", inCategory: false, picked: true, revealed: false, hideAt: 0, hoverSince: -1, revealT: 0, note: "", noteRoot: null, noteText: null, notePlate: null,
       full: full.so, fullMat: full.mat,
       underline: underline.so, underlineMat: underline.mat,
       dot: dot.so, dotMat: dot.mat,
       star: star.so, starMat: star.mat,
       x, y, w, h,
     }
-    // Point to reveal: the verdict of a dish is drawn while the finger (the mouse, in Lens Studio) is on its
-    // line, and for a moment after it leaves. Nothing else on the page is drawn.
+    // Point to reveal, one dish at a time: the pointer (finger on the glasses, mouse in Lens Studio) has to REST
+    // on a line for DWELL_SEC before its verdict fades in; sweeping across the page lights nothing. When a new
+    // dish lights, the previous one goes out at once; otherwise a verdict lingers a moment after the pointer leaves.
     interactable.onHoverEnter.add(() => {
-      bar.revealed = true
+      bar.hoverSince = getTime()
       bar.hideAt = Number.POSITIVE_INFINITY
-      this.applyStyle(bar)
     })
     interactable.onHoverExit.add(() => {
-      bar.hideAt = getTime() + REVEAL_LINGER_SEC
+      bar.hoverSince = -1
+      if (bar.revealed) bar.hideAt = getTime() + REVEAL_LINGER_SEC
     })
     return bar
   }
