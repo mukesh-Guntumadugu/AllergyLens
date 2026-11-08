@@ -30,11 +30,27 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
   @ui.group_end
 
   private _onProfile = new Event<void>()
+  private _onDragStart = new Event<void>()
+  private _onDrag = new Event<vec3>()
+  private _onDragEnd = new Event<boolean>()
   private icon: Image | null = null
+  private dragDistance = 0
 
-  /** User pinched the Profile button. */
+  /** User tapped the Profile button (a pinch that did not drag it). */
   get onProfile(): PublicApi<void> {
     return this._onProfile.publicApi()
+  }
+  /** Pinch-and-drag began. */
+  get onDragStart(): PublicApi<void> {
+    return this._onDragStart.publicApi()
+  }
+  /** World-space movement of the pinch this frame while dragging (cm). */
+  get onDrag(): PublicApi<vec3> {
+    return this._onDrag.publicApi()
+  }
+  /** Drag ended; true when the icon actually moved (more than a centimetre). */
+  get onDragEnd(): PublicApi<boolean> {
+    return this._onDragEnd.publicApi()
   }
 
   onAwake(): void {
@@ -47,7 +63,26 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
     collider.shape = shape
     collider.fitVisual = false
     const interactable = root.createComponent(Interactable.getTypeName()) as Interactable
-    interactable.onTriggerEnd.add(() => this._onProfile.invoke())
+    // A pinch that moves more than a centimetre is a drag (the icon follows the hand and stays where it is
+    // let go); a pinch that does not move is a tap and opens the profile.
+    interactable.onTriggerStart.add(() => {
+      this.dragDistance = 0
+    })
+    interactable.onDragStart.add(() => {
+      this.dragDistance = 0
+      this._onDragStart.invoke()
+    })
+    interactable.onDragUpdate.add((e) => {
+      const d = e.dragVector
+      if (!d) return
+      this.dragDistance += d.length
+      this._onDrag.invoke(d)
+    })
+    interactable.onDragEnd.add(() => this._onDragEnd.invoke(this.dragDistance > 1))
+    interactable.onTriggerEnd.add(() => {
+      if (this.dragDistance > 1) return
+      this._onProfile.invoke()
+    })
     interactable.onHoverEnter.add(() => this.setAlpha(1))
     interactable.onHoverExit.add(() => this.setAlpha(this.idleAlpha))
     // The icon itself, see-through; no plate behind it.

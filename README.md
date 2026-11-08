@@ -410,6 +410,10 @@ TESTING.md                  manual test guide
    page is in view, back out, still again at the end. Drop the file in
    `data/menus/laurel-cafe/` and open it the same way.
 
+   **The Profile icon moves.** Pinch it and drag: it follows the hand and
+   keeps the new spot in the view (clamped to the glasses' field of view);
+   a plain pinch without moving opens the profile.
+
    **What gets a mark (rule of 2026-11-08).** Only dishes that are safe for
    the profile get a line: a pen-thin light green underline under the printed
    name. Dishes that contain something, or that are unverified, draw nothing
