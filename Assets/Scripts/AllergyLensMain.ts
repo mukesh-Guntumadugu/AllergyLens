@@ -39,11 +39,18 @@ const PINCH_HINT: {[s in ProfileStep]: string} = {
   religious: "Pinch what you avoid, or Next.",
   diet: "Pinch your diet, or Done.",
 }
-/** How a profile item is named inside the reason chip: the toggle says "Vegetarian", the dish "contains meat". */
+/**
+ * How a profile item reads inside the reason chip. An allergy is named by the allergen, with the ingredient behind
+ * it: "wheat (wheat flour, gochujang)". A diet or religious rule is named by the ingredient, with the rule behind it:
+ * "chicken (not vegetarian)", "pork (no pork)" — nobody says a dish "contains vegetarian".
+ */
 const CHIP_NOUN: {[id: string]: string} = {
   peanut: "peanuts", tree_nut: "tree nuts", milk: "milk", egg: "eggs", wheat: "wheat", soy: "soy", fish: "fish",
-  shellfish: "shellfish", sesame: "sesame", beef: "beef", pork: "pork", alcohol: "alcohol", meat: "meat",
-  vegan: "animal products", trans_fat: "trans fat", high_sugar: "a lot of sugar",
+  shellfish: "shellfish", sesame: "sesame",
+}
+const CHIP_RULE: {[id: string]: string} = {
+  beef: "no beef", pork: "no pork", alcohol: "no alcohol", meat: "not vegetarian", vegan: "not vegan",
+  trans_fat: "trans fat", high_sugar: "high sugar",
 }
 const STEP_SPEECH: {[s in ProfileStep]: SpeechLine} = {welcome: "welcome", allergies: "step_allergies", religious: "step_religious", diet: "step_diet"}
 /** Horizontal field of view the glasses show (SPECS 27 simulation measures 32.3°); head-locked sizes are designed for it. */
@@ -1638,14 +1645,23 @@ export class AllergyLensMain extends BaseScriptComponent {
       if (red || grey) {
         const byAllergen = new Map<string, string[]>()
         for (const m of r.matches) {
-          const label = CHIP_NOUN[m.allergenId] ?? m.allergenLabel.toLowerCase()
-          const list = byAllergen.get(label) ?? []
+          const list = byAllergen.get(m.allergenId) ?? []
           const ing = m.ingredient.toLowerCase()
-          if (ing !== label && list.indexOf(ing) < 0) list.push(ing)
-          byAllergen.set(label, list)
+          if (list.indexOf(ing) < 0) list.push(ing)
+          byAllergen.set(m.allergenId, list)
         }
         const parts: string[] = []
-        byAllergen.forEach((ings, label) => parts.push(ings.length > 0 ? `${label} (${ings.slice(0, 2).join(", ")})` : label))
+        byAllergen.forEach((ings, id) => {
+          const rule = CHIP_RULE[id]
+          if (rule) {
+            // diet / religious: the ingredient is the news, the rule explains it
+            parts.push(`${ings.slice(0, 2).join(", ")} (${rule})`)
+          } else {
+            const noun = CHIP_NOUN[id] ?? id
+            const behind = ings.filter((i) => i !== noun).slice(0, 2)
+            parts.push(behind.length > 0 ? `${noun} (${behind.join(", ")})` : noun)
+          }
+        })
         if (red) note = `Contains ${parts.join(", ")}.`
         else if (parts.length > 0) note = `May contain ${parts.join(", ")}. Check with the restaurant.`
         else if (r.source === "model") note = "Nothing found, but not confirmed. Ask the restaurant."
