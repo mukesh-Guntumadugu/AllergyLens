@@ -2858,9 +2858,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.162,
-          "y": 0.288,
+          "y": 0.203,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 25,
         "section": "Signature Snack",
@@ -2888,9 +2888,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.339,
-          "y": 0.288,
+          "y": 0.203,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 35,
         "section": "Signature Snack",
@@ -2914,9 +2914,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.517,
-          "y": 0.288,
+          "y": 0.203,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 25,
         "section": "Signature Snack",
@@ -2943,9 +2943,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.695,
-          "y": 0.288,
+          "y": 0.203,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 30,
         "section": "Signature Snack",
@@ -2968,9 +2968,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.162,
-          "y": 0.387,
+          "y": 0.302,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 20,
         "section": "Light Bites",
@@ -2992,9 +2992,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.339,
-          "y": 0.387,
+          "y": 0.302,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 25,
         "section": "Light Bites",
@@ -3017,9 +3017,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.517,
-          "y": 0.387,
+          "y": 0.302,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 20,
         "section": "Light Bites",
@@ -3043,9 +3043,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.695,
-          "y": 0.387,
+          "y": 0.302,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 25,
         "section": "Light Bites",
@@ -3072,9 +3072,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.162,
-          "y": 0.497,
+          "y": 0.412,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 20,
         "section": "Breakfast",
@@ -3101,9 +3101,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.339,
-          "y": 0.497,
+          "y": 0.412,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 25,
         "section": "Breakfast",
@@ -3130,9 +3130,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.517,
-          "y": 0.497,
+          "y": 0.412,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 35,
         "section": "Rice Bowl",
@@ -3156,9 +3156,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.695,
-          "y": 0.497,
+          "y": 0.412,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 35,
         "section": "Rice Bowl",
@@ -3185,9 +3185,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.162,
-          "y": 0.604,
+          "y": 0.519,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 38,
         "section": "Rice Bowl",
@@ -3215,9 +3215,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.339,
-          "y": 0.604,
+          "y": 0.519,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 45,
         "section": "Rice Bowl",
@@ -3245,9 +3245,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.517,
-          "y": 0.604,
+          "y": 0.519,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 38,
         "section": "Pasta",
@@ -3274,9 +3274,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.695,
-          "y": 0.604,
+          "y": 0.519,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 38,
         "section": "Pasta",
@@ -3305,9 +3305,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.162,
-          "y": 0.728,
+          "y": 0.643,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 28,
         "section": "Fried Rice",
@@ -3336,9 +3336,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.339,
-          "y": 0.728,
+          "y": 0.643,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 28,
         "section": "Fried Rice",
@@ -3365,9 +3365,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.517,
-          "y": 0.728,
+          "y": 0.643,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 180,
         "section": "Special Request",
@@ -3393,9 +3393,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.695,
-          "y": 0.728,
+          "y": 0.643,
           "w": 0.1,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 180,
         "section": "Special Request",
@@ -3422,9 +3422,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.184,
-          "y": 0.856,
+          "y": 0.771,
           "w": 0.08,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 10,
         "section": "Dim Sum",
@@ -3448,9 +3448,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.372,
-          "y": 0.856,
+          "y": 0.771,
           "w": 0.08,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 10,
         "section": "Dim Sum",
@@ -3477,9 +3477,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.557,
-          "y": 0.856,
+          "y": 0.771,
           "w": 0.08,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 15,
         "section": "Dim Sum",
@@ -3503,9 +3503,9 @@ export const RESTAURANTS: RestaurantDef[] = [
         "substitutes": {},
         "layout": {
           "x": 0.74,
-          "y": 0.856,
+          "y": 0.771,
           "w": 0.08,
-          "h": 0.024
+          "h": 0.109
         },
         "price": 15,
         "section": "Dim Sum",
