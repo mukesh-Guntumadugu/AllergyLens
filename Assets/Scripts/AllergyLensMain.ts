@@ -289,19 +289,20 @@ export class AllergyLensMain extends BaseScriptComponent {
     // create one per bundled page (MENU_MARKERS) that is not authored yet.
     const bindOverlay = (overlay: AllergyLensMenuOverlayUI) => {
       this.overlays.push(overlay)
-      overlay.onFound.add((id) => this.onMarkerFound(id))
-      overlay.onLost.add((id) => this.onMarkerLost(id))
+      overlay.onFound.add((id) => this.onMarkerFound(id, overlay))
+      overlay.onLost.add((id) => this.onMarkerLost(id, overlay))
       overlay.onBarPinched.add((e) => this.onBarPinched(e.restaurantId, e.dishId))
     }
     for (let i = 0; i < this.markersRoot.getChildrenCount(); i++) {
       const overlay = this.markersRoot.getChild(i).getComponent(AllergyLensMenuOverlayUI.getTypeName()) as AllergyLensMenuOverlayUI | null
       if (overlay) bindOverlay(overlay)
     }
-    for (const restaurantId of Object.keys(MENU_MARKERS)) {
-      if (this.overlays.some((o) => o.restaurantId === restaurantId)) continue
+    for (const key of Object.keys(MENU_MARKERS)) {
+      const def = MENU_MARKERS[key]
+      const restaurantId = def.restaurantId ?? key
+      if (!def.restaurantId && this.overlays.some((o) => o.restaurantId === restaurantId)) continue // authored already
       if (!getRestaurant(restaurantId)) continue
-      const def = MENU_MARKERS[restaurantId]
-      const so = global.scene.createSceneObject(`MenuMarker-${restaurantId}`)
+      const so = global.scene.createSceneObject(`MenuMarker-${key}`)
       so.setParent(this.markersRoot)
       const tracker = so.createComponent("Component.MarkerTrackingComponent") as MarkerTrackingComponent
       tracker.marker = def.marker
@@ -428,7 +429,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   // ── Debug / test hooks ─────────────────────────────────────────────────
   /** Drive the real marker-found path for a restaurant id (page parked 60 cm ahead). */
   simulateMarker(restaurantId: string, offsetXcm: number = 0): boolean {
-    const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
+    const overlay = this.overlayFor(restaurantId)
     if (overlay) return overlay.simulateFound(offsetXcm)
     const product = this.products.find((p) => p.barcode === restaurantId)
     if (product) return product.simulateFound(offsetXcm)
@@ -638,7 +639,12 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.speech?.say("saved")
     print(`AllergyLens: profile done [${this.profile.ids().join(", ")}]`)
     // Hand-over: whatever page or product is already in view is picked up now, as if it had just been found.
-    for (const o of this.overlays) if (o.isActive) this.onMarkerFound(o.restaurantId)
+    const handed = new Set<string>()
+    for (const o of this.overlays) {
+      if (!o.isActive || handed.has(o.restaurantId)) continue
+      handed.add(o.restaurantId)
+      this.onMarkerFound(o.restaurantId)
+    }
     for (const p of this.products) if (p.isActive) this.onProductFound(p.barcode)
     this.recheckActive()
   }
@@ -1012,12 +1018,24 @@ export class AllergyLensMain extends BaseScriptComponent {
     }
   }
 
+  /** The overlay drawing a page: the one tracking it if any (two markers can describe one page), else the first. */
+  private overlayFor(restaurantId: string): AllergyLensMenuOverlayUI | undefined {
+    const mine = this.overlays.filter((o) => o.restaurantId === restaurantId)
+    return mine.find((o) => o.isActive) ?? mine[0]
+  }
+
   private anyMarkerActive(): boolean {
     return this.overlays.some((o) => o.isActive) || this.products.some((p) => p.isActive)
   }
 
   // ── Marker lifecycle ───────────────────────────────────────────────────
-  private onMarkerFound(restaurantId: string): void {
+  private onMarkerFound(restaurantId: string, source?: AllergyLensMenuOverlayUI): void {
+    // Two markers can describe one page (print + design file). The first one to lock owns the page; a second
+    // lock on the same page draws nothing, so marks never double up.
+    if (source && this.overlays.some((o) => o !== source && o.restaurantId === restaurantId && o.isActive)) {
+      print(`AllergyLens: ${restaurantId} is already tracked by its other marker — this one stays quiet`)
+      return
+    }
     // While the profile is being set up, the page waits: no marks, no voice line, the panel stays. The moment
     // Done is pinched the pages in view are picked up (see onProfileDone), which is the hand-over from
     // "set up your profile" to "look at the menu".
@@ -1118,8 +1136,14 @@ export class AllergyLensMain extends BaseScriptComponent {
     return Promise.race([call, timeout])
   }
 
-  private onMarkerLost(restaurantId: string): void {
+  private onMarkerLost(restaurantId: string, source?: AllergyLensMenuOverlayUI): void {
     print(`AllergyLens: menu lost — ${restaurantId}`)
+    // The page's other marker may still hold it: hand the marks over instead of dropping them.
+    const twin = source ? this.overlays.find((o) => o !== source && o.restaurantId === restaurantId && o.isActive) : undefined
+    if (twin) {
+      this.runCheck(restaurantId)
+      return
+    }
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
     if (!this.anyMarkerActive()) {
       this.buttonShowTimer?.reset(1.0)
@@ -1534,7 +1558,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   private runCheck(restaurantId: string): void {
-    const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
+    const overlay = this.overlayFor(restaurantId)
     const restaurant = getRestaurant(restaurantId)
     if (!overlay || !restaurant) return
     const results = checkMenu(restaurant.dishes, this.profile, this.allergens())
@@ -1595,7 +1619,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       return
     }
     const restaurant = getRestaurant(restaurantId)
-    const overlay = this.overlays.find((o) => o.restaurantId === restaurantId)
+    const overlay = this.overlayFor(restaurantId)
     const dish = restaurant?.dishes.find((d) => d.id === dishId)
     if (!restaurant || !overlay || !dish) return
     this.openDish = {restaurantId, dishId}

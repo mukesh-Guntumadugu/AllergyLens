@@ -30,8 +30,11 @@ const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
  * that is not authored in the scene. Adding a restaurant = one photo
  * through tools/scrape/page_from_video.py + ocr, its data/menus.json entry, and a line here.
  */
-export const MENU_MARKERS: {[restaurantId: string]: {marker: MarkerAsset; texture: Texture}} = {
+export const MENU_MARKERS: {[key: string]: {marker: MarkerAsset; texture: Texture; restaurantId?: string}} = {
+  // Laurel has two markers for one page: the printed page flattened from the phone clip (locks on that footage and
+  // aligns best there) and the crisp design file (what a live camera matches). `restaurantId` points both at the data.
   "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
+  "laurel-cafe-design": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe-design.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-design.png") as Texture, restaurantId: "laurel-cafe"},
   "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
   "chinese-menu": {marker: requireAsset("../Markers/MenuMarker-chinese-menu.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/chinese-menu-menu-1.png") as Texture},
   // "kitchen-section" has data and a marker asset, but the only frame of it is too blurry (sharpness 823 vs 2150 for the
