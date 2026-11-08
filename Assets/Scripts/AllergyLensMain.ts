@@ -306,7 +306,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       so.setParent(this.markersRoot)
       const tracker = so.createComponent("Component.MarkerTrackingComponent") as MarkerTrackingComponent
       tracker.marker = def.marker
-      AllergyLensMenuOverlayUI.pending = {restaurantId, texture: def.texture}
+      AllergyLensMenuOverlayUI.pending = {restaurantId, texture: def.texture, mirrored: !!def.mirrored}
       const overlay = so.createComponent(AllergyLensMenuOverlayUI.getTypeName()) as AllergyLensMenuOverlayUI
       AllergyLensMenuOverlayUI.pending = null
       bindOverlay(overlay)
@@ -320,7 +320,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     })()
     const bindProduct = (overlay: AllergyLensProductOverlayUI) => {
       this.products.push(overlay)
-      overlay.onFound.add((b) => this.onProductFound(b))
+      overlay.onFound.add((b) => this.onProductFound(b, overlay))
       overlay.onLost.add((b) => this.onProductLost(b))
       overlay.onPinched.add((b) => this.onProductPinched(b))
     }
@@ -328,10 +328,11 @@ export class AllergyLensMain extends BaseScriptComponent {
       const overlay = productsRoot.getChild(i).getComponent(AllergyLensProductOverlayUI.getTypeName()) as AllergyLensProductOverlayUI | null
       if (overlay) bindProduct(overlay)
     }
-    for (const barcode of Object.keys(PRODUCT_MARKERS)) {
-      if (this.products.some((p) => p.barcode === barcode)) continue
-      const def = PRODUCT_MARKERS[barcode]
-      const so = global.scene.createSceneObject(`ProductMarker-${barcode}`)
+    for (const key of Object.keys(PRODUCT_MARKERS)) {
+      const def = PRODUCT_MARKERS[key]
+      const barcode = def.barcode ?? key
+      if (!def.barcode && this.products.some((p) => p.barcode === barcode)) continue // authored already
+      const so = global.scene.createSceneObject(`ProductMarker-${key}`)
       so.setParent(productsRoot)
       const tracker = so.createComponent("Component.MarkerTrackingComponent") as MarkerTrackingComponent
       tracker.marker = def.marker
@@ -1024,6 +1025,12 @@ export class AllergyLensMain extends BaseScriptComponent {
     return mine.find((o) => o.isActive) ?? mine[0]
   }
 
+  /** The product overlay drawing a label: the one tracking it if any (a label can have a mirrored marker too). */
+  private productFor(barcode: string): AllergyLensProductOverlayUI | undefined {
+    const mine = this.products.filter((p) => p.barcode === barcode)
+    return mine.find((p) => p.isActive) ?? mine[0]
+  }
+
   private anyMarkerActive(): boolean {
     return this.overlays.some((o) => o.isActive) || this.products.some((p) => p.isActive)
   }
@@ -1505,7 +1512,8 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   // ── Products ───────────────────────────────────────────────────────────
-  private onProductFound(barcode: string): void {
+  private onProductFound(barcode: string, source?: AllergyLensProductOverlayUI): void {
+    if (source && this.products.some((p) => p !== source && p.barcode === barcode && p.isActive)) return // the other marker has it
     if (this.profilePanel.getSceneObject().enabled) {
       print(`AllergyLens: product in view (${barcode}) — waiting for the profile to finish`)
       return
@@ -1524,7 +1532,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   }
 
   private runProductCheck(barcode: string): void {
-    const overlay = this.products.find((p) => p.barcode === barcode)
+    const overlay = this.productFor(barcode)
     const product = getProduct(barcode)
     if (!overlay || !product) return
     const result = checkProduct(product, this.profile, this.allergens())
@@ -1544,7 +1552,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       this.closeDetail()
       return
     }
-    const overlay = this.products.find((p) => p.barcode === barcode)
+    const overlay = this.productFor(barcode)
     const product = getProduct(barcode)
     const result = this.productResults.get(barcode)
     if (!overlay || !product || !result) return

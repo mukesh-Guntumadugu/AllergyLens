@@ -444,6 +444,16 @@ TESTING.md                  manual test guide
    at once and none while the page moves. The spoken line is "Menu
    recognised. Point at a dish to check it. Pinch for details."
 
+   **Live camera (the real demo).** The Preview panel's webcam mode uses the
+   Mac's camera as the live feed: pick it in the panel's top bar. The feed
+   is mirrored like a selfie whatever the camera-view setting says, so every
+   page and the product also have a horizontally mirrored marker; the
+   mirrored copy matches the mirrored feed and the overlay mirrors its line
+   positions. On the glasses only the unmirrored markers ever match. Hold
+   the page flat and facing the camera, about 30 cm away, filling most of
+   the frame, still for two seconds. The Mac microphone is the Lens's voice
+   input once the mic button is on.
+
    **Use the recording as it is.** The whole phone video, full frame, with
    its sound, is the preview source: `data/menus/menus-2026-11-07.mp4`
    (Chinese Menu, Kitchen Section, Laurel Café, 53 s) and

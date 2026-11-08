@@ -30,15 +30,23 @@ const STAR_TEX = requireAsset("../Icons/star_rate.png") as Texture
  * that is not authored in the scene. Adding a restaurant = one photo
  * through tools/scrape/page_from_video.py + ocr, its data/menus.json entry, and a line here.
  */
-export const MENU_MARKERS: {[key: string]: {marker: MarkerAsset; texture: Texture; restaurantId?: string}} = {
-  // Laurel has two markers for one page: the printed page flattened from the phone clip (locks on that footage and
-  // aligns best there) and the crisp design file (what a live camera matches). `restaurantId` points both at the data.
+export const MENU_MARKERS: {[key: string]: {marker: MarkerAsset; texture: Texture; restaurantId?: string; mirrored?: boolean}} = {
+  // Several markers can describe one page (`restaurantId` points them at the data): Laurel has the printed page
+  // flattened from the phone clip (locks on that footage) and the crisp design file (what a live camera matches).
+  // Every page also has a horizontally MIRRORED marker: Lens Studio's webcam preview shows the camera mirrored
+  // like a selfie, and a marker can only match a page the right way round — the mirrored copy matches that feed
+  // and the overlay mirrors its line positions (`mirrored`). On the glasses only the unmirrored ones ever match.
   "laurel-cafe": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1.png") as Texture},
   "laurel-cafe-design": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe-design.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-design.png") as Texture, restaurantId: "laurel-cafe"},
+  "laurel-cafe-mirror": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe-mirror.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-menu-1-mirror.png") as Texture, restaurantId: "laurel-cafe", mirrored: true},
+  "laurel-cafe-design-mirror": {marker: requireAsset("../Markers/MenuMarker-laurel-cafe-design-mirror.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/laurel-cafe-design-mirror.png") as Texture, restaurantId: "laurel-cafe", mirrored: true},
   "tatlilar": {marker: requireAsset("../Markers/MenuMarker-tatlilar.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/tatlilar-menu-1.png") as Texture},
   "chinese-menu": {marker: requireAsset("../Markers/MenuMarker-chinese-menu.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/chinese-menu-menu-1.png") as Texture},
-  // "kitchen-section" has data and a marker asset, but the only frame of it is too blurry (sharpness 823 vs 2150 for the
-  // Chinese page): as a marker it false-matches the Chinese Menu and paints its grid there. Re-enable with a sharp photo.
+  "chinese-menu-mirror": {marker: requireAsset("../Markers/MenuMarker-chinese-menu-mirror.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/chinese-menu-menu-1-mirror.png") as Texture, restaurantId: "chinese-menu", mirrored: true},
+  // The Kitchen Section marker comes from a blurry frame and once false-matched the Chinese page on the phone clip;
+  // it is on for the live camera because the user holds that page up.
+  "kitchen-section": {marker: requireAsset("../Markers/MenuMarker-kitchen-section.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/kitchen-section-menu-1.png") as Texture},
+  "kitchen-section-mirror": {marker: requireAsset("../Markers/MenuMarker-kitchen-section-mirror.imgmarker") as MarkerAsset, texture: requireAsset("../Markers/kitchen-section-menu-1-mirror.png") as Texture, restaurantId: "kitchen-section", mirrored: true},
 }
 const SQUARE_GLYPH_COVERAGE = 0.75 // the glyph fills 18/24 of its canvas
 const imageMaterial = requireAsset("../Materials/ImageMaterial.mat") as Material
@@ -111,7 +119,9 @@ const FADE_SEC = 0.4
 @component
 export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   /** Set by Main right before createComponent so a runtime-created overlay knows its restaurant (inputs are at defaults then). */
-  static pending: {restaurantId: string; texture: Texture} | null = null
+  static pending: {restaurantId: string; texture: Texture; mirrored?: boolean} | null = null
+  /** This marker is the mirror image of the page (webcam preview): line positions are mirrored to match. */
+  private mirrored = false
 
   @ui.label('<span style="color: #60A5FA;">AllergyLensMenuOverlayUI – highlights + badge on a tracked real menu</span>')
   @ui.separator
@@ -259,6 +269,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     if (pending) {
       this.restaurantId = pending.restaurantId
       this.pageTexture = pending.texture
+      this.mirrored = !!pending.mirrored
       AllergyLensMenuOverlayUI.pending = null
     } else if (MENU_MARKERS[this.restaurantId]) {
       this.pageTexture = MENU_MARKERS[this.restaurantId].texture
@@ -588,7 +599,8 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     } else if (bar.noteText) {
       bar.noteText.text = bar.note
     }
-    bar.noteRoot.getTransform().setLocalPosition(new vec3(-lineW / 2 + W / 2, -lineH / 2 - gap - thick - 0.25 - H / 2, 0.35))
+    const startX = (this.mirrored ? 1 : -1) * (lineW / 2 - W / 2) // left-aligned with the (possibly mirrored) name
+    bar.noteRoot.getTransform().setLocalPosition(new vec3(startX, -lineH / 2 - gap - thick - 0.25 - H / 2, 0.35))
     bar.noteRoot.enabled = true
   }
 
@@ -683,7 +695,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const lineH = L.h * this.heightCm
     const w = lineW + this.barPaddingCm
     const h = lineH + this.barPaddingCm
-    const x = (L.x + L.w / 2 - 0.5) * this.widthCm
+    const x = (L.x + L.w / 2 - 0.5) * this.widthCm * (this.mirrored ? -1 : 1)
     const y = (0.5 - (L.y + L.h / 2)) * this.heightCm
     // Wrapper (unit scale) owns the collider + Interactable; every visual is a child.
     const root = UI.obj(this.barsRoot!, `Bar-${dish.id}`, new vec3(x, y, 0.3))

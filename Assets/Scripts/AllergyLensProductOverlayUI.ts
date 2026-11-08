@@ -28,7 +28,7 @@ const FRAME_THICKNESS = 0.3
 const FADE_SEC = 0.4
 
 /** Label markers bundled with the Lens, by barcode. Main creates a ProductMarker object per entry at start. */
-export const PRODUCT_MARKERS: {[barcode: string]: {marker: MarkerAsset; texture: Texture; heightCm: number}} = {
+export const PRODUCT_MARKERS: {[key: string]: {marker: MarkerAsset; texture: Texture; heightCm: number; barcode?: string}} = {
   "0051500255162": {
     marker: requireAsset("../Markers/ProductMarker-0051500255162.imgmarker") as MarkerAsset,
     texture: requireAsset("../Markers/product-0051500255162.png") as Texture,
@@ -38,6 +38,13 @@ export const PRODUCT_MARKERS: {[barcode: string]: {marker: MarkerAsset; texture:
     marker: requireAsset("../Markers/ProductMarker-7eleven-gummi-worms.imgmarker") as MarkerAsset,
     texture: requireAsset("../Markers/product-7eleven-gummi-worms.png") as Texture,
     heightCm: 15, // the Nutrition Facts panel on the back of the bag
+  },
+  "7eleven-gummi-worms-mirror": {
+    // mirror image for Lens Studio's mirrored webcam preview (the outline is symmetric, so nothing else changes)
+    marker: requireAsset("../Markers/ProductMarker-7eleven-gummi-worms-mirror.imgmarker") as MarkerAsset,
+    texture: requireAsset("../Markers/product-7eleven-gummi-worms-mirror.png") as Texture,
+    heightCm: 15,
+    barcode: "7eleven-gummi-worms",
   },
 }
 
