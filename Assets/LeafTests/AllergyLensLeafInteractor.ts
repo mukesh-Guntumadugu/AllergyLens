@@ -288,16 +288,21 @@ export class AllergyLensLeafInteractor extends DefaultLeafInteractor {
     if (!b.full || !b.star || b.underline || b.dot) throw new Error(`Bar-${dishId}: expected green full line + star, got ${JSON.stringify(b)}`)
   }
 
-  /** contains → thick red underline, never a full line or a dot. */
+  /** contains → nothing drawn, line still pinchable (rule since 2026-11-08: mark only what is safe). */
   expectRed(dishId: string): void {
-    const b = this.expectTint(dishId, "red", AllergyLensLeafInteractor.isRed)
-    if (!b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected a red underline, got ${JSON.stringify(b)}`)
+    this.expectQuiet(dishId, "contains")
   }
 
-  /** unverified → thin amber underline only. */
+  /** unverified → nothing drawn, line still pinchable. */
   expectAmber(dishId: string): void {
-    const b = this.expectTint(dishId, "amber", AllergyLensLeafInteractor.isAmber)
-    if (!b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: expected an amber underline only, got ${JSON.stringify(b)}`)
+    this.expectQuiet(dishId, "unverified")
+  }
+
+  private expectQuiet(dishId: string, what: string): void {
+    const b = this.bar(dishId)
+    if (!b.exists) throw new Error(`Bar-${dishId}: no bar`)
+    if (!b.shown) throw new Error(`Bar-${dishId}: a ${what} dish must stay pinchable (bar enabled), but it is hidden`)
+    if (b.underline || b.dot || b.full || b.star) throw new Error(`Bar-${dishId}: a ${what} dish must draw nothing, got ${JSON.stringify(b)}`)
   }
 
   expectUnmarked(dishId: string): void {

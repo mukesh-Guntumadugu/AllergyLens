@@ -410,6 +410,16 @@ TESTING.md                  manual test guide
    page is in view, back out, still again at the end. Drop the file in
    `data/menus/laurel-cafe/` and open it the same way.
 
+   **What gets a mark (rule of 2026-11-08).** Only dishes that are safe for
+   the profile get a line: a pen-thin light green underline under the printed
+   name. Dishes that contain something, or that are unverified, draw nothing
+   but stay pinchable, so a pinch still opens the card that says why. Never
+   more than ten lines at once: the ten nearest the centre of the view,
+   re-chosen every half second. No lines while the page moves or turns; they
+   fade back about a third of a second after it holds still, because the
+   tracker's pose lags on a moving page and lines drawn then land beside the
+   text. The chip keeps the count ("8 of 28 safe").
+
    **Use the recording as it is.** The whole phone video, full frame, with
    its sound, is the preview source: `data/menus/menus-2026-11-07.mp4`
    (Chinese Menu, Kitchen Section, Laurel Café, 53 s) and

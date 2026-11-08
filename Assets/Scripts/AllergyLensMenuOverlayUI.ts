@@ -53,7 +53,8 @@ export interface BarPinchEvent {
  *   underline-contains thin red underline at the baseline + red dot
  *   star-safe          soft green full-line highlight + green star ("order this")
  */
-export type MarkStyle = "none" | "dot-safe" | "dot-unverified" | "underline-contains" | "star-safe"
+export type MarkStyle = "none" | "quiet" | "dot-safe" | "dot-unverified" | "underline-contains" | "star-safe"
+// "quiet": nothing drawn, but the line keeps its pinch target (risky dishes under the "mark only what is safe" rule).
 
 export interface DishMark {
   dishId: string
@@ -75,6 +76,7 @@ interface Bar {
   starMat: Material
   style: MarkStyle
   inCategory: boolean
+  picked: boolean // among the MAX_MARKS nearest the view centre (drawn); unpicked lines stay pinchable
   /** page-local centre + size in cm */
   x: number
   y: number
@@ -85,6 +87,10 @@ interface Bar {
 const FULL_ALPHA = 0.35
 const UNDERLINE_ALPHA = 0.6 // light enough that the printed line above it stays readable
 const CONTAINS_ALPHA = 0.75
+const MAX_MARKS = 10 // never more lines than this at once; the ten nearest to where the user looks
+const STEADY_SEC = 0.3 // the page must hold still this long before lines are drawn
+const MOVE_CM_PER_S = 10
+const TURN_DEG_PER_S = 25
 const DOT_ALPHA = 0.8
 const DOT_SIZE = 0.5
 const STAR_SIZE = 0.9
@@ -164,6 +170,12 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private _active = false
   private fade = 0
   private fadeTarget = 0
+  /** 1 while the page holds still, 0 while it moves or turns: lines are not drawn on a moving page. */
+  private motionGate = 1
+  private steadyFor = 0
+  private lastPos: vec3 | null = null
+  private lastRot: quat | null = null
+  private pickTimer = 0
   private moodLabel: string | null = null
   private arrowRoot: SceneObject | null = null
   private arrowText: Text | null = null
@@ -359,6 +371,11 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private handleFound(): void {
     this.hideTimer?.cancel()
     this._active = true
+    this.lastPos = null
+    this.lastRot = null
+    this.steadyFor = 0
+    this.motionGate = 0
+    this.pickTimer = 0
     this.setShown(true)
     if (!this.simulated) this.showPage(false) // the camera sees the real page
     this.fadeTarget = 1 // fade the marks in (~0.4 s)
@@ -418,7 +435,64 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
         this.viewCheckTimer = 0.2
         this.updateArrow(false)
       }
+      this.trackMotion(dt)
     }
+  }
+
+  /**
+   * A moving or turning page gets no lines: the tracker's pose lags and the marks would scribble beside
+   * the text. Lines fade out at once when the page moves and come back ~0.3 s after it holds still; the
+   * ten nearest the view centre are chosen then (and re-chosen every half second while steady).
+   */
+  private trackMotion(dt: number): void {
+    const t = this.sceneObject.getTransform()
+    const pos = t.getWorldPosition()
+    const rot = t.getWorldRotation()
+    let moving = false
+    if (this.lastPos && this.lastRot && dt > 0) {
+      const speed = pos.distance(this.lastPos) / dt
+      const turn = (quat.angleBetween(this.lastRot, rot) * 180) / Math.PI / dt
+      moving = speed > MOVE_CM_PER_S || turn > TURN_DEG_PER_S
+    }
+    this.lastPos = pos
+    this.lastRot = rot
+    this.steadyFor = moving ? 0 : this.steadyFor + dt
+    const target = this.steadyFor >= STEADY_SEC ? 1 : 0
+    const before = this.motionGate
+    this.motionGate = target > this.motionGate ? Math.min(1, this.motionGate + dt / 0.35) : Math.max(0, this.motionGate - dt / 0.12)
+    if (this.motionGate !== before) this.applyFade()
+    if (target === 1) {
+      this.pickTimer -= dt
+      if (this.pickTimer <= 0 || before === 0) {
+        this.pickTimer = 0.5
+        this.pickNearest()
+      }
+    }
+  }
+
+  /** Draw at most MAX_MARKS lines: the drawn-style bars nearest the view centre. The rest stay pinchable. */
+  private pickNearest(): void {
+    const drawn = this.bars.filter((b) => b.style !== "none" && b.style !== "quiet")
+    const scored = drawn.map((b) => {
+      const lp = b.root.getTransform().getLocalPosition()
+      const sp = this.screenPointOfLocal(lp.x, lp.y)
+      const d = sp ? Math.hypot(sp.x - 0.5, sp.y - 0.5) : 9
+      return {b, d}
+    })
+    scored.sort((a, c) => a.d - c.d)
+    let changed = false
+    scored.forEach((e, i) => {
+      const pick = i < MAX_MARKS
+      if (e.b.picked !== pick) {
+        e.b.picked = pick
+        changed = true
+      }
+    })
+    if (changed) for (const e of scored) this.applyStyle(e.b)
+  }
+
+  private alpha(): number {
+    return this.fade * this.motionGate
   }
 
   private tintFor(style: MarkStyle): vec3 {
@@ -440,10 +514,10 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const s = bar.style
     const marked = s !== "none"
     bar.root.enabled = marked && this._active
-    bar.full.enabled = s === "star-safe"
-    bar.underline.enabled = s === "underline-contains" || s === "dot-safe" || s === "dot-unverified"
+    bar.full.enabled = s === "star-safe" && bar.picked
+    bar.underline.enabled = (s === "underline-contains" || s === "dot-safe" || s === "dot-unverified") && bar.picked
     bar.dot.enabled = false
-    bar.star.enabled = s === "star-safe"
+    bar.star.enabled = s === "star-safe" && bar.picked
     // A pen-thin line under the printed name, never on it: the point is that the text stays readable.
     // Red ("contains") is a little heavier; colour tells the rest. A clear gap below the glyph box
     // keeps the line off the text even when the tracker is a millimetre or two high.
@@ -456,21 +530,29 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     bar.underline.getTransform().setLocalScale(new vec3((lineW + 0.3) / SQUARE_GLYPH_COVERAGE, thick / SQUARE_GLYPH_COVERAGE, 1))
     const t = this.tintFor(s)
     const u = this.underlineTint(s)
-    bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.fade)
-    bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.fade)
-    bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.fade)
-    bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.fade)
+    bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.alpha())
+    bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(s) * this.alpha())
+    bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.alpha())
+    bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.alpha())
   }
 
   private applyFade(): void {
     for (const bar of this.bars) {
       const t = this.tintFor(bar.style)
       const u = this.underlineTint(bar.style)
-      bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.fade)
-      bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(bar.style) * this.fade)
-      bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.fade)
-      bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.fade)
+      bar.fullMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, FULL_ALPHA * this.alpha())
+      bar.underlineMat.mainPass.baseColor = new vec4(u.x, u.y, u.z, this.underlineAlpha(bar.style) * this.alpha())
+      bar.dotMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, DOT_ALPHA * this.alpha())
+      bar.starMat.mainPass.baseColor = new vec4(t.x, t.y, t.z, this.alpha())
     }
+  }
+
+  /** Screen point (0..1, 0..1) of a page-local point, via the main camera. */
+  private screenPointOfLocal(x: number, y: number): vec2 | null {
+    const cam = WorldCameraFinderProvider.getInstance().getComponent()
+    if (!cam) return null
+    const world = this.sceneObject.getTransform().getWorldTransform().multiplyPoint(new vec3(x, y, 0.3))
+    return cam.worldSpaceToScreenSpace(world)
   }
 
   /** Screen x (0..1) of a page-local point, via the main camera. */
@@ -490,7 +572,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
   private updateArrow(force: boolean): void {
     if (!this.arrowRoot || !this.arrowText || !this.arrowPlate) return
     const want = this.moodLabel !== null && this._active
-    const lines = want ? this.bars.filter((b) => b.inCategory && b.style !== "none") : []
+    const lines = want ? this.bars.filter((b) => b.inCategory && b.style !== "none" && b.style !== "quiet") : []
     if (lines.length === 0) {
       this.showArrow(false, "")
       return
@@ -567,7 +649,7 @@ export class AllergyLensMenuOverlayUI extends BaseScriptComponent {
     const star = this.quad(root, "Star", endX + 0.1, 0, STAR_SIZE, STAR_SIZE, STAR_TEX, 1)
     root.enabled = false
     return {
-      dish, root, style: "none", inCategory: false,
+      dish, root, style: "none", inCategory: false, picked: true,
       full: full.so, fullMat: full.mat,
       underline: underline.so, underlineMat: underline.mat,
       dot: dot.so, dotMat: dot.mat,

@@ -1441,9 +1441,10 @@ export class AllergyLensMain extends BaseScriptComponent {
       const inCategory = !everything && !!dish && dishCategory(dish) === this.mood
       let style: MarkStyle = "none"
       if (everything) {
-        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "dot-safe" : "none"
+        // The user's rule: mark only what is safe. Risky and unverified dishes draw nothing but stay pinchable.
+        style = r.verdict === "safe" ? "dot-safe" : r.verdict === "contains" || r.verdict === "unverified" ? "quiet" : "none"
       } else if (inCategory) {
-        style = r.verdict === "contains" ? "underline-contains" : r.verdict === "unverified" ? "dot-unverified" : r.verdict === "safe" ? "star-safe" : "none"
+        style = r.verdict === "safe" ? "star-safe" : r.verdict === "contains" || r.verdict === "unverified" ? "quiet" : "none"
         if (r.verdict === "safe") safeInCategory++
       }
       marks.push({dishId: r.dishId, style, inCategory})
@@ -1468,7 +1469,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     const badgeText = candidates.find((c) => c.length <= capacity) ?? candidates[candidates.length - 1]
     overlay.setBadge(badge.level, badgeText)
     const by = (v: string) => results.filter((r) => r.verdict === v).length
-    print(`AllergyLens: check ${restaurantId} (${this.mood}) — contains ${by("contains")}, unverified ${by("unverified")}, safe ${by("safe")}; marked ${marks.filter((m) => m.style !== "none").length}; badge ${badge.level}`)
+    print(`AllergyLens: check ${restaurantId} (${this.mood}) — contains ${by("contains")}, unverified ${by("unverified")}, safe ${by("safe")}; marked ${marks.filter((m) => m.style !== "none" && m.style !== "quiet").length}; badge ${badge.level}`)
     if (this.openDish && this.openDish.restaurantId === restaurantId) this.closeDetail()
   }
 
