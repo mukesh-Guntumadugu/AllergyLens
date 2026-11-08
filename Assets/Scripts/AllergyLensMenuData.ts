@@ -145,8 +145,15 @@ export function restaurantsWithMenuImage(): RestaurantDef[] {
 }
 
 /** Replace the bundled list (e.g. with a fetched menus.json). Pass a validated list. */
+/**
+ * Take a downloaded restaurant list, but never lose a bundled one: the menus compiled into the Lens (the ones
+ * with tracking markers, e.g. a page the user filmed today) stay, and win over a server entry with the same id.
+ * Without this the server list replaced them two seconds after start, and a recognised page had no data to draw.
+ */
 export function setRestaurants(restaurants: RestaurantDef[]): void {
-  if (restaurants.length > 0) activeRestaurants = restaurants
+  if (restaurants.length === 0) return
+  const bundledIds = new Set(RESTAURANTS.map((r) => r.id))
+  activeRestaurants = [...RESTAURANTS, ...restaurants.filter((r) => !bundledIds.has(r.id))]
 }
 
 /**
