@@ -439,6 +439,15 @@ TESTING.md                  manual test guide
    tracker's pose lags on a moving page and lines drawn then land beside the
    text. The chip keeps the count ("8 of 28 safe").
 
+   **Live camera (the real demo).** The Preview panel's webcam mode uses the
+   Mac's camera as the live feed: pick it in the panel's top bar and set the
+   camera view to **Back** (the Front view is mirrored like a selfie and the
+   tracker cannot match a mirrored page). Hold the printed menu or the
+   product about 40 cm from the camera, filling about two thirds of the
+   frame, steady. The Mac microphone is the Lens's voice input, so the whole
+   flow runs live: profile by voice, Done, the page recognised, marks, pinch
+   with the mouse. Your own voice is the audio.
+
    **Use the recording as it is.** The whole phone video, full frame, with
    its sound, is the preview source: `data/menus/menus-2026-11-07.mp4`
    (Chinese Menu, Kitchen Section, Laurel Café, 53 s) and
