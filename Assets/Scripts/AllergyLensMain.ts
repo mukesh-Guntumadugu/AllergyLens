@@ -15,6 +15,7 @@ import {AllergyLensProfileUI} from "./AllergyLensProfileUI"
 import {AllergyLensProfileButtonUI} from "./AllergyLensProfileButtonUI"
 import {AllergyLensDishDetailUI} from "./AllergyLensDishDetailUI"
 import {AllergyLensMenuOverlayUI, DishMark, MarkStyle, MENU_MARKERS} from "./AllergyLensMenuOverlayUI"
+import * as UI from "./AllergyLensSharedUI"
 import {AllergyLensProductOverlayUI, PRODUCT_MARKERS} from "./AllergyLensProductOverlayUI"
 import {AllergyLensAudio} from "./AllergyLensAudio"
 import {ALLERGENS, AllergenDef, AllergenGroup, GROUP_LABELS, MOODS, Mood, RestaurantDef, dishCategory, getProduct, getRestaurant, moodLabel, setRestaurants, validateMenus} from "./AllergyLensMenuData"
@@ -192,6 +193,10 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelHome: {pos: vec3; scale: vec3} | null = null
   /** Head-locked UI scale: 1 on the glasses, larger in a wide-angle preview (see applyUiScale). */
   private uiScale = 1
+  /** Dark backdrop that fills the view while the profile is being set up; fades out on Done to reveal the page. */
+  private backdropImg: Image | null = null
+  private backdropAlpha = 0
+  private backdropTarget = 0
   private uiScaleApplied = false
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
@@ -219,6 +224,7 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.createEvent("UpdateEvent").bind(() => {
       this.applyUiScale() // the view can change without a Lens reset (preview source, window)
       this.tickPanelTween()
+      this.tickBackdrop()
     })
   }
 
@@ -366,6 +372,8 @@ export class AllergyLensMain extends BaseScriptComponent {
     const panelAtStart = this.showProfileAtStart && this.profile.isEmpty && !restored
     this.profilePanel.getSceneObject().enabled = panelAtStart
     this.profileButton.getSceneObject().enabled = !panelAtStart
+    this.buildBackdrop()
+    if (panelAtStart) this.setBackdrop(1, true)
     try {
       global.userContextSystem.requestDisplayName((name: string) => this.profilePanel.setDisplayName(name))
     } catch (e) {
@@ -687,6 +695,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   /** Done: the panel shrinks and slides to where the Profile button lives, then the button takes over. */
   private dismissPanel(): void {
     if (this.panelTween) return
+    this.setBackdrop(0, false)
     this.rememberPanelHome()
     const panelSO = this.profilePanel.getSceneObject()
     const t = this.profilePanel.getTransform()
@@ -704,6 +713,7 @@ export class AllergyLensMain extends BaseScriptComponent {
 
   /** Reopen: out of the button's spot back to its place in front of the user. */
   private presentPanel(): void {
+    this.setBackdrop(1, false)
     this.rememberPanelHome()
     const panelSO = this.profilePanel.getSceneObject()
     const t = this.profilePanel.getTransform()
@@ -808,6 +818,55 @@ export class AllergyLensMain extends BaseScriptComponent {
    * 9 cm right and 8 cm down keep the whole 7 cm icon inside the view (≈13° off centre with the icon's
    * edge; the preview shows about ±15°, the glasses a little more). Further out it is cut off.
    */
+  /**
+   * The transition the user asked for: profile set-up happens on a plain dark grey backdrop, not over the
+   * menu; pinching Done fades the backdrop out (~0.6 s) and the live view with its marks is revealed. The
+   * backdrop is a head-locked quad 1.5 m out, behind the panel and the Profile icon, in front of the world.
+   */
+  private buildBackdrop(): void {
+    if (this.backdropImg) return
+    try {
+      const cam = WorldCameraFinderProvider.getInstance().getComponent()
+      const so = global.scene.createSceneObject("ProfileBackdrop")
+      so.setParent(cam.getSceneObject())
+      so.getTransform().setLocalPosition(new vec3(0, 0, -150))
+      so.getTransform().setLocalRotation(quat.quatIdentity())
+      const tex = ProceduralTextureProvider.create(2, 2, Colorspace.RGBA)
+      const px = new Uint8Array(16)
+      px.fill(255)
+      ;(tex.control as ProceduralTextureProvider).setPixels(0, 0, 2, 2, px)
+      this.backdropImg = UI.addImage(so, tex, 900, 900, new vec4(0.07, 0.08, 0.09, 0), false)
+      so.enabled = false
+    } catch (e) {
+      print(`AllergyLens: no backdrop (${e})`)
+    }
+  }
+
+  private setBackdrop(target: number, immediate: boolean): void {
+    this.backdropTarget = target
+    if (immediate) {
+      this.backdropAlpha = target
+      this.paintBackdrop()
+    } else if (target > 0 && this.backdropImg) {
+      this.backdropImg.getSceneObject().enabled = true
+    }
+  }
+
+  private tickBackdrop(): void {
+    if (!this.backdropImg || this.backdropAlpha === this.backdropTarget) return
+    const dt = Math.min(0.1, getDeltaTime())
+    const step = dt / (this.backdropTarget > this.backdropAlpha ? 0.3 : 0.6)
+    this.backdropAlpha = this.backdropTarget > this.backdropAlpha ? Math.min(this.backdropTarget, this.backdropAlpha + step) : Math.max(this.backdropTarget, this.backdropAlpha - step)
+    this.paintBackdrop()
+  }
+
+  private paintBackdrop(): void {
+    if (!this.backdropImg) return
+    const so = this.backdropImg.getSceneObject()
+    so.enabled = this.backdropAlpha > 0.001
+    this.backdropImg.mainPass.baseColor = new vec4(0.07, 0.08, 0.09, 0.9 * this.backdropAlpha)
+  }
+
   private buttonTarget(): {pos: vec3; rot: quat} {
     const cam = WorldCameraFinderProvider.getInstance().getTransform()
     const rot = cam.getWorldRotation()

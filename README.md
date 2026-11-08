@@ -410,6 +410,12 @@ TESTING.md                  manual test guide
    page is in view, back out, still again at the end. Drop the file in
    `data/menus/laurel-cafe/` and open it the same way.
 
+   **Set-up on a dark backdrop, then the reveal.** While the profile panel
+   is open a head-locked dark grey backdrop fills the view, so the menu
+   behind is not the subject yet; pinching Done fades it out in about half
+   a second and the live view with its marks is revealed. Reopening the
+   profile from the icon brings it back.
+
    **Profile first, then the page.** While the profile panel is open the
    Lens does not react to menus or products in view: no marks, no voice
    line, the panel stays until Done. The moment Done is pinched, whatever
