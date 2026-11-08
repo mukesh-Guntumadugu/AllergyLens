@@ -192,10 +192,6 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelHome: {pos: vec3; scale: vec3} | null = null
   /** Head-locked UI scale: 1 on the glasses, larger in a wide-angle preview (see applyUiScale). */
   private uiScale = 1
-  /** Where the Profile icon sits in the view (cm right / up of the gaze line at 55 cm, at glasses scale). The user
-   *  moves it by pinching and dragging; it then keeps that spot. */
-  private buttonOffset = {right: 9, up: -8}
-  private buttonDragging = false
   private uiScaleApplied = false
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
@@ -267,13 +263,6 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.profilePanel.setSpeaking(!!this.speech && !this.speech.muted)
     this.profilePanel.onDone.add(() => this.onProfileDone())
     this.profileButton.onProfile.add(() => this.openProfile())
-    this.profileButton.onDragStart.add(() => {
-      this.buttonDragging = true
-    })
-    this.profileButton.onDrag.add((d) => this.dragProfileButton(d))
-    this.profileButton.onDragEnd.add(() => {
-      this.buttonDragging = false
-    })
     this.dishDetail.onClose.add(() => this.closeDetail())
 
     // Discover the marker overlays from the authored Markers group (one per real menu), then
@@ -824,33 +813,10 @@ export class AllergyLensMain extends BaseScriptComponent {
     const right = rot.multiplyVec3(new vec3(1, 0, 0))
     // 9 cm right, 8 cm down at 55 cm is the lower-right corner of the glasses' view; scale the offset with the UI
     // so the button keeps that corner in a wider preview instead of sitting in the middle of the picture.
+    // The icon itself is a child of this group: pinch-and-drag (SIK manipulation) moves the child, so the place
+    // the user puts it becomes a local offset that rides along with the group.
     const k = this.uiScale
-    const o = this.buttonOffset
-    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(o.right * k)).add(up.uniformScale(o.up * k)), rot}
-  }
-
-  /**
-   * Pinch-and-drag moves the Profile icon: the hand's movement is applied to the icon and turned back into a
-   * view offset, so the icon stays where it was let go and keeps following the head from there. Clamped so it
-   * cannot be parked outside the glasses' view.
-   */
-  private dragProfileButton(delta: vec3): void {
-    const cam = WorldCameraFinderProvider.getInstance().getTransform()
-    const rot = cam.getWorldRotation()
-    const look = rot.multiplyVec3(new vec3(0, 0, -1))
-    const up = rot.multiplyVec3(new vec3(0, 1, 0))
-    const right = rot.multiplyVec3(new vec3(1, 0, 0))
-    const b = this.profileButton.getTransform()
-    const pos = b.getWorldPosition().add(delta)
-    const rel = pos.sub(cam.getWorldPosition().add(look.uniformScale(55)))
-    const k = Math.max(0.01, this.uiScale)
-    this.buttonOffset = {
-      right: Math.max(-13, Math.min(13, rel.dot(right) / k)),
-      up: Math.max(-10, Math.min(9, rel.dot(up) / k)),
-    }
-    const t = this.buttonTarget()
-    b.setWorldPosition(t.pos)
-    b.setWorldRotation(t.rot)
+    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(9 * k)).add(up.uniformScale(-8 * k)), rot}
   }
 
   /** Lazy follow: the panel drifts back in front of the user when they turn or move, never snapping. */
@@ -859,9 +825,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       // The Profile button keeps its corner of the view whenever it is shown (the glide targets this spot too).
       const bt = this.buttonTarget()
       const b = this.profileButton.getTransform()
-      if (this.buttonDragging) {
-        // the hand is placing it; dragProfileButton sets the position
-      } else if (this.profileButton.getSceneObject().enabled) {
+      if (this.profileButton.getSceneObject().enabled) {
         const k = 1 - Math.exp(-dt * 5)
         b.setWorldPosition(vec3.lerp(b.getWorldPosition(), bt.pos, k))
         b.setWorldRotation(quat.slerp(b.getWorldRotation(), bt.rot, k))

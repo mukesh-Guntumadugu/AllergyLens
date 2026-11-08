@@ -6,6 +6,7 @@
 // SceneObject name "ProfileButton" so LEAF can find it.
 
 import {Interactable} from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable"
+import {InteractableManipulation} from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation"
 import Event, {PublicApi} from "SpectaclesInteractionKit.lspkg/Utils/Event"
 import * as UI from "./AllergyLensSharedUI"
 
@@ -31,10 +32,11 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
 
   private _onProfile = new Event<void>()
   private _onDragStart = new Event<void>()
-  private _onDrag = new Event<vec3>()
   private _onDragEnd = new Event<boolean>()
   private icon: Image | null = null
-  private dragDistance = 0
+  private root: SceneObject | null = null
+  private pinchStartLocal: vec3 | null = null
+  private moved = false
 
   /** User tapped the Profile button (a pinch that did not drag it). */
   get onProfile(): PublicApi<void> {
@@ -43,10 +45,6 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
   /** Pinch-and-drag began. */
   get onDragStart(): PublicApi<void> {
     return this._onDragStart.publicApi()
-  }
-  /** World-space movement of the pinch this frame while dragging (cm). */
-  get onDrag(): PublicApi<vec3> {
-    return this._onDrag.publicApi()
   }
   /** Drag ended; true when the icon actually moved (more than a centimetre). */
   get onDragEnd(): PublicApi<boolean> {
@@ -63,30 +61,45 @@ export class AllergyLensProfileButtonUI extends BaseScriptComponent {
     collider.shape = shape
     collider.fitVisual = false
     const interactable = root.createComponent(Interactable.getTypeName()) as Interactable
-    // A pinch that moves more than a centimetre is a drag (the icon follows the hand and stays where it is
-    // let go); a pinch that does not move is a tap and opens the profile.
-    interactable.onTriggerStart.add(() => {
-      this.dragDistance = 0
-    })
-    interactable.onDragStart.add(() => {
-      this.dragDistance = 0
+    this.root = root
+    // Pinch-and-drag moves the icon with SIK's own manipulation (the standard Specs grab feel): translation
+    // only. The icon is a child of the head-locked group, so wherever it is let go becomes its new place in
+    // the view and it keeps following the head from there. A pinch that did not move it is a tap: open.
+    const manip = root.createComponent(InteractableManipulation.getTypeName()) as InteractableManipulation
+    manip.setCanTranslate(true)
+    manip.setCanRotate(false)
+    manip.setCanScale(false)
+    manip.onManipulationStart.add(() => {
+      this.moved = false
       this._onDragStart.invoke()
     })
-    interactable.onDragUpdate.add((e) => {
-      const d = e.dragVector
-      if (!d) return
-      this.dragDistance += d.length
-      this._onDrag.invoke(d)
+    manip.onManipulationEnd.add(() => {
+      this.keepInView()
+      this._onDragEnd.invoke(this.moved)
     })
-    interactable.onDragEnd.add(() => this._onDragEnd.invoke(this.dragDistance > 1))
+    interactable.onTriggerStart.add(() => {
+      this.pinchStartLocal = root.getTransform().getLocalPosition()
+      this.moved = false
+    })
     interactable.onTriggerEnd.add(() => {
-      if (this.dragDistance > 1) return
+      const start = this.pinchStartLocal
+      const now = root.getTransform().getLocalPosition()
+      this.moved = !!start && now.distance(start) > 1
+      if (this.moved) return
       this._onProfile.invoke()
     })
     interactable.onHoverEnter.add(() => this.setAlpha(1))
     interactable.onHoverExit.add(() => this.setAlpha(this.idleAlpha))
     // The icon itself, see-through; no plate behind it.
     this.icon = UI.addImage(root, ICON_PROFILE, S, S, new vec4(1, 1, 1, this.idleAlpha), false)
+  }
+
+  /** After a drag, keep the icon on the panel's plane and inside the glasses' view (local cm of the head-locked group). */
+  private keepInView(): void {
+    if (!this.root) return
+    const t = this.root.getTransform()
+    const p = t.getLocalPosition()
+    t.setLocalPosition(new vec3(Math.max(-22, Math.min(5, p.x)), Math.max(-3, Math.min(17, p.y)), 0))
   }
 
   private setAlpha(a: number): void {
