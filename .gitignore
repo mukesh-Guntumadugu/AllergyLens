@@ -58,3 +58,9 @@ data/lookup-cache.json
 
 # Added by Lens Studio (LEAF plugin)
 leaf_plugin_settings.json
+
+# written by Lens Studio for its agent tooling (which app instance has the project open)
+ls-live-instance.json
+
+# raw phone recordings before trimming/framing (the framed copies next to them are committed)
+data/products/_raw/

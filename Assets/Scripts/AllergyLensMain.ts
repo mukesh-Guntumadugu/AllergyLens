@@ -192,6 +192,7 @@ export class AllergyLensMain extends BaseScriptComponent {
   private panelHome: {pos: vec3; scale: vec3} | null = null
   /** Head-locked UI scale: 1 on the glasses, larger in a wide-angle preview (see applyUiScale). */
   private uiScale = 1
+  private uiScaleApplied = false
   private panelTween: {t0: number; dur: number; from: vec3; to: vec3; fromS: number; toS: number; onDone: () => void} | null = null
   private lastTickTime = 0
   private wantListening = false      // what the app wants; a dropped stream is reconnected while this is true
@@ -215,7 +216,10 @@ export class AllergyLensMain extends BaseScriptComponent {
     this.audio = new AllergyLensAudio(audioHost, this.sfxVolume)
     if (this.speechEnabled) this.speech = new AllergyLensSpeech(audioHost, 1.0)
     this.createEvent("OnStartEvent").bind(() => this.onStart())
-    this.createEvent("UpdateEvent").bind(() => this.tickPanelTween())
+    this.createEvent("UpdateEvent").bind(() => {
+      this.applyUiScale() // the view can change without a Lens reset (preview source, window)
+      this.tickPanelTween()
+    })
   }
 
   private onStart(): void {
@@ -628,20 +632,46 @@ export class AllergyLensMain extends BaseScriptComponent {
    * button, card text) is designed for that. Lens Studio's preview on phone footage renders about 66°
    * across, so the same centimetres become an unreadable stamp. Scale the head-locked UI so it keeps the
    * share of the view it has on the glasses; marks on the menu stay in page centimetres. ×1 on device.
+   *
+   * Runs every frame and only touches the scene when the view changes: the preview can switch between the
+   * room and a video without a Lens reset, and the camera's fov property is not always what is rendered
+   * (Lens Studio 5.24 reports a wide capture-camera fov in the SPECS 27 room while drawing 32°), so the
+   * view is measured from the camera's real projection instead.
    */
   private applyUiScale(): void {
+    let fovH: number
     try {
-      const cam = WorldCameraFinderProvider.getInstance().getComponent()
-      const fovH = (2 * Math.atan(Math.tan(cam.fov / 2) * cam.aspect) * 180) / Math.PI
-      const k = Math.min(3, Math.max(1, Math.tan((fovH * Math.PI) / 360) / Math.tan((REF_FOV_H_DEG * Math.PI) / 360)))
-      this.uiScale = k
-      for (const so of [this.profilePanel.getSceneObject(), this.profileButton.getSceneObject(), this.dishDetail.getSceneObject()]) {
-        so.getTransform().setLocalScale(new vec3(k, k, k))
-      }
-      print(`AllergyLens: view ${fovH.toFixed(1)}° across${k > 1.01 ? ` — head-locked UI scaled ×${k.toFixed(2)} to stay readable` : ""}`)
+      fovH = this.measureViewAcrossDeg()
     } catch (e) {
-      print(`AllergyLens: camera field of view unavailable (${e})`)
+      if (!this.uiScaleApplied) print(`AllergyLens: camera field of view unavailable (${e})`)
+      return
     }
+    const k = Math.min(3, Math.max(1, Math.tan((fovH * Math.PI) / 360) / Math.tan((REF_FOV_H_DEG * Math.PI) / 360)))
+    if (this.uiScaleApplied && Math.abs(k - this.uiScale) < 0.02) return
+    this.uiScale = k
+    this.uiScaleApplied = true
+    const s = new vec3(k, k, k)
+    if (this.panelHome) this.panelHome.scale = s
+    if (!this.panelTween) this.profilePanel.getSceneObject().getTransform().setLocalScale(s)
+    this.profileButton.getSceneObject().getTransform().setLocalScale(s)
+    this.dishDetail.getSceneObject().getTransform().setLocalScale(s)
+    print(`AllergyLens: view ${fovH.toFixed(1)}° across${k > 1.01 ? ` — head-locked UI scaled ×${k.toFixed(2)} to stay readable` : ""}`)
+  }
+
+  /**
+   * Degrees the camera really shows across: project two points 20 cm either side of the view centre, 1 m
+   * ahead, and read how much of the screen width they span. Falls back to the camera's fov property when
+   * the projection is unusable.
+   */
+  private measureViewAcrossDeg(): number {
+    const cam = WorldCameraFinderProvider.getInstance().getComponent()
+    const t = cam.getTransform()
+    const rot = t.getWorldRotation()
+    const ahead = t.getWorldPosition().add(rot.multiplyVec3(new vec3(0, 0, -100)))
+    const right = rot.multiplyVec3(new vec3(20, 0, 0))
+    const span = cam.worldSpaceToScreenSpace(ahead.add(right)).x - cam.worldSpaceToScreenSpace(ahead.sub(right)).x
+    if (isFinite(span) && span > 0.01 && span < 2) return (2 * Math.atan(0.2 / span) * 180) / Math.PI
+    return (2 * Math.atan(Math.tan(cam.fov / 2) * cam.aspect) * 180) / Math.PI
   }
 
   // ── Panel motion ───────────────────────────────────────────────────────
@@ -781,7 +811,10 @@ export class AllergyLensMain extends BaseScriptComponent {
     const look = rot.multiplyVec3(new vec3(0, 0, -1))
     const up = rot.multiplyVec3(new vec3(0, 1, 0))
     const right = rot.multiplyVec3(new vec3(1, 0, 0))
-    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(9)).add(up.uniformScale(-8)), rot}
+    // 9 cm right, 8 cm down at 55 cm is the lower-right corner of the glasses' view; scale the offset with the UI
+    // so the button keeps that corner in a wider preview instead of sitting in the middle of the picture.
+    const k = this.uiScale
+    return {pos: cam.getWorldPosition().add(look.uniformScale(55)).add(right.uniformScale(9 * k)).add(up.uniformScale(-8 * k)), rot}
   }
 
   /** Lazy follow: the panel drifts back in front of the user when they turn or move, never snapping. */
