@@ -38,7 +38,7 @@ Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 | Mood filter ("Veg dishes", "Chicken"…) with "order this" stars and an edge arrow to off-screen matches | Working in the preview |
 | Voice: say the dish name instead of pinching (SPECS ASR) | Built; only testable on the glasses |
 | Grocery products: label recognised by the camera → outline in the verdict colour + one chip ("Jif Creamy Peanut Butter · contains peanuts") → pinch for the card | Built; the Jif label marker is a placeholder image until a photo of the real jar replaces `Assets/Markers/product-0051500255162.png` |
-| Scraper pipeline v2 (restaurant discovery → menu acquisition → OCR + vision labelling → cited ingredient research → data lake), unattended per county on the GX10 | Merged 4 Nov; runs outside the Lens |
+| Scraper pipeline v2 (restaurant discovery → menu acquisition → OCR + vision labelling → cited ingredient research → data lake), unattended per county on the GPU server | Merged 4 Nov; runs outside the Lens |
 | Live fallback when a dish is not in the database (web / LLM) | Designed below; not built yet |
 | LEAF integration tests | 9 scenarios, 9/9 pass |
 
@@ -167,7 +167,7 @@ The full picture, with the diagram, every data set and the runtime flows, is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). This section is the short version.
 
 ```
- OFFLINE (once per restaurant, on the ASUS GX10)            ON THE GLASSES (every time you look)
+ OFFLINE (once per restaurant, on the our GPU server)            ON THE GLASSES (every time you look)
  ─────────────────────────────────────────────────           ──────────────────────────────────────────────
  menu photo ──► gate ──► OCR with boxes ──► Qwen3-VL ──┐     camera ──► MarkerTrackingComponent
                 labels each printed line: name, box,   │                  (Assets/Markers/MenuMarker-<id>.imgmarker)
@@ -240,7 +240,7 @@ miss, and nothing below is allowed to turn an unknown dish green.
 | tier | source | cost | state |
 |---|---|---|---|
 | 0 | `Assets/Data/AllergyData.ts` compiled into the Lens (4 restaurants, 49 dishes, 17 allergens, 10 products) | zero, offline | built |
-| 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure. `tools/serve_data.py` serves it from the GX10 (seed + data lake, ETag, CORS) | one ~10 KB GET per session | built |
+| 1 | `menus.json` fetched once at start from a URL (`menusUrl` input on `AllergyLens`); same shape, validated, bundled data on any failure. `tools/serve_data.py` serves it from the GPU server (seed + data lake, ETag, CORS) | one ~10 KB GET per session | built |
 | 2 | Open Food Facts API by barcode for packaged products (`world.openfoodfacts.org/api/v2/product/<barcode>`) | free, ODbL | pipeline built, Lens call not yet |
 | 3 | **Miss path** `GET /lookup?dish=<name>&cuisine=<c>` on the same server: cache first (seed catalog, lake `gold/dishes.json`, `data/lookup-cache.json`) answers in milliseconds; a miss is queued for web retrieval (`ingredients_rag.py`: recipe pages with schema.org markup, citations kept, no model invents a recipe) and answers `"researching"`; the Lens asks again at 8 s and 16 s, the second visitor hits the cache. The Lens asks for up to 12 unknown dishes when a page is recognised, 4 s timeout, amber meanwhile | one small GET per unknown dish, research once per dish ever | built 6 Nov ([#5](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/5)) |
 | 4 | **Small model on the server** (`--llm`): a miss is answered by a small model (deployed: gpt-4.1-nano through **OpenRouter**, one key with a hard spend cap set on openrouter.ai; Claude Haiku 5.5 or OpenAI direct also wired) as a fixed JSON list of *typical* ingredients plus a diet class, cached forever per dish, capped at 300 calls/hour. The key sits in `/etc/allergylens.env` on the server, never in the Lens. The call usually answers inside the Lens's first ask (the server waits up to 3 s), otherwise "researching" and the Lens asks again | ~600 input + 150 output tokens per new dish: about $0.0002 with Haiku, so a $20 budget covers ~100,000 dishes | built 6 Nov; the deployed default since web scraping stopped |
@@ -283,7 +283,7 @@ device limits, the server split and the storage layout are written up in
 1. **The hot path is offline.** Marker tracking, the check and the drawing
    never touch the network. A look at a known menu costs nothing.
 2. **Expensive work happens once per restaurant, not once per user.** Menu
-   reading runs on the GX10 with local models (RapidOCR for boxes, Qwen3-VL 8B
+   reading runs on the GPU server with local models (RapidOCR for boxes, Qwen3-VL 8B
    served by vLLM with schema-enforced JSON, batched); ingredients come from
    web retrieval, so no model ever invents a recipe and there is no API bill.
    The result is a JSON file every user gets for free, precomputed county by
@@ -367,7 +367,7 @@ node tools/check.js --dish "chicken tikka masala" --cuisine indian --profile mil
 #   the miss path: the same /lookup call the Lens makes, polled while "researching", then the checker on the answer
 ```
 
-A local run of the miss path, with no GX10 (`python3 -m venv .venv && .venv/bin/pip install -r tools/server/requirements.txt`):
+A local run of the miss path, with no GPU server (`python3 -m venv .venv && .venv/bin/pip install -r tools/server/requirements.txt`):
 
 ```bash
 ANTHROPIC_API_KEY=… .venv/bin/python tools/serve_data.py --port 8787 --llm   # /lookup asks the small model on a miss
@@ -386,7 +386,7 @@ read `[LEAF SUMMARY] 9/9 passed` in the Logger. Both debug flags are saved
 
 Toolchain: Lens Studio 5.23.2, Spectacles Interaction Kit 0.18, Spectacles UI
 Kit, Leaf; built with CLAD (Snap's coding agents) through the Lens Studio MCP;
-scrapers run on an ASUS GX10 (vLLM + Ollama, local only).
+scrapers run on an our GPU server (vLLM + Ollama, local only).
 
 ---
 
@@ -509,10 +509,10 @@ TESTING.md                  manual test guide
    `vegetarian`, refresh.
 5. Click a marked line (click = pinch) for the card.
 
-### Live data from the GX10
+### Live data from the GPU server
 
 ```bash
-python3 tools/serve_data.py --port 8787 --with-lake --research   # on the GX10; /menus.json, /products.json, /lookup, /health
+python3 tools/serve_data.py --port 8787 --with-lake --research   # on the GPU server; /menus.json, /products.json, /lookup, /health
 ```
 
 Then select `AllergyLens` in Lens Studio and set `menusUrl` to
@@ -520,7 +520,7 @@ Then select `AllergyLens` in Lens Studio and set `menusUrl` to
 validates the shape, re-checks any menu in view, and keeps the bundled data
 if the server is unreachable.
 
-As deployed on 5 Nov: the GX10 (`mukesh@gx10-733b.local`, 10.233.204.96 on
+As deployed on 5 Nov: the GPU server (`mukesh@gx10-733b.local`, 10.233.204.96 on
 the lab network) runs `allergylens-data` as a systemd service from a clone of
 `main` in `~/allergylens-serve` (port 8787; `systemctl status allergylens-data`,
 `journalctl -u allergylens-data -f`). On every (re)start it rebuilds the data
@@ -538,25 +538,25 @@ restaurants discovered, 82,606 files fetched, 26,233 images judged of which
 3,164 are menus, 449 of those extracted into 21,600 dish lines (194 restaurants,
 8,168 cleaned dishes in `gold/menus/`), merged into the Lens file by
 `tools/scrape/merge_gold.py`. 2,715 gated menu images are still unextracted
-(a GPU pass on the GX10, no web access needed). The 197 entries in
-`data/dishes.json` are recipe *types*, not menu lines. Once `node` is installed on the GX10,
+(a GPU pass on the GPU server, no web access needed). The 197 entries in
+`data/dishes.json` are recipe *types*, not menu lines. Once `node` is installed on the GPU server,
 `bash tools/server/install.sh` there turns it into a systemd service that
 builds and serves on its own.
 
 **Which miss path runs.** `--llm` wins over `--research`; the deployed services run `--llm`, and a server
 with no key in `/etc/allergylens.env` answers every miss "unknown" (amber) and says so in its log. To turn
 the model on: put `OPENROUTER_API_KEY=…` (or `ANTHROPIC_API_KEY=…` / `OPENAI_API_KEY=…`) in that file as root and
-`systemctl restart allergylens-api` (VPS) / `allergylens-data` (GX10). `/health` then reports the provider,
+`systemctl restart allergylens-api` (VPS) / `allergylens-data` (GPU server). `/health` then reports the provider,
 model, call count and tokens used.
 
 **Plain `http://` is refused by the Lens** ("URL is not secure") unless the
-project's Experimental API switch is on, so the GX10 also runs a second
+project's Experimental API switch is on, so the GPU server also runs a second
 service, `allergylens-tunnel`: a Cloudflare quick tunnel (no account) that
 gives the data server a public `https://…trycloudflare.com` address with a
 valid certificate, reachable from the glasses on any network. `menusUrl` in
 the saved scene points at it, and the Lens logs "loaded 28 restaurants from
 https://…" about 0.3 s after start. The hostname changes whenever the tunnel
-restarts (GX10 reboot): read the current one with
+restarts (GPU server reboot): read the current one with
 
 ```bash
 bash tools/server/tunnel_url.sh       # prints https://<words>.trycloudflare.com
@@ -575,11 +575,11 @@ AlmaLinux 10, the same box that serves the user's other sites) runs
 `menusUrl` points there; it does not change on reboot. Verified from the Mac:
 **193 restaurants, 8,251 dishes** pass the Lens validator (3.3 MB, one GET at start, 1.6 s); a cached dish answers `/lookup` in
 under a second; "Paneer Butter Masala" went researching → typical (16
-ingredients, cited) in 10 s and is now cached for everyone. The GX10 keeps
+ingredients, cited) in 10 s and is now cached for everyone. The GPU server keeps
 the GPU jobs and the lake and pushes its catalog over:
 
 ```bash
-bash tools/server/sync_vps.sh        # from the Mac: GX10 gold/ → VPS, git pull there, restart, health
+bash tools/server/sync_vps.sh        # from the Mac: GPU server gold/ → VPS, git pull there, restart, health
 ```
 
 To set it up on another box (Ubuntu or AlmaLinux; nginx + certbot if nginx already runs there, Caddy otherwise):
@@ -594,7 +594,7 @@ Then `menusUrl` = `https://api.<your-domain>/menus.json`, and
 `node tools/check.js --dish "…" --url https://api.<your-domain>/menus.json`
 from anywhere. Researched dishes land in `data/lookup-cache.json` on the box
 (ignored by git); copy it back into the lake's catalog when it is worth keeping.
-The GX10 tunnel (`tools/server/tunnel_url.sh`) stays as the fallback address.
+The GPU server tunnel (`tools/server/tunnel_url.sh`) stays as the fallback address.
 
 ## Roadmap
 
@@ -605,7 +605,7 @@ The GX10 tunnel (`tools/server/tunnel_url.sh`) stays as the fallback address.
 - Voice on the menu step and spoken feedback
   ([#4](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/4)); mark hold
   on shaky pages ([#3](https://github.com/mukesh-Guntumadugu/AllergyLens/issues/3)).
-- More restaurants through Pipeline 1 (one photo + 10 minutes on the GX10 each).
+- More restaurants through Pipeline 1 (one photo + 10 minutes on the GPU server each).
 - Regional roll-ups over `data/` (most common allergens per cuisine).
 
 ## Data attribution

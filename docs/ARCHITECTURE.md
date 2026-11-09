@@ -13,7 +13,7 @@ Three places do work, with very different budgets:
 |---|---|---|---|
 | **SPECS (or the Lens Studio preview)** | the Lens: marker tracking, the allergen check, every pixel drawn, voice | every time the user looks | zero network for a known menu; must never stall |
 | **VPS, `https://srv1619809.hstgr.cloud`** | `allergylens-api`: the menu catalogue, the dish lookup with its cache, the small model | once per session (catalogue) and once per unknown dish, cached for everyone | one small GET per session; model calls capped and cached |
-| **GX10 (our GPU box)** | the scraping and reading pipeline, the local vision model, the data lake | once per restaurant, unattended | GPU time we own; no API bill |
+| **GPU server (ours)** | the scraping and reading pipeline, the local vision model, the data lake | once per restaurant, unattended | GPU time we own; no API bill |
 
 ```mermaid
 flowchart LR
@@ -37,7 +37,7 @@ flowchart LR
     LLM[small model<br/>gpt-4.1-nano via OpenRouter<br/>key in /etc/allergylens.env]
     LK --> CACHE --> RAG --> LLM
   end
-  subgraph X["GX10 · pipeline + data lake"]
+  subgraph X["GPU server · pipeline + data lake"]
     DISC[discover restaurants<br/>OpenStreetMap] --> ACQ[acquire menus<br/>website, PDF, photos, phone clip]
     ACQ --> GATE[gate: is it a menu?] --> OCR[RapidOCR<br/>lines with boxes] --> VL[Qwen3-VL 8B on vLLM<br/>schema-constrained labels]
     VL --> CAT[dish catalog] --> RES[ingredient research<br/>≥3 agreeing recipes, cited] --> GOLD[(data-lake/gold)]
@@ -144,7 +144,7 @@ outline and chip appear, pinch for the card.
 | restaurants, dishes, ingredients, layout boxes, marker image | `data/menus.json`, `data/menus/<id>/menu-1.png`, `menu-1.lines.json`, `menu-1.ocr.json` | OCR of a photo or phone clip; names corrected by hand | yes (seed set) |
 | packaged products | `data/products.json`, `data/products/<id>/label-1.png` | Open Food Facts by barcode; one label read from a video | yes |
 | compiled Lens data | `Assets/Data/AllergyData.ts` | `node tools/build-data.js` | yes (generated) |
-| scraped lake: raw pages and images / tables / Lens-shaped JSON | `data-lake/bronze`, `silver`, `gold` | pipeline on the GX10 | no (git-ignored) |
+| scraped lake: raw pages and images / tables / Lens-shaped JSON | `data-lake/bronze`, `silver`, `gold` | pipeline on the GPU server | no (git-ignored) |
 | served catalogue | `menus.json` on the VPS | `gold/` synced by `tools/server/sync_vps.sh` | no |
 | researched dishes | `data/lookup-cache.json` on the server | miss path | no |
 | model key | `/etc/allergylens.env` on the server, root-only | — | never |
@@ -159,9 +159,9 @@ outline and chip appear, pinch for the card.
 - VPS: `tools/server/install_vps.sh` installs node, a venv, the systemd unit
   `allergylens-api.service`, and the nginx site with a Let's Encrypt
   certificate, beside the other sites already on the box.
-  `tools/server/sync_vps.sh` pushes the GX10's `gold/` catalogue, pulls the
+  `tools/server/sync_vps.sh` pushes the GPU server's `gold/` catalogue, pulls the
   repo, restarts, and checks `/health`.
-- GX10: `tools/scrape/run_pipeline.sh` runs the pipeline county by county in
+- GPU server: `tools/scrape/run_pipeline.sh` runs the pipeline county by county in
   tmux; `allergylens-data.service` serves the same API locally and
   `allergylens-tunnel.service` keeps a tunnel URL as the fallback address.
 - Security: the Lens holds no secrets. The only key is the model key on the
