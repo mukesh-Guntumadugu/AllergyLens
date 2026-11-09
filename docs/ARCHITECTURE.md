@@ -16,38 +16,52 @@ Three places do work, with very different budgets:
 | **processing server** | the scraping and reading pipeline, the local vision model, the data lake | once per restaurant, unattended | GPU time we own; no API bill |
 
 ```mermaid
-flowchart LR
-  subgraph G["SPECS / Lens Studio preview"]
-    CAM[camera] --> MT[MarkerTrackingComponent<br/>one per page + mirrored twins]
-    MT --> OV[AllergyLensMenuOverlayUI<br/>bars, hover, chip, badge]
-    MT --> PO[AllergyLensProductOverlayUI]
-    MAIN[AllergyLensMain<br/>flow, profile, focus, lookup] --> OV
-    MAIN --> PO
-    MAIN --> CHK[AllergyLensChecker<br/>profile × ingredients → verdict]
-    DATA[Assets/Data/AllergyData.ts<br/>compiled menus, allergens, products] --> CHK
-    PROF[AllergyLensProfileUI<br/>panel, keyboard, mic/speaker] --> MAIN
-    VOICE[AllergyLensVoice / Speech<br/>ASR in, one spoken line out] --> MAIN
-    CARD[AllergyLensDishDetailUI] --> MAIN
+flowchart TB
+  G["<b>SPECS / Lens Studio preview</b><br/>tracks the printed page · checks every dish · draws the answer<br/>no network for a known menu"]
+  V["<b>API on our VPS</b><br/>menus.json catalogue · /lookup for unknown dishes<br/>cache → cited web recipes → small model"]
+  X["<b>Processing server</b><br/>reads a menu once: OCR, vision labels, ingredient research<br/>data lake → catalogue"]
+  G -- "GET /menus.json once at start<br/>GET /lookup on a miss" --> V
+  X -- "sync (rsync)" --> V
+  X -- "build-data.js" --> G
+```
+
+**Inside the Lens**
+
+```mermaid
+flowchart TB
+  CAM[camera] --> MT["MarkerTrackingComponent<br/>one per page, plus mirrored twins"]
+  MT --> OV["AllergyLensMenuOverlayUI<br/>bars · hover · chip · badge"]
+  MT --> PO["AllergyLensProductOverlayUI<br/>label outline · chip"]
+  MAIN["AllergyLensMain<br/>flow · profile · tracker focus · lookup"] --> OV
+  MAIN --> PO
+  MAIN --> CHK["AllergyLensChecker<br/>profile × ingredients → verdict"]
+  DATA[("Assets/Data/AllergyData.ts<br/>menus · allergens · products")] --> CHK
+  PROF["AllergyLensProfileUI<br/>panel · keyboard · mic/speaker"] --> MAIN
+  VOICE["AllergyLensVoice / Speech<br/>ASR in · one spoken line out"] --> MAIN
+  CARD["AllergyLensDishDetailUI<br/>the card on pinch"] --> MAIN
+```
+
+**Server and pipeline**
+
+```mermaid
+flowchart TB
+  subgraph V["API on our VPS · nginx · systemd"]
+    direction TB
+    MJ[("menus.json<br/>193 restaurants · 8,251 dishes")]
+    LK["/lookup?dish=&cuisine="] --> CACHE[("cache<br/>seed · gold/dishes.json · lookup-cache")]
+    CACHE --> RAG["web retrieval<br/>recipe pages · schema.org · cited"]
+    RAG --> LLM["small model<br/>gpt-4.1-nano via OpenRouter<br/>key only on the server"]
   end
-  subgraph V["VPS · nginx · systemd allergylens-api"]
-    MJ[(menus.json<br/>193 restaurants, 8,251 dishes)]
-    LK[/lookup?dish=&cuisine=/]
-    CACHE[(lookup cache<br/>seed catalog · gold/dishes.json · lookup-cache.json)]
-    RAG[web retrieval<br/>recipe pages, schema.org, cited]
-    LLM[small model<br/>gpt-4.1-nano via OpenRouter<br/>key in /etc/allergylens.env]
-    LK --> CACHE --> RAG --> LLM
+  subgraph X["Processing server · pipeline · data lake"]
+    direction TB
+    DISC["discover restaurants<br/>OpenStreetMap"] --> ACQ["acquire menus<br/>website · PDF · photos · phone clip"]
+    ACQ --> GATE["gate: is it a menu?"] --> OCR["RapidOCR<br/>lines with boxes"]
+    OCR --> VL["Qwen3-VL on vLLM<br/>schema-constrained labels"] --> CAT["dish catalog"]
+    CAT --> RES["ingredient research<br/>≥3 agreeing recipes · cited"] --> GOLD[("data-lake/gold")]
+    PLACES["Google Places · ratings"] --> GOLD
+    OFF["Open Food Facts · products"] --> GOLD
   end
-  subgraph X["processing server · pipeline + data lake"]
-    DISC[discover restaurants<br/>OpenStreetMap] --> ACQ[acquire menus<br/>website, PDF, photos, phone clip]
-    ACQ --> GATE[gate: is it a menu?] --> OCR[RapidOCR<br/>lines with boxes] --> VL[Qwen3-VL 8B on vLLM<br/>schema-constrained labels]
-    VL --> CAT[dish catalog] --> RES[ingredient research<br/>≥3 agreeing recipes, cited] --> GOLD[(data-lake/gold)]
-    PLACES[Google Places API<br/>ratings] --> GOLD
-    OFF[Open Food Facts<br/>by barcode] --> GOLD
-  end
-  MAIN -- "GET /menus.json once at start" --> MJ
-  MAIN -- "GET /lookup on a miss" --> LK
-  GOLD -- "sync_vps.sh (rsync)" --> MJ
-  GOLD -- "build-data.js" --> DATA
+  GOLD -- "sync_vps.sh" --> MJ
 ```
 
 ## 2. Inside the Lens
