@@ -15,6 +15,8 @@ Three places do work, with very different budgets:
 | **VPS, `https://srv1619809.hstgr.cloud`** | `allergylens-api`: the menu catalogue, the dish lookup with its cache, the small model | once per session (catalogue) and once per unknown dish, cached for everyone | one small GET per session; model calls capped and cached |
 | **processing server** | the scraping and reading pipeline, the local vision model, the data lake | once per restaurant, unattended | GPU time we own; no API bill |
 
+### Diagram 1 — the three places and what flows between them
+
 ```mermaid
 flowchart TB
   G["<b>SPECS / Lens Studio preview</b><br/>tracks the printed page · checks every dish · draws the answer<br/>no network for a known menu"]
@@ -25,7 +27,7 @@ flowchart TB
   X -- "build-data.js" --> G
 ```
 
-**Inside the Lens**
+### Diagram 2 — inside the Lens
 
 ```mermaid
 flowchart TB
@@ -41,7 +43,7 @@ flowchart TB
   CARD["AllergyLensDishDetailUI<br/>the card on pinch"] --> MAIN
 ```
 
-**Server and pipeline**
+### Diagram 3 — the API and the processing server
 
 ```mermaid
 flowchart TB
