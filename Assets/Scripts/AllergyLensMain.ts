@@ -285,6 +285,7 @@ export class AllergyLensMain extends BaseScriptComponent {
       // Off while listening; otherwise (off, or dropped) a fresh start. This button is the only thing that turns voice on.
       const on = !(this.wantListening && (this.voice?.isListening ?? false))
       this.voiceWanted = on
+      if (on) this.voiceGaveUp = false // a deliberate pinch tries again (e.g. after signing in)
       this.listen(on)
       this.profilePanel.setHeard(this.hintFor(this.profilePanel.step))
       this.audio?.playClick()
@@ -388,6 +389,15 @@ export class AllergyLensMain extends BaseScriptComponent {
       print(`AllergyLens: voice reconnect attempt ${this.micRetries}`)
       this.voice.start()
       this.profilePanel.setListening(this.voice.micLive)
+      if (!this.voice.micLive && this.micRetries >= 2 && global.deviceInfoSystem.isEditor()) {
+        // Lens Studio refuses the speech stream (not signed in to My Lenses): each start re-opens its login dialog,
+        // so stop after two tries. The mic button starts it again by hand once the user has signed in.
+        this.voiceGaveUp = true
+        this.wantListening = false
+        this.profilePanel.setListening(false)
+        print("AllergyLens: voice refused twice — not retrying in the editor (sign in to My Lenses, then pinch the mic)")
+        return
+      }
       if (!this.voice.micLive && this.micRetries < 8) this.micRetryTimer?.reset(Math.min(30, 1.5 * Math.pow(2, this.micRetries - 1)))
     })
     this.focusTimer = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent
