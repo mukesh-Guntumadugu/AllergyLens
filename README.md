@@ -153,6 +153,9 @@ the app mark, fetched by `tools/assets/fetch_icons.sh`; tiles are text only.
 
 ## How it works
 
+The full picture, with the diagram, every data set and the runtime flows, is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). This section is the short version.
+
 ```
  OFFLINE (once per restaurant, on the ASUS GX10)            ON THE GLASSES (every time you look)
  ─────────────────────────────────────────────────           ──────────────────────────────────────────────
