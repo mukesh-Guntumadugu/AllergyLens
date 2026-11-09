@@ -1,6 +1,6 @@
 # AllergyLens
 
-**Look at a menu through SPECS and the dishes you can't eat are underlined in red, the ones you can get a thin green underline. Pinch a line and a card tells you what's in it, whether the kitchen can leave it out, or what to order instead.**
+**Look at a real menu through SPECS, point at a dish, and it answers on the page: red with what it contains, grey with what it may contain and "check with the restaurant", green when it is clear. Pinch the dish and a card tells you whether the kitchen can leave it out, or what to order instead.**
 
 AllergyLens is a see-through AR Lens for Snap SPECS, built for
 [Learn AR with SPECS](https://learn-specs.devpost.com/) on Devpost. It runs
@@ -13,6 +13,16 @@ menu except the line marks, one small badge chip for the restaurant, and the
 detail card you asked for.
 
 Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
+
+**Start here**
+
+| | |
+|---|---|
+| **[Architecture](docs/ARCHITECTURE.md)** | the system at a glance with a diagram, the Lens's modules, the runtime flows from the glasses to the server and back, every data set and where it lives, deployment, the reading pipeline |
+| **[Demo script](devpost/demo-script.md)** | the 3-minute video, shot by shot |
+| **[Design brief](devpost/design-brief.md)** | what the Learn SPECS skill pack planned with us |
+| **[Project story](devpost/project-story.md)** | inspiration, how it was built, challenges and fixes, what we learned |
+| **[Submission text](devpost/submission.md)** | what it does, who it is for, how it was built |
 
 ---
 
