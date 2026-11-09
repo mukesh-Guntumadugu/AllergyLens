@@ -17,24 +17,32 @@ voice-over after. No slides, the menu is the slide.
   only (QuickTime or OBS, 30 fps).
 - If the marker doesn't lock within 5 s after refresh, refresh again.
 
-## Shot list (as the Lens works on 2026-11-08)
+## Shot list — 3:00, half demo, half how it was built
 
-Source: the Preview panel on the **Mac camera** (live) or on the joined
-phone recording `data/demo-2026-11-07.mp4`. Lens Studio 5.23.2, device
-SPECS 27. In the preview the pointer is the mouse; on the glasses it is the
-finger.
+Record the Lens Studio Preview (5.23.2, SPECS 27, Mac camera, Back view) at
+30 fps. Voice-over after. The mouse is the finger in the preview. Speak at
+an easy pace: each line below is timed to fit its shot.
+
+### Part 1 — the demo (0:00–1:30)
 
 | t | on screen | voice-over |
 |---|---|---|
-| 0:00–0:10 | Black → the live camera, a printed menu on the table. | "One in ten adults has a food allergy. Every menu is a reading test with the wrong answer in the hospital. AllergyLens reads the menu with you." |
-| 0:10–0:40 | **Profile on a grey backdrop.** The Lens says its one line, "Welcome to Allergy Specs." Pinch Start, pinch *Peanuts*, *Tree nuts*, *Next*, *No pork*, *Next*, *Vegetarian*, *Done*. (Or pinch the mic button on the right and say them.) | "You set your profile once: allergies, religious rules, diet. Say it or pinch it. Then you just look at the menu like everyone else." |
-| 0:40–0:55 | **The reveal.** Done fades the backdrop out; the page in your hand is recognised and the chip reads *Our Kitchen Section · 3 of 24 safe*. Nothing else is drawn. | "The camera recognises the printed page and checks every dish against your profile at once. It draws nothing yet, because a page covered in marks is noise." |
-| 0:55–1:35 | **Point to check.** Rest the pointer on *Korean Chicken*: a red line fades in under the name with the chip *Contains chicken (not vegetarian), wheat (wheat flour, gochujang).* Move to *French Fries*: the red goes out, a bare green line. Move to a dish with no ingredient list: grey, *No ingredient list. Ask the restaurant.* | "Point at a dish and it answers. Red says exactly what it has and why that matters to you. Green is clear, nothing to read. Grey means it may have something, and tells you to ask. One dish at a time, only after your finger rests." |
-| 1:35–2:00 | **Pinch for the card.** Pinch *Korean Chicken*: the card says what to ask the kitchen to leave out, or the closest safe dish on this menu. Close it. | "Pinch and you get the decision, not a list: leave it out if it is a garnish, swap if it is the dish, or the nearest safe dish on the same menu." |
-| 2:00–2:20 | **Second page.** Swap to the Chinese Menu (or the Laurel Café page): recognised in a second, point at *Kung Pao Chicken*, red *Contains peanuts*. | "Any menu we have seen once works. A photo or a phone clip of the page is flattened into a tracking marker, read line by line, and compiled into the Lens." |
-| 2:20–2:35 | **Product.** Hold up the gummi worms bag, label to the camera: the label outline and *may contain milk, wheat, soy*. | "Same profile in the grocery store: the label is the marker, the ingredient list is the verdict." |
-| 2:35–2:50 | **Design process.** Quick cut: the design brief and demo script written with the skill pack, CLAD building scripts in Lens Studio over the MCP, a LEAF scenario running in the preview, the data pipeline in a terminal. | "Planned with the Learn SPECS skill pack, built by an AI agent through CLAD in Lens Studio, tested with LEAF scenarios that drive the preview. What we learned the hard way: draw less, say less, and look at the result on real footage." |
-| 2:50–3:00 | Marks fade as the page leaves the view; the Profile icon returns. Title card: AllergyLens · built with CLAD in Lens Studio · github link. | "AllergyLens. Point at a dish. Know what to order." |
+| 0:00–0:10 | Black. Then the live camera: a printed menu lying on the table. | "One in ten adults in the US has a food allergy. Many more don't eat beef, or pork, or meat at all. In a shop you can scan the packet. In a restaurant, you ask the waiter, dish by dish, and hope." |
+| 0:10–0:30 | **Profile.** The panel on its grey backdrop. The Lens says "Welcome to Allergy Specs." Pinch Start, pinch *Peanuts*, *Tree nuts*, *Next*, *No pork*, *Next*, *Vegetarian*, *Done*. | "AllergyLens is a Lens for SPECS. You set your profile once: allergies, religious rules, diet. Pinch it, or turn on the mic and say it. Then you just look at the menu." |
+| 0:30–0:42 | **The reveal.** Done fades the backdrop; the page is already in hand; the chip *Our Kitchen Section · 3 of 24 safe* appears. Nothing else is drawn. | "The camera recognises the printed page and checks every dish against your profile at once. It draws nothing yet. A page covered in marks is noise." |
+| 0:42–1:05 | **Point to check.** Rest on *Korean Chicken*: red line, chip *Contains chicken (not vegetarian), wheat (wheat flour, gochujang).* Move to *French Fries*: red fades, bare green line. Move to a dish without an ingredient list: grey, *No ingredient list. Ask the restaurant.* | "Point at a dish and it answers, one at a time, only when your finger rests. Red says exactly what it contains and why that matters to you. Green is clear, nothing to read. Grey means it might, and tells you what to ask." |
+| 1:05–1:18 | **Pinch for the card.** Pinch *Korean Chicken*: the card with what to leave out and the closest safe dish. Close. | "Pinch, and you get the decision, not a list: leave it out if it's a garnish, swap if it's the dish, or the nearest safe dish on this menu." |
+| 1:18–1:30 | **Product.** Hold the gummi bag's label to the camera: outline, *may contain milk, wheat, soy*. | "Same profile in the grocery store. The label is the marker, the ingredient list is the verdict. Twenty minutes of deciding becomes one." |
+
+### Part 2 — how it was built (1:30–3:00)
+
+| t | on screen | voice-over |
+|---|---|---|
+| 1:30–1:45 | `devpost/design-brief.md` scrolling: "The one spatial moment". Then this script. | "We planned it with the Learn SPECS skill pack. Its interview wrote the design brief: one spatial moment, the answer painted on the menu you are reading. That sentence survived every change." |
+| 1:45–2:05 | Lens Studio with the agent chat: a script edit, *RecompileTypeScript succeeded*, the Preview refreshing. Then the LEAF panel running `allergylens-1-profile-done` → passed. | "Everything was built by an AI agent through CLAD in Lens Studio, over the Lens Studio MCP: the TypeScript, the scene, the image markers, and eleven LEAF scenarios that drive the Lens in the preview and check what it draws." |
+| 2:05–2:25 | The README architecture diagram. Then a terminal: `page_from_video.py` flattening a phone clip into a page, `ocr_menu.py` printing dish lines with positions. | "A menu is read once, not per look. A phone clip of the page becomes the tracking marker. OCR gives every dish with its position. A knowledge base of allergens and typical recipes fills the ingredients. Spectacles Interaction Kit handles pinch and hover, UI Kit the panels." |
+| 2:25–2:45 | Browser: `https://srv1619809.hstgr.cloud/menus.json` loading; then `/lookup?dish=paneer%20butter%20masala` returning *typical* ingredients. | "A small server serves the catalogue, 193 restaurants, and answers dishes nobody has seen: cache first, then cited web recipes, then a small model, each answer cached for everyone. The key stays on the server. A model answer is never shown as a fact; it is grey, and it says to ask." |
+| 2:45–3:00 | Back to the live camera, one last point at a dish, the chip. Title card: *AllergyLens · built with CLAD in Lens Studio · github.com/mukesh-Guntumadugu/AllergyLens*. | "What we learned: draw less, say less, and judge it on real footage, not in the test room. AllergyLens. Point at a dish. Know what to order." |
 
 ## Lines to keep if time is short
 
