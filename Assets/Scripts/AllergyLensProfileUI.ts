@@ -63,7 +63,8 @@ const PAD = 1.2
 const GAP = 0.5
 const COLS = 3
 const QUESTION_H = 3.0
-const HEARD_H = 1.9
+const HEARD_H = 0 // the "heard" hint line is gone from the panel (kept as hidden text for the tests)
+const DOT_W = 1.2 // mic dot in the top-right corner of the panel: green while listening, invisible otherwise
 const TILE_H = 3.4
 const CHIP_H = 2.6
 const FOOTER_H = 3.0
@@ -245,7 +246,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   /** Mic state: the dot before the Heard line and the corner mic icon follow it. */
   setListening(on: boolean): void {
     this._listening = on
-    for (const t of this.micTexts) t.textFill.color = on ? new vec4(0.4, 1, 0.5, 1) : new vec4(1, 1, 1, 0.3)
+    for (const t of this.micTexts) t.textFill.color = new vec4(0.4, 1, 0.5, on ? 1 : 0)
     for (const img of this.micIcons) {
       img.mainPass.baseTex = on ? ICON_MIC : ICON_MIC_OFF
       img.mainPass.baseColor = new vec4(1, 1, 1, on ? 1 : 0.55)
@@ -442,15 +443,16 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   // ── Screens ────────────────────────────────────────────────────────────
   private buildWelcome(col: SceneObject, innerW: number, d: number, chipsH: number): void {
     // Welcome: the mark, the greeting, two lines, Heard — centred; same total height as the other screens.
-    UI.addColumnText(col, this.appName, "Subheadline", d, QUESTION_H, HorizontalAlignment.Left, UI.WHITE_SOFT)
+    const top = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.6, justify: FlexJustify.SpaceBetween, align: FlexAlign.Center})
+    UI.addRowText(top, this.appName, "Subheadline", d, innerW - DOT_W - 0.6, HorizontalAlignment.Left, UI.WHITE_SOFT)
+    this.addMicDot(top, d)
     const logoRow = UI.flexRow(col, innerW, 6, {justify: FlexJustify.Center, align: FlexAlign.Center})
     UI.addImage(logoRow, ICON_LOGO, 6, 6)
     this.greeting = UI.addColumnText(col, "Hi.", "Headline1", d, 3.0, HorizontalAlignment.Center)
-    UI.addColumnText(col, "Let’s set up your profile in three quick steps. Say your answers, or pinch.", "Body", d, 1.8, HorizontalAlignment.Center, UI.WHITE_SOFT)
-    this.addHeardLine(col, innerW, d)
+    this.addHiddenHeard(col)
     // Spacer so Start sits where Next does on the question screens.
-    const used = QUESTION_H + 6 + 3.0 + 1.8 + HEARD_H + GAP * 4
-    const target = QUESTION_H + HEARD_H + TILE_H * BODY_ROWS + chipsH + GAP * 4
+    const used = QUESTION_H + 6 + 3.0 + GAP * 3
+    const target = QUESTION_H + TILE_H * BODY_ROWS + chipsH + GAP * 4
     UI.flexChild(col, {w: innerW, h: Math.max(0.1, target - used)}, () => {})
   }
 
@@ -459,8 +461,9 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     // Question row: icon + question across the full width (the controls are outside the panel).
     const q = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
     UI.addImage(q, SCREEN_ICONS[step], QUESTION_H * 0.85, QUESTION_H * 0.85)
-    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - 0.6, HorizontalAlignment.Left)
-    this.addHeardLine(col, innerW, d)
+    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - DOT_W - 1.2, HorizontalAlignment.Left)
+    this.addMicDot(q, d)
+    this.addHiddenHeard(col)
     // Tiles, three per row; the reserved rows keep the footer in the same place on every screen.
     const ids = screen.tiles.slice()
     let rows = 0
@@ -517,11 +520,18 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     })
   }
 
-  private addHeardLine(col: SceneObject, innerW: number, d: number): void {
-    const row = UI.flexRow(col, innerW, HEARD_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
-    // A dot that is green while speech-to-text runs, then what was heard.
-    this.micTexts.push(UI.addRowText(row, "●", "Body", d, 1.2, HorizontalAlignment.Center, new vec4(1, 1, 1, this._listening ? 1 : 0.3)))
-    this.heardTexts.push(UI.addRowText(row, "", "Body", d, innerW - 1.8, HorizontalAlignment.Left, new vec4(0.6, 0.85, 1, 1)))
+  /** The mic dot in the panel's top-right corner: green while speech-to-text runs, invisible otherwise. */
+  private addMicDot(row: SceneObject, d: number): void {
+    this.micTexts.push(UI.addRowText(row, "●", "Body", d, DOT_W, HorizontalAlignment.Right, new vec4(0.4, 1, 0.5, this._listening ? 1 : 0)))
+  }
+
+  /** The "heard" line is no longer shown; the text still exists, hidden, so tests can read what the Lens understood. */
+  private addHiddenHeard(col: SceneObject): void {
+    const so = UI.obj(col, "Heard")
+    so.enabled = false
+    const t = so.createComponent("Component.Text") as Text
+    t.text = ""
+    this.heardTexts.push(t)
   }
 
   private buildFooter(col: SceneObject, innerW: number, d: number, step: ProfileStep): void {
