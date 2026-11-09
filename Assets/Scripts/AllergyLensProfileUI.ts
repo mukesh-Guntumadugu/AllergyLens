@@ -44,7 +44,7 @@ export const TILE_IDS: string[] = ["peanut", "tree_nut", "milk", "egg", "wheat",
 const SCREENS: {[s in ProfileStep]: {question: string; tiles: string[]}} = {
   welcome: {question: "", tiles: []},
   allergies: {question: "Any food allergies?", tiles: ["peanut", "tree_nut", "milk", "egg", "wheat", "shellfish"]},
-  religious: {question: "Anything you avoid for religious or cultural reasons?", tiles: ["beef", "pork", "alcohol"]},
+  religious: {question: "Religious or cultural rules?", tiles: ["beef", "pork", "alcohol"]},
   diet: {question: "Any diet?", tiles: ["meat", "vegan", "high_sugar", "trans_fat"]},
 }
 /** Shorter tile labels than the data's "No beef" style. */
@@ -461,7 +461,7 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
     // Question row: icon + question across the full width (the controls are outside the panel).
     const q = UI.flexRow(col, innerW, QUESTION_H, {gap: 0.6, justify: FlexJustify.Start, align: FlexAlign.Center})
     UI.addImage(q, SCREEN_ICONS[step], QUESTION_H * 0.85, QUESTION_H * 0.85)
-    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - DOT_W - 1.2, HorizontalAlignment.Left)
+    UI.addRowText(q, screen.question, "Headline2", d, innerW - QUESTION_H - DOT_W - 2.0, HorizontalAlignment.Left)
     this.addMicDot(q, d)
     this.addHiddenHeard(col)
     // Tiles, three per row; the reserved rows keep the footer in the same place on every screen.
@@ -500,7 +500,8 @@ export class AllergyLensProfileUI extends BaseScriptComponent {
   /** Keyboard / mic / speaker, stacked just outside the panel's right edge, from the top down. */
   private buildControlStrip(W: number, H: number): void {
     const size = CTRL * 1.25
-    const x = W / 2 + GAP + size / 2
+    // A clear gap between the plate's edge and the strip: nothing of the strip may touch the panel.
+    const x = W / 2 + GAP * 4 + size / 2
     const top = H / 2 - PAD - size / 2
     const strip = UI.obj(this.sceneObject, "Controls", new vec3(x, 0, UI.CONTENT_Z))
     const items: Array<[string, Texture, () => void, Image[] | null]> = [
