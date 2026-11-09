@@ -28,12 +28,12 @@ export type SpeechLine = keyof typeof CLIPS
 /** Clip lengths in seconds (ffprobe, see make_speech.sh) and the words each one says — the microphone
  *  hears the Lens's own voice too, so Main ignores transcripts while a clip plays and drops echoes of it. */
 const DURATION_S: {[l in SpeechLine]: number} = {
-  welcome: 1.7, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
+  welcome: 1.6, step_allergies: 5.0, more: 2.3, step_religious: 6.1, step_diet: 5.6, saved: 2.4, reopened: 3.1,
   heard_nothing: 3.8, menu_found: 4.3, contains: 2.1, likely_fine: 2.6, safe: 1.1, unknown: 2.8, muted: 2.7,
   mic_hint: 5.0, mic_back: 1.2,
 }
 const LINE_TEXT: {[l in SpeechLine]: string} = {
-  welcome: "welcome to allergy specs",
+  welcome: "welcome to allergy lens",
   step_allergies: "step one any food allergies say them pinch them or say more for others",
   more: "which other allergies just say them",
   step_religious: "step two anything you avoid for religious or cultural reasons beef pork or alcohol",

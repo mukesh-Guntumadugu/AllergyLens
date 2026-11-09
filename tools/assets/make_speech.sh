@@ -15,7 +15,7 @@ line() {  # name "text"
   rm -f "$tmp"
   printf "%-18s %6s KB  %s\n" "$1" "$(du -k "$OUT/$1.mp3" | cut -f1)" "$2"
 }
-line welcome        "Welcome to Allergy Specs."
+line welcome        "Welcome to Allergy Lens."
 line step_allergies "Step one. Any food allergies? Say them, pinch them, or say more for others."
 line more           "Which other allergies? Just say them."
 line step_religious "Step two. Anything you avoid for religious or cultural reasons? Beef, pork, or alcohol."
