@@ -14,12 +14,17 @@ detail card you asked for.
 
 Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
 
+**Demo video (3 min):** https://www.youtube.com/watch?v=9nLVtlf5bys
+
+[![AllergyLens demo on YouTube](https://img.youtube.com/vi/9nLVtlf5bys/hqdefault.jpg)](https://www.youtube.com/watch?v=9nLVtlf5bys)
+
 **Start here**
 
 | | |
 |---|---|
 | **[Architecture](docs/ARCHITECTURE.md)** | the system at a glance with a diagram, the Lens's modules, the runtime flows from the glasses to the server and back, every data set and where it lives, deployment, the reading pipeline |
-| **[Demo script](devpost/demo-script.md)** | the 3-minute video, shot by shot |
+| **[Demo video](https://www.youtube.com/watch?v=9nLVtlf5bys)** | the 3-minute recording on YouTube: profile, menu, point to check, pinch, and a grocery product |
+| **[Demo script](devpost/demo-script.md)** | the same video, shot by shot |
 | **[Design brief](devpost/design-brief.md)** | what the Learn SPECS skill pack planned with us |
 | **[Project story](devpost/project-story.md)** | inspiration, how it was built, challenges and fixes, what we learned |
 | **[Submission text](devpost/submission.md)** | what it does, who it is for, how it was built |

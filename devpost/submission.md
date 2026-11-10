@@ -62,4 +62,4 @@ their hands stay on the menu.
 ## Links
 
 - Repo: https://github.com/mukesh-Guntumadugu/AllergyLens
-- Demo video: (YouTube link)
+- Demo video: https://www.youtube.com/watch?v=9nLVtlf5bys
