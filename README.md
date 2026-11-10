@@ -614,3 +614,5 @@ Product data from [Open Food Facts](https://openfoodfacts.org) (ODbL).
 Restaurant data from the restaurants' own printed menus and the Google Places
 API. Dish knowledge base from recipe references, each entry carries its
 source and collection date.
+
+Code is under the [MIT License](LICENSE).
